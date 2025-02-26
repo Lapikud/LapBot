@@ -1,6 +1,7 @@
 # LAPbot
 
 ### SETUP
+Install node_modules using `npm install`
 Create a `.env` file <br>
 Put there `BOT TOKEN`, `CHANNELS IDs` and `ROLES IDs`
 
