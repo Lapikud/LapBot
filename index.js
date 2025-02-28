@@ -16,14 +16,14 @@ const client = new Client({
 const roleMap = {
     '1️⃣': process.env.TARKVARA_ROLE_ID,
     '2️⃣': process.env.HELPDESK_ROLE_ID,
-    '3️⃣': process.env.URITUSED_ROLE_ID,
-    '4️⃣': process.env.TURUNDUS_ROLE_ID
+    '3️⃣': process.env.KULTUUR_ROLE_ID,
+    // '4️⃣': process.env.TURUNDUS_ROLE_ID
 };
 
 client.once(Events.ClientReady, async c => {
     console.log(`Logged in as ${c.user.tag}`);
 
-    const roleMessage = "Valige endale rolli:\n1 - Tarkvara\n2 - Helpdesk\n3 - Üritused\n4 - Turundus";
+    const roleMessage = "Valige endale rolli:\n1 - Tarkvara\n2 - Helpdesk\n3 - Kultuur";
     await createMessageWithReactions(roleMessage);
 });
 
@@ -39,8 +39,8 @@ async function createMessageWithReactions(roleMessage) {
 
         await sentMessage.react('1️⃣');
         await sentMessage.react('2️⃣');
-        await sentMessage.react('3️⃣');
-        await sentMessage.react('4️⃣');
+        await sentMessage.react('3️⃣'); // kultuuritiim (turundus + üritused)
+        // await sentMessage.react('4️⃣'); // was turundus/uritused 
 
         console.log("Message sent.");
     } else {
@@ -85,25 +85,27 @@ client.on(Events.MessageReactionRemove, async (reaction, user) => {
     await handleReaction(reaction, user, false);
 });
 
-client.on(Events.GuildMemberAdd, async (member) => {
-    try {
-        const welcomeChannel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
+// Welcome message (not needer rn)
 
-        if (!welcomeChannel) {
-            return console.error("Welcome channel not found!");
-        }
+// client.on(Events.GuildMemberAdd, async (member) => {
+//     try {
+//         const welcomeChannel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
 
-        const highlight = `<@${member.user.id}>`;
+//         if (!welcomeChannel) {
+//             return console.error("Welcome channel not found!");
+//         }
 
-        const embed = new EmbedBuilder()
-            .setTitle("Welcome to the Server!")
-            .setDescription(`Hei <@${member.user.id}>! Valige endale sobiva rolli siin: <#${process.env.ROLE_SELECTION_CHANNEL_ID}>`)
-            .setColor("#FFAC1C");
+//         const highlight = `<@${member.user.id}>`;
 
-        await welcomeChannel.send({ content: highlight, embeds: [embed] });
-    } catch (error) {
-        console.error("Error sending welcome message:", error);
-    }
-});
+//         const embed = new EmbedBuilder()
+//             .setTitle("Welcome to the Server!")
+//             .setDescription(`Hei <@${member.user.id}>! Valige endale sobiva rolli siin: <#${process.env.ROLE_SELECTION_CHANNEL_ID}>`)
+//             .setColor("#FFAC1C");
+
+//         await welcomeChannel.send({ content: highlight, embeds: [embed] });
+//     } catch (error) {
+//         console.error("Error sending welcome message:", error);
+//     }
+// });
 
 client.login(process.env.DISCORD_TOKEN);
