@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
-import sonarjs from 'eslint-plugin-sonarjs';
+import { configs as sonarConfigs } from 'eslint-plugin-sonarjs';
 import unicorn from 'eslint-plugin-unicorn';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
@@ -64,7 +64,8 @@ const qualityRules: Linter.RulesRecord = {
 
   complexity: ['error', { max: 15 }],
   'max-depth': ['error', { max: 4 }],
-  'max-params': ['error', { max: 5 }],
+  'max-params': ['error', { max: 4 }],
+  'no-await-in-loop': 'error',
   'max-nested-callbacks': ['error', { max: 4 }],
 
   'sonarjs/cognitive-complexity': ['error', 15],
@@ -74,9 +75,9 @@ const qualityRules: Linter.RulesRecord = {
   'sonarjs/prefer-regexp-exec': 'error',
   'sonarjs/no-empty-collection': 'error',
   'sonarjs/reduce-initial-value': 'error',
+  'sonarjs/no-redundant-optional': 'error',
 };
 
-// Files that hold business logic or persistence must stay transport-agnostic.
 const transportFreeFiles = [
   'src/db/**/*.ts',
   'src/integrations/**/*.ts',
@@ -95,7 +96,6 @@ const noDiscordImport = {
     'Keep Discord transport code out of services, stores and integrations.',
 };
 
-// A feature may only reach into another feature through its index.ts.
 const featurePrivatePattern = {
   group: ['../*/*', '!../*/index.js', '!../../**'],
   message: "Import other features only through their public 'index.js'.",
@@ -129,6 +129,7 @@ const unicornRules: Linter.RulesRecord = {
   'unicorn/no-for-loop': 'error',
 
   'unicorn/no-array-reduce': 'off',
+  'unicorn/no-array-callback-reference': 'error',
 };
 
 export default defineConfig(
@@ -152,7 +153,7 @@ export default defineConfig(
 
   {
     files: sourceFiles,
-    extends: [js.configs.recommended, sonarjs.configs.recommended],
+    extends: [js.configs.recommended, sonarConfigs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: globals.builtin,
@@ -382,10 +383,37 @@ export default defineConfig(
       '@typescript-eslint/require-await': 'off',
       'unicorn/no-useless-undefined': 'off',
       'unicorn/no-await-expression-member': 'off',
-      // Tests may build fixtures with another feature's internals.
       'no-restricted-imports': 'off',
+      'no-await-in-loop': 'off',
     },
   },
 
+  {
+    files: ['src/shared/async.ts', 'src/core/scheduler/scheduler.ts'],
+    rules: { 'no-await-in-loop': 'off' },
+  },
+
   prettier,
+
+  {
+    files: typescriptFiles,
+    rules: {
+      curly: ['error', 'all'],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'ImportDeclaration[source.value=/^\\.{1,2}\\/.*\\.js$/], ImportExpression[source.value=/^\\.{1,2}\\/.*\\.js$/]',
+          message: 'Import local modules without the .js extension.',
+        },
+      ],
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: '*', next: 'return' },
+        { blankLine: 'always', prev: ['const', 'let'], next: '*' },
+        { blankLine: 'any', prev: ['const', 'let'], next: ['const', 'let'] },
+        { blankLine: 'always', prev: 'block-like', next: '*' },
+      ],
+    },
+  },
 );
