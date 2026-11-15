@@ -13,3 +13,4 @@ export type * from './polls';
 export type * from './movies';
 export type * from './birthdays';
 export type * from './issues';
+export type * from './auth';
