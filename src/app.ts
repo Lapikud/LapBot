@@ -3,6 +3,8 @@ import type { Config } from '~/config';
 import {
   announcementCommands,
   createClient,
+  createDiscordCalendar,
+  eventCommands,
   createInteractionHandler,
   buildRegistry,
   createDiscordDirectory,
@@ -15,6 +17,7 @@ import {
 import {
   createAnnouncementService,
   createAuthorizer,
+  createEventService,
   createPermissionService,
   createReminderService,
   createRoleService,
@@ -28,6 +31,7 @@ import { systemClock, type Job } from '~/core/ports';
 import {
   connectDatabase,
   createAnnouncementRepository,
+  createEventRepository,
   createGrantRepository,
   createReminderRepository,
   createRolePanelRepository,
@@ -35,8 +39,7 @@ import {
   runMigrations,
 } from '~/infra/db';
 import { birthdaysFeature } from '~/features/birthdays';
-import { eventsFeature } from '~/features/events';
-import { moviesFeature } from '~/features/movies';
+import { createMoviesFeature } from '~/features/movies';
 import { pollsFeature } from '~/features/polls';
 import { createRedmineFeature } from '~/features/redmine';
 
@@ -97,7 +100,21 @@ export function compose(config: Config, log: Logger) {
     clock: systemClock,
     timezone: (guildId) => settings.timezone(guildId),
   });
-  const jobs: Array<Job<unknown>> = [...reminders.jobs, ...announcements.jobs];
+  const events = createEventService({
+    events: createEventRepository(database.db),
+    scheduler,
+    messenger,
+    calendar: createDiscordCalendar(client),
+    directory,
+    authz,
+    log: log.child({ service: 'events' }),
+    timezone: (guildId) => settings.timezone(guildId),
+  });
+  const jobs: Array<Job<unknown>> = [
+    ...reminders.jobs,
+    ...announcements.jobs,
+    ...events.jobs,
+  ];
   const permissions = createPermissionService({
     grants,
     directory,
@@ -111,10 +128,10 @@ export function compose(config: Config, log: Logger) {
     settingsCommands(settings),
     reminderCommands(reminders),
     announcementCommands(announcements),
-    eventsFeature,
+    eventCommands(events),
     birthdaysFeature,
     pollsFeature,
-    moviesFeature,
+    createMoviesFeature(events),
   ];
   const redmine = createRedmineFeature(config, reminders);
 

@@ -10,3 +10,5 @@ export * from './reminders/model';
 export * from './reminders/repo';
 export * from './announcements/model';
 export * from './announcements/repo';
+export * from './events/model';
+export * from './events/repo';

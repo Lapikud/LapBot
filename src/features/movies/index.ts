@@ -9,7 +9,7 @@ import {
 import type { AppContext, CommandInteraction, Feature } from '~/infra/discord';
 import { getGuildTimezone } from '~/infra/db';
 import { UserError, discordTime, parseFutureWhen, parseWhen } from '~/domain';
-import { createEvent } from '~/features/events';
+import type { EventService } from '~/core/services';
 import { createPoll, getResults, latestPollBySource } from '~/features/polls';
 import type { MovieSuggestion } from './schema';
 import {
@@ -168,7 +168,7 @@ const data = new SlashCommandBuilder()
 const zoneOf = (interaction: CommandInteraction, ctx: AppContext) =>
   getGuildTimezone(ctx.db, interaction.guildId, ctx.config.DEFAULT_TIMEZONE);
 
-export const moviesFeature: Feature = {
+export const createMoviesFeature = (events: EventService): Feature => ({
   name: 'movies',
   permissions: [
     {
@@ -279,7 +279,7 @@ export const moviesFeature: Feature = {
           );
 
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-          const event = await createEvent(ctx, {
+          const event = await events.publish(toActor(interaction.member), {
             guildId: interaction.guildId,
             title: `🎬 Movie night: ${label(movie)}`.slice(0, 200),
             description: movie.note,
@@ -291,6 +291,8 @@ export const moviesFeature: Feature = {
               interaction.options.getChannel('channel')?.id ??
               interaction.channelId,
             capacity: interaction.options.getInteger('capacity'),
+            endsAt: null,
+            mentionRoleId: null,
             reminderMinutes: [60],
           });
 
@@ -351,4 +353,4 @@ export const moviesFeature: Feature = {
       },
     },
   ],
-};
+});

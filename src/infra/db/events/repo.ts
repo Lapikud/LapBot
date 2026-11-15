@@ -1,33 +1,15 @@
 import { and, asc, count, eq, gte, ne } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
+import type { EventRepository, NewEvent, RsvpCounts } from '~/core/ports';
+import type { Db } from '../client';
 import { UserError } from '~/domain';
-import {
-  eventRsvps,
-  events,
-  rsvpStatus,
-  type Event,
-  type RsvpStatus,
-} from './schema';
-
-export type NewEvent = Omit<
-  typeof events.$inferInsert,
-  'id' | 'messageId' | 'discordEventId' | 'status' | 'createdAt'
->;
-
-export type RsvpCounts = Record<RsvpStatus, number>;
-
-export const rsvpStatuses = rsvpStatus.enumValues;
+import { eventRsvps, events, type Event, type RsvpStatus } from './model';
 
 export async function insertEvent(db: Db, input: NewEvent): Promise<Event> {
   if (input.endsAt && input.endsAt <= input.startsAt) {
     throw new UserError('The end must be after the start.');
   }
 
-  if (
-    input.capacity !== undefined &&
-    input.capacity !== null &&
-    input.capacity < 1
-  ) {
+  if (input.capacity !== null && input.capacity < 1) {
     throw new UserError('Capacity must be at least 1.');
   }
 
@@ -44,20 +26,6 @@ export async function getEvent(db: Db, id: number): Promise<Event | undefined> {
   const [row] = await db.select().from(events).where(eq(events.id, id));
 
   return row;
-}
-
-export async function requireEvent(
-  db: Db,
-  guildId: string,
-  id: number,
-): Promise<Event> {
-  const event = await getEvent(db, id);
-
-  if (event?.guildId !== guildId) {
-    throw new UserError(`Event #${id} does not exist.`);
-  }
-
-  return event;
 }
 
 export async function listUpcoming(
@@ -172,4 +140,16 @@ export async function listAttendees(
     .where(eq(eventRsvps.eventId, eventId))
     .orderBy(asc(eventRsvps.updatedAt))
     .limit(1000);
+}
+
+export function createEventRepository(db: Db): EventRepository {
+  return {
+    insert: (event) => insertEvent(db, event),
+    find: (id) => getEvent(db, id),
+    upcoming: (guildId, limit) => listUpcoming(db, guildId, limit),
+    update: (id, changes) => updateEvent(db, id, changes),
+    setRsvp: (eventId, userId, status) => setRsvp(db, eventId, userId, status),
+    counts: (eventId) => rsvpCounts(db, eventId),
+    attendees: (eventId) => listAttendees(db, eventId),
+  };
 }

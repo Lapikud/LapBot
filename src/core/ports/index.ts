@@ -8,3 +8,4 @@ export type * from './settings';
 export type * from './roles';
 export type * from './reminders';
 export type * from './announcements';
+export * from './events';
