@@ -5,13 +5,17 @@ import {
   createInteractionHandler,
   buildRegistry,
   createDiscordDirectory,
+  createDiscordMessenger,
+  roleCommands,
   permissionCommands,
   settingsCommands,
 } from '~/infra/discord';
 import {
   createAuthorizer,
   createPermissionService,
+  createRoleService,
   createSettingsService,
+  type LegacyPanel,
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
@@ -19,6 +23,7 @@ import { createScheduler } from '~/infra/scheduler';
 import {
   connectDatabase,
   createGrantRepository,
+  createRolePanelRepository,
   createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
@@ -29,7 +34,24 @@ import { moviesFeature } from '~/features/movies';
 import { pollsFeature } from '~/features/polls';
 import { createRedmineFeature } from '~/features/redmine';
 import { remindersFeature } from '~/features/reminders';
-import { rolesFeature } from '~/features/roles';
+
+function legacyPanel(config: Config): LegacyPanel | undefined {
+  const channelId = config.ROLE_SELECTION_CHANNEL_ID;
+
+  if (channelId === undefined) {
+    return undefined;
+  }
+
+  const roles = [
+    { emoji: '1️⃣', roleId: config.TARKVARA_ROLE_ID, label: 'Tarkvara' },
+    { emoji: '2️⃣', roleId: config.HELPDESK_ROLE_ID, label: 'Helpdesk' },
+    { emoji: '3️⃣', roleId: config.KULTUUR_ROLE_ID, label: 'Kultuur' },
+  ].flatMap(({ roleId, ...rest }) =>
+    roleId === undefined ? [] : [{ roleId, ...rest }],
+  );
+
+  return { channelId, roles };
+}
 
 export function compose(config: Config, log: Logger) {
   const database = connectDatabase(config.DATABASE_URL);
@@ -37,6 +59,15 @@ export function compose(config: Config, log: Logger) {
   const grants = createGrantRepository(database.db);
   const authz = createAuthorizer(grants);
   const directory = createDiscordDirectory(client);
+  const messenger = createDiscordMessenger(client);
+  const roles = createRoleService({
+    panels: createRolePanelRepository(database.db),
+    directory,
+    messenger,
+    authz,
+    log: log.child({ service: 'roles' }),
+    legacy: legacyPanel(config),
+  });
   const settings = createSettingsService({
     settings: createSettingsRepository(database.db),
     authz,
@@ -50,7 +81,7 @@ export function compose(config: Config, log: Logger) {
     known: () => registry.permissions,
   });
   const features: Feature[] = [
-    rolesFeature,
+    roleCommands(roles),
     permissionCommands(permissions),
     settingsCommands(settings),
     remindersFeature,

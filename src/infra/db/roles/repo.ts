@@ -1,15 +1,10 @@
 import { and, asc, count, eq, max } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
+import type { PanelRole, RolePanelRepository } from '~/core/ports';
+import type { Db } from '../client';
 import { UserError } from '~/domain';
-import { rolePanelRoles, rolePanels } from './schema';
+import { rolePanelRoles, rolePanels } from './model';
 
 export const maxPanelRoles = 25;
-
-export type PanelRole = {
-  roleId: string;
-  label: string;
-  emoji: string | null;
-};
 
 export type Panel = typeof rolePanels.$inferSelect & { roles: PanelRole[] };
 
@@ -240,4 +235,26 @@ export async function removePanelRole(
 
 export async function deletePanel(db: Db, panelId: number): Promise<void> {
   await db.delete(rolePanels).where(eq(rolePanels.id, panelId));
+}
+
+export function createRolePanelRepository(db: Db): RolePanelRepository {
+  return {
+    reactionRole: (key) => findReactionRole(db, key),
+    find: (guildId, id) => getPanel(db, guildId, id),
+    list: (guildId) => listPanels(db, guildId),
+    selfAssignable: async (guildId) => {
+      const rows = await listSelfAssignableRoles(db, guildId);
+
+      return rows.map((row) => row.roleId);
+    },
+    create: (panel) => createPanel(db, panel),
+    reactionPanel: (guildId, channelId) =>
+      findReactionPanel(db, guildId, channelId),
+    setMessage: (id, messageId) => setPanelMessage(db, id, messageId),
+    setTitle: (id, title) => setPanelTitle(db, id, title),
+    replaceRoles: (id, roles) => replacePanelRoles(db, id, roles),
+    addRole: (id, role) => addPanelRole(db, id, role),
+    removeRole: (id, roleId) => removePanelRole(db, id, roleId),
+    remove: (id) => deletePanel(db, id),
+  };
 }

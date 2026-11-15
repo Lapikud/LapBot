@@ -11,7 +11,9 @@ import type {
   CommandInteraction,
   ComponentInteraction,
 } from './module';
+import type { Message as DomainMessage } from '~/domain';
 import { toActor } from './actor';
+import { render } from './render';
 import { parseCustomId, type Registry } from './registry';
 
 type Repliable = CommandInteraction | ComponentInteraction;
@@ -22,6 +24,27 @@ export async function respond(
 ): Promise<void> {
   const message = {
     ...(typeof content === 'string' ? { content } : content),
+    allowedMentions: { parse: [] },
+  };
+
+  if (interaction.replied) {
+    await interaction.followUp({ ...message, flags: MessageFlags.Ephemeral });
+  } else if (interaction.deferred) {
+    await interaction.editReply(message);
+  } else {
+    await interaction.reply({ ...message, flags: MessageFlags.Ephemeral });
+  }
+}
+
+export async function respondView(
+  interaction: Repliable,
+  view: DomainMessage,
+): Promise<void> {
+  const { content, embeds, components } = render(view);
+  const message = {
+    content,
+    embeds,
+    components,
     allowedMentions: { parse: [] },
   };
 

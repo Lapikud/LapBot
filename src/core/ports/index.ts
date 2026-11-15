@@ -5,3 +5,4 @@ export type * from './logger';
 export type * from './scheduler';
 export type * from './secrets';
 export type * from './settings';
+export type * from './roles';

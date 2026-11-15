@@ -4,3 +4,5 @@ export * from './jobs/repo';
 export * from './permissions/model';
 export * from './permissions/repo';
 export * from './settings/repo';
+export * from './roles/model';
+export * from './roles/repo';
