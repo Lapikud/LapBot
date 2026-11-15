@@ -16,3 +16,5 @@ export * from './polls/model';
 export * from './polls/repo';
 export * from './movies/model';
 export * from './movies/repo';
+export * from './birthdays/model';
+export * from './birthdays/repo';

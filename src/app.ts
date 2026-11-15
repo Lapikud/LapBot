@@ -2,6 +2,7 @@ import { Events, type Client } from 'discord.js';
 import type { Config } from '~/config';
 import {
   announcementCommands,
+  birthdayCommands,
   createClient,
   createDiscordCalendar,
   eventCommands,
@@ -19,6 +20,7 @@ import {
 import {
   createAnnouncementService,
   createAuthorizer,
+  createBirthdayService,
   createEventService,
   createMovieService,
   createPollService,
@@ -36,6 +38,7 @@ import {
   connectDatabase,
   createAnnouncementRepository,
   createEventRepository,
+  createBirthdayRepository,
   createGrantRepository,
   createMovieRepository,
   createPollRepository,
@@ -44,7 +47,6 @@ import {
   createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
-import { birthdaysFeature } from '~/features/birthdays';
 import { createRedmineFeature } from '~/features/redmine';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
@@ -130,7 +132,17 @@ export function compose(config: Config, log: Logger) {
     authz,
     timezone: (guildId) => settings.timezone(guildId),
   });
+  const birthdays = createBirthdayService({
+    birthdays: createBirthdayRepository(database.db),
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'birthdays' }),
+    timezone: (guildId) => settings.timezone(guildId),
+  });
   const jobs: Array<Job<unknown>> = [
+    ...birthdays.jobs,
     ...polls.jobs,
     ...reminders.jobs,
     ...announcements.jobs,
@@ -150,7 +162,7 @@ export function compose(config: Config, log: Logger) {
     reminderCommands(reminders),
     announcementCommands(announcements),
     eventCommands(events),
-    birthdaysFeature,
+    birthdayCommands(birthdays),
     pollCommands(polls),
     movieCommands(movies),
   ];

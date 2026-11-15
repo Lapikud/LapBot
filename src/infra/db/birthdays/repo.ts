@@ -1,38 +1,14 @@
 import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import { isLeapYear } from 'date-fns';
 import type { CalendarDay } from '~/domain';
-import type { Db } from '~/infra/db';
-import { UserError } from '~/domain';
+import type { BirthdayRepository } from '~/core/ports';
+import type { Db } from '../client';
+import { celebratedOn, validateBirthday } from '~/domain';
 import {
   birthdays,
   birthdaySettings,
   type Birthday,
   type BirthdayVisibility,
-} from './schema';
-
-export function validateDate(month: number, day: number): void {
-  const date = new Date(2024, month - 1, day);
-
-  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
-    throw new UserError('That is not a valid date.');
-  }
-}
-
-export function celebratedOn(
-  date: CalendarDay,
-): Array<{ month: number; day: number }> {
-  const dates = [{ month: date.month, day: date.day }];
-
-  if (
-    date.month === 2 &&
-    date.day === 28 &&
-    !isLeapYear(new Date(date.year, 0, 1))
-  ) {
-    dates.push({ month: 2, day: 29 });
-  }
-
-  return dates;
-}
+} from './model';
 
 export async function setBirthday(
   db: Db,
@@ -44,7 +20,7 @@ export async function setBirthday(
     visibility: BirthdayVisibility;
   },
 ): Promise<void> {
-  validateDate(input.month, input.day);
+  validateBirthday(input.month, input.day);
   await db
     .insert(birthdays)
     .values(input)
@@ -180,4 +156,20 @@ export async function deleteSettings(db: Db, guildId: string): Promise<void> {
   await db
     .delete(birthdaySettings)
     .where(eq(birthdaySettings.guildId, guildId));
+}
+
+export function createBirthdayRepository(db: Db): BirthdayRepository {
+  return {
+    set: (birthday) => setBirthday(db, birthday),
+    remove: (guildId, userId) => removeBirthday(db, guildId, userId),
+    find: (guildId, userId) => getBirthday(db, guildId, userId),
+    upcoming: (guildId, today, limit) =>
+      upcomingBirthdays(db, guildId, today, limit),
+    claim: (guildId, today) => claimTodaysBirthdays(db, guildId, today),
+    release: (guildId, userIds, year) =>
+      releaseClaims(db, guildId, userIds, year),
+    settings: (guildId) => getSettings(db, guildId),
+    saveSettings: (settings) => saveSettings(db, settings),
+    deleteSettings: (guildId) => deleteSettings(db, guildId),
+  };
 }
