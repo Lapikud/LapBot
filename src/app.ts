@@ -1,6 +1,7 @@
 import { Events, type Client } from 'discord.js';
 import type { Config } from '~/config';
 import {
+  announcementCommands,
   createClient,
   createInteractionHandler,
   buildRegistry,
@@ -12,6 +13,7 @@ import {
   settingsCommands,
 } from '~/infra/discord';
 import {
+  createAnnouncementService,
   createAuthorizer,
   createPermissionService,
   createReminderService,
@@ -22,16 +24,16 @@ import {
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
 import { createJobQueue, createScheduler } from '~/infra/scheduler';
-import type { Job } from '~/core/ports';
+import { systemClock, type Job } from '~/core/ports';
 import {
   connectDatabase,
+  createAnnouncementRepository,
   createGrantRepository,
   createReminderRepository,
   createRolePanelRepository,
   createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
-import { announcementsFeature } from '~/features/announcements';
 import { birthdaysFeature } from '~/features/birthdays';
 import { eventsFeature } from '~/features/events';
 import { moviesFeature } from '~/features/movies';
@@ -85,7 +87,17 @@ export function compose(config: Config, log: Logger) {
     authz,
     timezone: (guildId) => settings.timezone(guildId),
   });
-  const jobs: Array<Job<unknown>> = [...reminders.jobs];
+  const announcements = createAnnouncementService({
+    announcements: createAnnouncementRepository(database.db),
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'announcements' }),
+    clock: systemClock,
+    timezone: (guildId) => settings.timezone(guildId),
+  });
+  const jobs: Array<Job<unknown>> = [...reminders.jobs, ...announcements.jobs];
   const permissions = createPermissionService({
     grants,
     directory,
@@ -98,7 +110,7 @@ export function compose(config: Config, log: Logger) {
     permissionCommands(permissions),
     settingsCommands(settings),
     reminderCommands(reminders),
-    announcementsFeature,
+    announcementCommands(announcements),
     eventsFeature,
     birthdaysFeature,
     pollsFeature,

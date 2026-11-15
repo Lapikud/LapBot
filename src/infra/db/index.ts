@@ -8,3 +8,5 @@ export * from './roles/model';
 export * from './roles/repo';
 export * from './reminders/model';
 export * from './reminders/repo';
+export * from './announcements/model';
+export * from './announcements/repo';
