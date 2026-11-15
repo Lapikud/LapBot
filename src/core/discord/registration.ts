@@ -1,0 +1,21 @@
+import { REST, Routes } from 'discord.js';
+import type { Registry } from '../registry.js';
+
+/** Registers to one guild when given (instant), otherwise globally. */
+export async function registerCommands(
+  registry: Registry,
+  options: {
+    token: string;
+    applicationId: string;
+    guildId?: string | undefined;
+  },
+): Promise<number> {
+  const body = [...registry.commands.values()].map((command) => command.data);
+  const rest = new REST().setToken(options.token);
+  const route =
+    options.guildId === undefined
+      ? Routes.applicationCommands(options.applicationId)
+      : Routes.applicationGuildCommands(options.applicationId, options.guildId);
+  await rest.put(route, { body });
+  return body.length;
+}
