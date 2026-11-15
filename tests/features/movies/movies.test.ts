@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { castVote, finishPoll, insertPoll } from '../polls/service.js';
-import { pickMovie } from './index.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { castVote, finishPoll, insertPoll } from '~/features/polls/service';
+import { pickMovie } from '~/features/movies';
 import {
   listUnwatched,
   markWatched,
@@ -10,7 +10,7 @@ import {
   recordScreening,
   suggestMovie,
   watchHistory,
-} from './service.js';
+} from '~/features/movies/service';
 
 describe('normalizeTitle', () => {
   it('ignores case, punctuation and spacing', () => {
@@ -35,6 +35,7 @@ describe.skipIf(noDatabase)('movies', () => {
   it('rejects duplicate suggestions and points out watched ones', async () => {
     const guildId = snowflake();
     const movie = await suggest(guildId, 'Paprika');
+
     await expect(suggest(guildId, 'paprika!')).rejects.toThrow(
       'already suggested',
     );
@@ -64,9 +65,11 @@ describe.skipIf(noDatabase)('movies', () => {
       source: 'movies',
       options: [a, b].map((m) => ({ label: m.title, ref: String(m.id) })),
     });
+
     await expect(pickMovie(ctx(), guildId, null)).rejects.toThrow('close');
 
     const [optionA, optionB] = poll.options.map((o) => o.id);
+
     await castVote(testDb(), poll.id, snowflake(), [optionA ?? 0]);
     await castVote(testDb(), poll.id, snowflake(), [optionB ?? 0]);
     await finishPoll(testDb(), poll.id, 'closed');
@@ -81,6 +84,7 @@ describe.skipIf(noDatabase)('movies', () => {
       source: 'movies',
       options: [a, b].map((m) => ({ label: m.title, ref: String(m.id) })),
     });
+
     await castVote(testDb(), second.id, snowflake(), [
       second.options[0]?.id ?? 0,
     ]);
@@ -94,6 +98,7 @@ describe.skipIf(noDatabase)('movies', () => {
   it('tracks screenings and history', async () => {
     const guildId = snowflake();
     const movie = await suggest(guildId, 'Heat');
+
     await recordScreening(testDb(), {
       guildId,
       suggestionId: movie.id,

@@ -5,16 +5,20 @@ import {
 } from 'discord.js';
 import { pino } from 'pino';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { requireAbove, selfAssignProblem } from './guards.js';
-import { handleReaction, legacyMessage, legacyRoles } from './legacy.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { requireAbove, selfAssignProblem } from '~/features/roles/guards';
+import {
+  handleReaction,
+  legacyMessage,
+  legacyRoles,
+} from '~/features/roles/legacy';
 import {
   addPanelRole,
   createPanel,
   replacePanelRoles,
   setPanelMessage,
-} from './service.js';
+} from '~/features/roles/service';
 
 function role(
   overrides: Partial<{
@@ -44,6 +48,7 @@ describe('legacy role mapping', () => {
       HELPDESK_ROLE_ID: 'h',
       KULTUUR_ROLE_ID: 'k',
     };
+
     expect(legacyRoles({ config } as never)).toEqual([
       { emoji: '1️⃣', roleId: 't', label: 'Tarkvara' },
       { emoji: '2️⃣', roleId: 'h', label: 'Helpdesk' },
@@ -81,6 +86,7 @@ describe('role guards', () => {
         guild: { ownerId: 'owner' },
         roles: { highest: { comparePositionTo: () => position } },
       }) as never;
+
     expect(() => requireAbove(actor(1), role())).not.toThrow();
     expect(() => requireAbove(actor(0), role())).toThrow(
       'not below your highest role',
@@ -128,6 +134,7 @@ describe.skipIf(noDatabase)('reaction role handling', () => {
       title: 'Legacy',
       createdBy: 'bot',
     });
+
     await setPanelMessage(ctx.db, panelId, messageId);
     await replacePanelRoles(ctx.db, panelId, [
       { roleId, label: 'Tarkvara', emoji: '1️⃣' },
@@ -159,6 +166,7 @@ describe.skipIf(noDatabase)('reaction role handling', () => {
       title: 'x',
       createdBy: 'u',
     });
+
     await addPanelRole(ctx.db, panelId, {
       roleId: 'gone',
       label: 'Gone',

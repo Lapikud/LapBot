@@ -2,13 +2,13 @@ import { eq, sql } from 'drizzle-orm';
 import { pino } from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { noDatabase, testDb } from '../../../tests/db.js';
-import { PermanentError } from '../../shared/errors.js';
-import { defineJob } from '../define.js';
-import type { AppContext } from '../feature.js';
-import { createScheduler, retryDelayMs } from './scheduler.js';
-import { scheduledJobs } from './schema.js';
-import { claimDueJobs } from './store.js';
+import { noDatabase, testDb } from '../../db';
+import { PermanentError } from '~/shared/errors';
+import { defineJob } from '~/core/define';
+import type { AppContext } from '~/core/feature';
+import { createScheduler, retryDelayMs } from '~/core/scheduler/scheduler';
+import { scheduledJobs } from '~/core/scheduler/schema';
+import { claimDueJobs } from '~/core/scheduler/store';
 
 const log = pino({ level: 'silent' });
 
@@ -27,10 +27,13 @@ describe.skipIf(noDatabase)('scheduler', () => {
     if (!db) {
       throw new Error('unreachable');
     }
+
     const scheduler = createScheduler(db, new Map([[job.type, job]]), log);
     const ctx = { db, log } as unknown as AppContext;
+
     return { db, scheduler, ctx };
   };
+
   const past = () => new Date(Date.now() - 1000);
   const row = async (key: string) => {
     const { db: database } = setup();
@@ -38,6 +41,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
       .select()
       .from(scheduledJobs)
       .where(eq(scheduledJobs.key, key));
+
     return found;
   };
 
@@ -48,6 +52,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('runs due jobs once and marks them done', async () => {
     const { scheduler, ctx } = setup();
+
     handle.mockResolvedValue(null);
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'a' });
     await scheduler.schedule(
@@ -65,6 +70,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('replaces a pending job scheduled with the same key', async () => {
     const { scheduler, ctx } = setup();
+
     handle.mockResolvedValue(null);
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'same' });
     await scheduler.schedule(job, { n: 2 }, { runAt: past(), key: 'same' });
@@ -74,6 +80,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('does not run cancelled jobs', async () => {
     const { scheduler, ctx } = setup();
+
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'c' });
     await scheduler.cancel('c');
     expect(await scheduler.tick(ctx)).toBe(0);
@@ -82,12 +89,14 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('retries transient failures with backoff, then fails', async () => {
     const { db: database, scheduler, ctx } = setup();
+
     handle.mockRejectedValue(new Error('discord down'));
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'r' });
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       await scheduler.tick(ctx);
       const current = await row('r');
+
       expect(current?.attempts).toBe(attempt);
       if (attempt < 3) {
         expect(current?.status).toBe('pending');
@@ -98,6 +107,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
           .where(eq(scheduledJobs.key, 'r'));
       }
     }
+
     expect((await row('r'))?.status).toBe('failed');
     expect((await row('r'))?.lastError).toBe('discord down');
     expect(retryDelayMs(1)).toBe(30_000);
@@ -106,6 +116,7 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('does not retry permanent failures or invalid payloads', async () => {
     const { db: database, scheduler, ctx } = setup();
+
     handle.mockRejectedValue(new PermanentError('user blocked DMs'));
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'p' });
     await database.insert(scheduledJobs).values({
@@ -123,10 +134,12 @@ describe.skipIf(noDatabase)('scheduler', () => {
   it('reschedules recurring jobs', async () => {
     const { scheduler, ctx } = setup();
     const next = new Date(Date.now() + 86_400_000);
+
     handle.mockResolvedValue({ rescheduleAt: next });
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'rec' });
     await scheduler.tick(ctx);
     const current = await row('rec');
+
     expect(current?.status).toBe('pending');
     expect(current?.runAt.getTime()).toBe(next.getTime());
     expect(current?.attempts).toBe(0);
@@ -134,9 +147,9 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('recovers jobs whose lease expired after a crash', async () => {
     const { db: database, scheduler, ctx } = setup();
+
     handle.mockResolvedValue(null);
     await scheduler.schedule(job, { n: 1 }, { runAt: past(), key: 'crash' });
-    // Simulate a worker that claimed the job and died.
     await claimDueJobs(database, {
       types: [job.type],
       limit: 10,
@@ -153,9 +166,11 @@ describe.skipIf(noDatabase)('scheduler', () => {
 
   it('never hands the same job to concurrent claimers', async () => {
     const { db: database, scheduler } = setup();
+
     for (let n = 0; n < 20; n++) {
       await scheduler.schedule(job, { n }, { runAt: past(), key: `k${n}` });
     }
+
     const claims = await Promise.all(
       Array.from({ length: 5 }, () =>
         claimDueJobs(database, {
@@ -166,12 +181,14 @@ describe.skipIf(noDatabase)('scheduler', () => {
       ),
     );
     const ids = claims.flat().map((claimed) => claimed.id);
+
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toHaveLength(20);
   });
 
   it('leaves jobs of unregistered types untouched', async () => {
     const { db: database, scheduler, ctx } = setup();
+
     await database.insert(scheduledJobs).values({
       type: 'disabled:feature',
       payload: {},

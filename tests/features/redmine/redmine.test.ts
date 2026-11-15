@@ -1,20 +1,20 @@
 import { randomBytes } from 'node:crypto';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { Config } from '../../core/config.js';
-import type { AppContext } from '../../core/feature.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { Config } from '~/core/config';
+import type { AppContext } from '~/core/feature';
 import type {
   RedmineClient,
   RedmineIssue,
-} from '../../integrations/redmine/client.js';
-import { createRedmineFeature } from './index.js';
-import { createNotificationJobs } from './notifications.js';
+} from '~/integrations/redmine/client';
+import { createRedmineFeature } from '~/features/redmine';
+import { createNotificationJobs } from '~/features/redmine/notifications';
 import {
   addSubscription,
   issueNotifications,
   listSubscriptions,
-} from './service.js';
+} from '~/features/redmine/service';
 
 const since = new Date('2026-11-10T00:00:00Z');
 const statuses = new Map([
@@ -76,6 +76,7 @@ describe('issueNotifications', () => {
       statuses,
       'https://r/issues/42',
     );
+
     expect(notifications.map((n) => n.key)).toEqual([
       'issue:42:created',
       'journal:1',
@@ -100,6 +101,7 @@ describe('issueNotifications', () => {
       statuses,
       'u',
     );
+
     expect(notes).toEqual([]);
   });
 });
@@ -114,6 +116,7 @@ describe('createRedmineFeature', () => {
       REDMINE_BASE_URL: 'https://r',
       CREDENTIAL_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     } as Config);
+
     expect(feature?.jobs).toEqual([]);
   });
 });
@@ -122,6 +125,7 @@ describe.skipIf(noDatabase)('redmine polling', () => {
   it('notifies once per change and advances the checkpoint', async () => {
     const db = testDb();
     const channelId = snowflake();
+
     await addSubscription(db, {
       guildId: snowflake(),
       channelId,
@@ -151,11 +155,14 @@ describe.skipIf(noDatabase)('redmine polling', () => {
     const info = { id: 1, runAt: new Date(), attempt: 1 };
 
     const outcome = await poll?.run({}, info, ctx);
+
     await poll?.run({}, info, ctx);
     const ours = send.mock.calls.length;
+
     expect(ours).toBe(2);
     expect(outcome?.rescheduleAt.getTime()).toBeGreaterThan(Date.now());
     const subscriptions = await listSubscriptions(db, 0, 1000);
+
     expect(
       subscriptions
         .find((s) => s.channelId === channelId)
@@ -177,6 +184,7 @@ describe.skipIf(noDatabase)('redmine polling', () => {
       client: { channels: { fetch: vi.fn() } },
     } as unknown as AppContext;
     const [poll] = createNotificationJobs(redmine, 'https://r/').jobs;
+
     await expect(
       poll?.run({}, { id: 1, runAt: new Date(), attempt: 1 }, ctx),
     ).resolves.toBeDefined();

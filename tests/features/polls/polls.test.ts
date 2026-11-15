@@ -1,9 +1,9 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { UserError } from '../../shared/errors.js';
-import { closeJob, renderPoll } from './index.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { UserError } from '~/shared/errors';
+import { closeJob, renderPoll } from '~/features/polls';
 import {
   castVote,
   finishPoll,
@@ -12,7 +12,7 @@ import {
   getVoterChoices,
   insertPoll,
   type NewPoll,
-} from './service.js';
+} from '~/features/polls/service';
 
 const base = (overrides: Partial<NewPoll> = {}): NewPoll => ({
   guildId: snowflake(),
@@ -39,6 +39,7 @@ describe.skipIf(noDatabase)('polls', () => {
     const poll = await insertPoll(db(), base());
     const [pizza, sushi] = poll.options;
     const user = snowflake();
+
     await castVote(db(), poll.id, user, [pizza?.id ?? 0]);
     await castVote(db(), poll.id, user, [sushi?.id ?? 0]);
     expect(await getVoterChoices(db(), poll.id, user)).toEqual([sushi?.id]);
@@ -51,6 +52,7 @@ describe.skipIf(noDatabase)('polls', () => {
     const poll = await insertPoll(db(), base({ multiple: true }));
     const ids = poll.options.map((o) => o.id);
     const user = snowflake();
+
     await castVote(db(), poll.id, user, ids);
     expect((await getResults(db(), poll)).voters).toBe(1);
     expect((await getResults(db(), poll)).options.map((o) => o.votes)).toEqual([
@@ -63,6 +65,7 @@ describe.skipIf(noDatabase)('polls', () => {
   it('rejects options from another poll', async () => {
     const poll = await insertPoll(db(), base());
     const other = await insertPoll(db(), base());
+
     await expect(
       castVote(db(), poll.id, snowflake(), [other.options[0]?.id ?? 0]),
     ).rejects.toThrow('not part');
@@ -71,19 +74,23 @@ describe.skipIf(noDatabase)('polls', () => {
   it('reports ties and winners', async () => {
     const poll = await insertPoll(db(), base());
     const [pizza, sushi] = poll.options.map((o) => o.id);
+
     await castVote(db(), poll.id, snowflake(), [pizza ?? 0]);
     await castVote(db(), poll.id, snowflake(), [sushi ?? 0]);
     const tied = await getResults(db(), poll);
+
     expect(tied.tie).toBe(true);
     expect(tied.winners.map((w) => w.label)).toEqual(['Pizza', 'Sushi']);
     await castVote(db(), poll.id, snowflake(), [sushi ?? 0]);
     const won = await getResults(db(), poll);
+
     expect(won.tie).toBe(false);
     expect(won.winners.map((w) => w.label)).toEqual(['Sushi']);
   });
 
   it('refuses votes after closing or the deadline', async () => {
     const poll = await insertPoll(db(), base());
+
     expect(await finishPoll(db(), poll.id, 'closed')).toBeDefined();
     expect(await finishPoll(db(), poll.id, 'closed')).toBeUndefined();
     await expect(
@@ -94,6 +101,7 @@ describe.skipIf(noDatabase)('polls', () => {
       db(),
       base({ closesAt: new Date(Date.now() - 1000) }),
     );
+
     await expect(
       castVote(db(), expired.id, snowflake(), [expired.options[0]?.id ?? 0]),
     ).rejects.toThrow('closed');
@@ -104,24 +112,27 @@ describe.skipIf(noDatabase)('polls', () => {
     const [pizza, sushi] = poll.options.map((o) => o.id);
     const user = snowflake();
     const voters = Array.from({ length: 20 }, () => snowflake());
+
     await Promise.all([
       ...voters.map((voter) => castVote(db(), poll.id, voter, [pizza ?? 0])),
-      // The same member switching rapidly must end with exactly one vote.
       ...Array.from({ length: 10 }, (_, n) =>
         castVote(db(), poll.id, user, [(n % 2 === 0 ? pizza : sushi) ?? 0]),
       ),
     ]);
     const results = await getResults(db(), poll);
+
     expect(results.voters).toBe(21);
     expect(await getVoterChoices(db(), poll.id, user)).toHaveLength(1);
   });
 
   it('closes on schedule and hides live counts when requested', async () => {
     const poll = await insertPoll(db(), base({ showResults: 'closed' }));
+
     await castVote(db(), poll.id, snowflake(), [poll.options[0]?.id ?? 0]);
     const hidden = JSON.stringify(
       renderPoll(poll, await getResults(db(), poll)).embeds,
     );
+
     expect(hidden).not.toContain('█');
 
     const ctx = {
@@ -129,15 +140,18 @@ describe.skipIf(noDatabase)('polls', () => {
       log: pino({ level: 'silent' }),
       client: { channels: { fetch: vi.fn() } },
     } as unknown as AppContext;
+
     await closeJob.run(
       { pollId: poll.id },
       { id: 1, runAt: new Date(), attempt: 1 },
       ctx,
     );
     const closed = await getPoll(db(), poll.id);
+
     expect(closed?.status).toBe('closed');
     if (closed) {
       const rendered = renderPoll(closed, await getResults(db(), closed));
+
       expect(JSON.stringify(rendered.embeds)).toContain('Winner');
       expect(rendered.components).toEqual([]);
     }

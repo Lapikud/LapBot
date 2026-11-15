@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RedmineClient, RedmineError } from './client.js';
+import { RedmineClient, RedmineError } from '~/integrations/redmine/client';
 
 const issue = {
   id: 7,
@@ -18,6 +18,7 @@ const json = (status: number, body: unknown) =>
 
 function client(...responses: Array<Response | Error>) {
   const fetch = vi.fn<typeof globalThis.fetch>();
+
   for (const response of responses) {
     if (response instanceof Error) {
       fetch.mockRejectedValueOnce(response);
@@ -25,6 +26,7 @@ function client(...responses: Array<Response | Error>) {
       fetch.mockResolvedValueOnce(response);
     }
   }
+
   return {
     fetch,
     redmine: new RedmineClient('https://redmine.example', 'secret', { fetch }),
@@ -37,6 +39,7 @@ const kind = async (promise: Promise<unknown>) => {
   } catch (error) {
     return error instanceof RedmineError ? error.kind : 'other';
   }
+
   return 'none';
 };
 
@@ -50,9 +53,11 @@ describe('RedmineClient', () => {
       assignedToMe: true,
       updatedSince: new Date('2026-11-01T10:00:00.123Z'),
     });
+
     expect(result.issues[0]?.subject).toBe('Fix login');
     const [input, init] = fetch.mock.calls[0] ?? [];
     const url = input instanceof URL ? input.href : '';
+
     expect(url).toContain('project_id=web');
     expect(url).toContain('assigned_to_id=me');
     expect(decodeURIComponent(url)).toContain(
@@ -63,6 +68,7 @@ describe('RedmineClient', () => {
 
   it('rejects responses that do not match the expected shape', async () => {
     const { redmine } = client(json(200, { issue: { id: 'seven' } }));
+
     expect(await kind(redmine.getIssue(7))).toBe('invalid_response');
   });
 
@@ -72,6 +78,7 @@ describe('RedmineClient', () => {
     [404, 'not_found'],
   ])('maps HTTP %i to %s', async (status, expected) => {
     const { redmine } = client(json(status, {}));
+
     expect(await kind(redmine.currentUser())).toBe(expected);
   });
 
@@ -79,6 +86,7 @@ describe('RedmineClient', () => {
     const { redmine } = client(
       json(422, { errors: ['Subject cannot be blank'] }),
     );
+
     await expect(
       redmine.createIssue({ project_id: 1, subject: '' }),
     ).rejects.toThrow('Subject cannot be blank');
@@ -87,10 +95,12 @@ describe('RedmineClient', () => {
   it('retries reads once on timeouts but never retries writes', async () => {
     const timeout = new DOMException('timed out', 'TimeoutError');
     const read = client(timeout, json(200, { user: { id: 1, login: 'mari' } }));
+
     expect((await read.redmine.currentUser()).login).toBe('mari');
     expect(read.fetch).toHaveBeenCalledTimes(2);
 
     const write = client(timeout, json(204, undefined));
+
     expect(await kind(write.redmine.updateIssue(7, { notes: 'hi' }))).toBe(
       'unavailable',
     );
@@ -99,6 +109,7 @@ describe('RedmineClient', () => {
 
   it('treats server errors as unavailable', async () => {
     const { redmine } = client(json(502, {}), json(503, {}));
+
     expect(await kind(redmine.listProjects())).toBe('unavailable');
   });
 });

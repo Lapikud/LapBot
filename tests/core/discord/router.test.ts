@@ -1,9 +1,9 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { UserError } from '../../shared/errors.js';
-import type { AppContext, Feature } from '../feature.js';
-import { buildRegistry } from '../registry.js';
-import { createInteractionHandler } from './router.js';
+import { UserError } from '~/shared/errors';
+import type { AppContext, Feature } from '~/core/feature';
+import { buildRegistry } from '~/core/registry';
+import { createInteractionHandler } from '~/core/discord/router';
 
 function context(allowed: boolean) {
   const require = vi.fn(async () => {
@@ -15,6 +15,7 @@ function context(allowed: boolean) {
     log: pino({ level: 'silent' }),
     authz: { require, can: vi.fn() },
   } as unknown as AppContext;
+
   return { ctx, require };
 }
 
@@ -75,6 +76,7 @@ describe('interaction router', () => {
 
   it('routes public subcommands without a permission check', async () => {
     const { ctx, require } = context(false);
+
     execute.mockClear();
     await createInteractionHandler(
       registry,
@@ -86,8 +88,10 @@ describe('interaction router', () => {
 
   it('enforces declared permissions before executing', async () => {
     const { ctx, require } = context(false);
+
     execute.mockClear();
     const interaction = commandInteraction('demo', 'manage');
+
     await createInteractionHandler(registry, ctx)(interaction as never);
     expect(require).toHaveBeenCalledWith(interaction.member, 'demo:manage');
     expect(execute).not.toHaveBeenCalled();
@@ -98,8 +102,10 @@ describe('interaction router', () => {
 
   it('rechecks permissions on persistent components and passes arguments', async () => {
     const allowed = context(true);
+
     execute.mockClear();
     const interaction = componentInteraction('demo:press:42:x');
+
     await createInteractionHandler(registry, allowed.ctx)(interaction as never);
     expect(allowed.require).toHaveBeenCalledWith(
       interaction.member,
@@ -111,6 +117,7 @@ describe('interaction router', () => {
   it('answers unknown components instead of failing silently', async () => {
     const { ctx } = context(true);
     const interaction = componentInteraction('gone:button:1');
+
     await createInteractionHandler(registry, ctx)(interaction as never);
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'This control is no longer active.' }),
@@ -120,10 +127,12 @@ describe('interaction router', () => {
   it('hides unexpected errors behind a reference', async () => {
     const { ctx } = context(true);
     const interaction = commandInteraction('boom', null);
+
     await createInteractionHandler(registry, ctx)(interaction as never);
     const [[reply]] = interaction.reply.mock.calls as unknown as [
       [{ content: string }],
     ];
+
     expect(reply.content).toMatch(
       /^Something went wrong\. Reference: `\w{8}`$/,
     );
@@ -137,11 +146,13 @@ describe('interaction router', () => {
       deferred: true,
       editReply: vi.fn(async () => undefined),
     };
+
     await handle(pending as never);
     expect(pending.editReply).toHaveBeenCalledOnce();
     expect(pending.reply).not.toHaveBeenCalled();
 
     const answered = { ...commandInteraction('boom', null), replied: true };
+
     await handle(answered as never);
     expect(answered.followUp).toHaveBeenCalledOnce();
   });

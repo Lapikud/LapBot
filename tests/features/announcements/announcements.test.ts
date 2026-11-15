@@ -1,10 +1,14 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { render } from './index.js';
-import type { Announcement } from './schema.js';
-import { getAnnouncement, insertAnnouncement, transition } from './service.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { render } from '~/features/announcements';
+import type { Announcement } from '~/features/announcements/schema';
+import {
+  getAnnouncement,
+  insertAnnouncement,
+  transition,
+} from '~/features/announcements/service';
 
 const draft = (overrides: Partial<Announcement> = {}): Announcement => ({
   id: 1,
@@ -67,12 +71,13 @@ describe.skipIf(noDatabase)('announcement publishing', () => {
         transition(db, row.id, ['draft'], { status: 'publishing' }),
       ),
     );
+
     expect(claims.filter(Boolean)).toHaveLength(1);
   });
 
   it('skips scheduled announcements that are long overdue', async () => {
     const db = testDb();
-    const { announcementsFeature } = await import('./index.js');
+    const { announcementsFeature } = await import('~/features/announcements');
     const job = announcementsFeature.jobs?.[0];
     const send = vi.fn();
     const ctx = {
@@ -83,6 +88,7 @@ describe.skipIf(noDatabase)('announcement publishing', () => {
       },
     } as unknown as AppContext;
     const row = await insertAnnouncement(db, input());
+
     await transition(db, row.id, ['draft'], {
       status: 'scheduled',
       scheduledAt: new Date(Date.now() - 2 * 3_600_000),
@@ -98,7 +104,7 @@ describe.skipIf(noDatabase)('announcement publishing', () => {
 
   it('publishes due scheduled announcements once', async () => {
     const db = testDb();
-    const { announcementsFeature } = await import('./index.js');
+    const { announcementsFeature } = await import('~/features/announcements');
     const job = announcementsFeature.jobs?.[0];
     const send = vi.fn(async () => ({ id: 'm1' }));
     const ctx = {
@@ -109,11 +115,13 @@ describe.skipIf(noDatabase)('announcement publishing', () => {
       },
     } as unknown as AppContext;
     const row = await insertAnnouncement(db, input());
+
     await transition(db, row.id, ['draft'], {
       status: 'scheduled',
       scheduledAt: new Date(),
     });
     const info = { id: 1, runAt: new Date(), attempt: 1 };
+
     await job?.run({ announcementId: row.id }, info, ctx);
     await job?.run({ announcementId: row.id }, info, ctx);
     expect(send).toHaveBeenCalledOnce();

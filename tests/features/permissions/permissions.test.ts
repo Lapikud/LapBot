@@ -1,7 +1,7 @@
 import type { GuildMember, Role } from 'discord.js';
 import { describe, expect, it } from 'vitest';
-import type { Authorizer } from '../../core/feature.js';
-import { checkDelegation } from './index.js';
+import type { Authorizer } from '~/core/feature';
+import { checkDelegation } from '~/features/permissions';
 
 const role = {} as Role;
 const actor = (options: { admin?: boolean; above?: boolean }) =>

@@ -1,16 +1,16 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { UserError } from '../../shared/errors.js';
-import { createEvent, remindJob } from './index.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { UserError } from '~/shared/errors';
+import { createEvent, remindJob } from '~/features/events';
 import {
   insertEvent,
   listAttendees,
   rsvpCounts,
   setRsvp,
   updateEvent,
-} from './service.js';
+} from '~/features/events/service';
 
 const base = () => ({
   guildId: snowflake(),
@@ -27,12 +27,14 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
     if (!db) {
       throw new Error('unreachable');
     }
+
     return db;
   };
 
   it('records RSVPs and lets members change them without duplicates', async () => {
     const event = await insertEvent(database(), base());
     const user = snowflake();
+
     await setRsvp(database(), event.id, user, 'going');
     await setRsvp(database(), event.id, user, 'maybe');
     await setRsvp(database(), event.id, user, 'maybe');
@@ -49,6 +51,7 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
   it('enforces capacity but lets attendees keep their spot', async () => {
     const event = await insertEvent(database(), { ...base(), capacity: 1 });
     const [first, second] = [snowflake(), snowflake()];
+
     await setRsvp(database(), event.id, first, 'going');
     await setRsvp(database(), event.id, first, 'going');
     await expect(
@@ -67,12 +70,14 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
         setRsvp(database(), event.id, snowflake(), 'going'),
       ),
     );
+
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(3);
     expect((await rsvpCounts(database(), event.id)).going).toBe(3);
   });
 
   it('closes RSVPs once cancelled', async () => {
     const event = await insertEvent(database(), base());
+
     await updateEvent(database(), event.id, { status: 'cancelled' });
     await expect(
       setRsvp(database(), event.id, snowflake(), 'going'),
@@ -81,6 +86,7 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
 
   it('validates times and capacity', async () => {
     const start = new Date(Date.now() + 3_600_000);
+
     await expect(
       insertEvent(database(), { ...base(), startsAt: start, endsAt: start }),
     ).rejects.toThrow('end');
@@ -104,8 +110,8 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
       ...base(),
       reminderMinutes: [60, 600],
     });
+
     expect(event.messageId).not.toBeNull();
-    // 600 minutes before a start 3h away is already past, so only one job.
     expect(schedule).toHaveBeenCalledOnce();
     expect(schedule).toHaveBeenCalledWith(
       remindJob,

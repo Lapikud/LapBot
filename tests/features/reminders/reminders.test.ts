@@ -1,11 +1,15 @@
 import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { PermanentError, UserError } from '../../shared/errors.js';
-import { createReminder, deliverJob } from './index.js';
-import { getReminder, insertReminder, maxActivePerUser } from './service.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { PermanentError, UserError } from '~/shared/errors';
+import { createReminder, deliverJob } from '~/features/reminders';
+import {
+  getReminder,
+  insertReminder,
+  maxActivePerUser,
+} from '~/features/reminders/service';
 
 const cannotDm = new DiscordAPIError(
   {
@@ -28,6 +32,7 @@ function context() {
     client: { users: { fetch: async () => ({ send }) } },
     scheduler: { schedule, cancel: vi.fn() },
   } as unknown as AppContext;
+
   return { ctx, send, schedule };
 }
 
@@ -46,6 +51,7 @@ describe.skipIf(noDatabase)('reminders', () => {
   it('schedules a job keyed to the reminder', async () => {
     const { ctx, schedule } = context();
     const reminder = await createReminder(ctx, base());
+
     expect(schedule).toHaveBeenCalledWith(
       deliverJob,
       { reminderId: reminder.id },
@@ -59,6 +65,7 @@ describe.skipIf(noDatabase)('reminders', () => {
   it('delivers one-off reminders by DM and completes them', async () => {
     const { ctx, send } = context();
     const reminder = await insertReminder(ctx.db, base());
+
     expect(
       await deliverJob.run({ reminderId: reminder.id }, info, ctx),
     ).toBeNull();
@@ -78,6 +85,7 @@ describe.skipIf(noDatabase)('reminders', () => {
       info,
       ctx,
     );
+
     expect(outcome?.rescheduleAt.getTime()).toBeGreaterThan(Date.now());
     expect(outcome?.rescheduleAt.getTime()).toBeLessThanOrEqual(
       Date.now() + 86_400_000,
@@ -87,8 +95,10 @@ describe.skipIf(noDatabase)('reminders', () => {
 
   it('fails permanently when DMs are closed', async () => {
     const { ctx, send } = context();
+
     send.mockRejectedValue(cannotDm);
     const reminder = await insertReminder(ctx.db, base());
+
     await expect(
       deliverJob.run({ reminderId: reminder.id }, info, ctx),
     ).rejects.toBeInstanceOf(PermanentError);
@@ -98,7 +108,8 @@ describe.skipIf(noDatabase)('reminders', () => {
   it('skips cancelled reminders', async () => {
     const { ctx, send } = context();
     const reminder = await insertReminder(ctx.db, base());
-    const { updateReminder } = await import('./service.js');
+    const { updateReminder } = await import('~/features/reminders/service');
+
     await updateReminder(ctx.db, reminder.id, { status: 'cancelled' });
     await deliverJob.run({ reminderId: reminder.id }, info, ctx);
     expect(send).not.toHaveBeenCalled();
@@ -107,9 +118,11 @@ describe.skipIf(noDatabase)('reminders', () => {
   it('limits active reminders per user and message length', async () => {
     const { ctx } = context();
     const input = base();
+
     for (let n = 0; n < maxActivePerUser; n++) {
       await insertReminder(ctx.db, input);
     }
+
     await expect(insertReminder(ctx.db, input)).rejects.toBeInstanceOf(
       UserError,
     );

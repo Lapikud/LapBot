@@ -1,10 +1,9 @@
-import { DateTime } from 'luxon';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import type { AppContext } from '../../core/feature.js';
-import { nextDailyRun } from '../../shared/time.js';
-import { dailyJob } from './index.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import type { AppContext } from '~/core/feature';
+import { calendarDay, nextDailyRun } from '~/shared/time';
+import { dailyJob } from '~/features/birthdays';
 import {
   celebratedOn,
   claimTodaysBirthdays,
@@ -13,7 +12,7 @@ import {
   setBirthday,
   upcomingBirthdays,
   validateDate,
-} from './service.js';
+} from '~/features/birthdays/service';
 
 describe('birthday dates', () => {
   it('accepts 29 February and rejects impossible dates', () => {
@@ -23,20 +22,21 @@ describe('birthday dates', () => {
   });
 
   it('celebrates leap-day birthdays on 28 February in non-leap years', () => {
-    expect(celebratedOn(DateTime.local(2027, 2, 28))).toEqual([
+    expect(celebratedOn({ year: 2027, month: 2, day: 28 })).toEqual([
       { month: 2, day: 28 },
       { month: 2, day: 29 },
     ]);
-    expect(celebratedOn(DateTime.local(2028, 2, 28))).toEqual([
+    expect(celebratedOn({ year: 2028, month: 2, day: 28 })).toEqual([
       { month: 2, day: 28 },
     ]);
-    expect(celebratedOn(DateTime.local(2028, 2, 29))).toEqual([
+    expect(celebratedOn({ year: 2028, month: 2, day: 29 })).toEqual([
       { month: 2, day: 29 },
     ]);
   });
 
   it('computes the next announcement hour in the guild timezone', () => {
-    const now = DateTime.fromISO('2026-06-01T10:00:00Z') as DateTime<true>;
+    const now = new Date('2026-06-01T10:00:00Z');
+
     expect(nextDailyRun('Europe/Tallinn', 9, now).toISOString()).toBe(
       '2026-06-02T06:00:00.000Z',
     );
@@ -47,7 +47,7 @@ describe('birthday dates', () => {
 });
 
 describe.skipIf(noDatabase)('birthday announcements', () => {
-  const today = DateTime.local(2027, 2, 28);
+  const today = { year: 2027, month: 2, day: 28 };
 
   it('announces each birthday once per year and respects privacy', async () => {
     const db = testDb();
@@ -59,6 +59,7 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
       snowflake(),
       snowflake(),
     ];
+
     await setBirthday(db, {
       guildId,
       userId: pub,
@@ -96,11 +97,15 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
     });
 
     const claimed = await claimTodaysBirthdays(db, guildId, today);
+
     expect(claimed).toHaveLength(3);
     expect(claimed).toEqual(expect.arrayContaining([pub, announce, leap]));
     expect(await claimTodaysBirthdays(db, guildId, today)).toEqual([]);
     expect(
-      await claimTodaysBirthdays(db, guildId, today.plus({ years: 1 })),
+      await claimTodaysBirthdays(db, guildId, {
+        ...today,
+        year: today.year + 1,
+      }),
     ).toHaveLength(2);
   });
 
@@ -108,6 +113,7 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
     const db = testDb();
     const guildId = snowflake();
     const user = snowflake();
+
     await setBirthday(db, {
       guildId,
       userId: user,
@@ -129,6 +135,7 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
       snowflake(),
       snowflake(),
     ];
+
     await setBirthday(db, {
       guildId,
       userId: jan,
@@ -157,11 +164,12 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
       day: 6,
       visibility: 'announce',
     });
-    const list = await upcomingBirthdays(
-      db,
-      guildId,
-      DateTime.local(2026, 6, 1),
-    );
+    const list = await upcomingBirthdays(db, guildId, {
+      year: 2026,
+      month: 6,
+      day: 1,
+    });
+
     expect(list.map((b) => b.userId)).toEqual([jun, dec, jan]);
   });
 
@@ -169,7 +177,8 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
     const db = testDb();
     const guildId = snowflake();
     const user = snowflake();
-    const now = DateTime.now().setZone('Europe/Tallinn');
+    const now = calendarDay(new Date(), 'Europe/Tallinn');
+
     await setBirthday(db, {
       guildId,
       userId: user,
@@ -194,6 +203,7 @@ describe.skipIf(noDatabase)('birthday announcements', () => {
     } as unknown as AppContext;
     const info = { id: 1, runAt: new Date(), attempt: 1 };
     const outcome = await dailyJob.run({ guildId }, info, ctx);
+
     await dailyJob.run({ guildId }, info, ctx);
     expect(send).toHaveBeenCalledOnce();
     expect(send).toHaveBeenCalledWith(

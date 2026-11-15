@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Feature } from './feature.js';
-import { buildRegistry, customId, parseCustomId } from './registry.js';
+import type { Feature } from '~/core/feature';
+import { buildRegistry, customId, parseCustomId } from '~/core/registry';
 
 const noop = async () => undefined;
 const noopJob = async () => null;
@@ -19,6 +19,7 @@ describe('buildRegistry', () => {
       },
       { name: 'b', permissions: [{ id: 'b:do', description: '' }] },
     ]);
+
     expect([...registry.commands.keys()]).toEqual(['alpha']);
     expect([...registry.components.keys()]).toEqual(['a:click']);
     expect([...registry.permissions.keys()]).toEqual(['b:do']);

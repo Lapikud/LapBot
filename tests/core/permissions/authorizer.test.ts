@@ -1,9 +1,9 @@
 import type { GuildMember } from 'discord.js';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { noDatabase, snowflake, testDb } from '../../../tests/db.js';
-import { UserError } from '../../shared/errors.js';
-import { createAuthorizer } from './authorizer.js';
-import { grant, listGrants, revoke } from './store.js';
+import { noDatabase, snowflake, testDb } from '../../db';
+import { UserError } from '~/shared/errors';
+import { createAuthorizer } from '~/core/permissions/authorizer';
+import { grant, listGrants, revoke } from '~/core/permissions/store';
 
 function member(
   guildId: string,
@@ -25,6 +25,7 @@ describe.skipIf(noDatabase)('authorizer', () => {
 
   beforeAll(async () => {
     const db = testDb();
+
     await grant(db, {
       guildId,
       roleId: organizers,
@@ -41,6 +42,7 @@ describe.skipIf(noDatabase)('authorizer', () => {
 
   it('denies by default and allows granted roles', async () => {
     const authz = createAuthorizer(testDb());
+
     expect(await authz.can(member(guildId, []), 'event:create')).toBe(false);
     expect(await authz.can(member(guildId, [organizers]), 'event:create')).toBe(
       true,
@@ -50,15 +52,17 @@ describe.skipIf(noDatabase)('authorizer', () => {
     );
   });
 
-  it('combines grants from all of a member’s roles', async () => {
+  it('combines grants from all roles of a member', async () => {
     const authz = createAuthorizer(testDb());
     const both = member(guildId, [organizers, helpers]);
+
     expect(await authz.can(both, 'event:create')).toBe(true);
     expect(await authz.can(both, 'poll:create')).toBe(true);
   });
 
   it('isolates grants per guild', async () => {
     const authz = createAuthorizer(testDb());
+
     expect(
       await authz.can(member(otherGuild, [organizers]), 'event:create'),
     ).toBe(false);
@@ -66,6 +70,7 @@ describe.skipIf(noDatabase)('authorizer', () => {
 
   it('lets Discord administrators do everything', async () => {
     const authz = createAuthorizer(testDb());
+
     expect(
       await authz.can(member(guildId, [], true), 'permissions:manage'),
     ).toBe(true);
@@ -75,6 +80,7 @@ describe.skipIf(noDatabase)('authorizer', () => {
     const db = testDb();
     const authz = createAuthorizer(db);
     const role = snowflake();
+
     expect(
       await grant(db, {
         guildId,
@@ -104,6 +110,7 @@ describe.skipIf(noDatabase)('authorizer', () => {
 
   it('require throws a user-facing error', async () => {
     const authz = createAuthorizer(testDb());
+
     await expect(
       authz.require(member(guildId, []), 'event:create'),
     ).rejects.toBeInstanceOf(UserError);

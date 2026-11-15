@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { UserError } from './errors.js';
+import { UserError } from '~/shared/errors';
 import {
   nextFutureOccurrence,
   nextOccurrence,
   parseFutureWhen,
   parseWhen,
-} from './time.js';
+} from '~/shared/time';
 
 const zone = 'Europe/Tallinn';
-const now = new Date('2026-03-10T10:00:00Z'); // 12:00 in Tallinn
+const now = new Date('2026-03-10T10:00:00Z');
 
 describe('parseWhen', () => {
   it.each([
@@ -54,8 +54,8 @@ describe('parseWhen', () => {
 
 describe('recurrence', () => {
   it('keeps the wall-clock time across a DST change', () => {
-    // Tallinn moves to summer time on 2026-03-29.
-    const before = new Date('2026-03-28T07:00:00Z'); // 09:00 EET
+    const before = new Date('2026-03-28T07:00:00Z');
+
     expect(nextOccurrence(before, 'daily', zone).toISOString()).toBe(
       '2026-03-29T06:00:00.000Z',
     );
@@ -63,6 +63,7 @@ describe('recurrence', () => {
 
   it('skips occurrences missed while offline', () => {
     const old = new Date('2026-03-01T10:00:00Z');
+
     expect(nextFutureOccurrence(old, 'weekly', 'UTC', now).toISOString()).toBe(
       '2026-03-15T10:00:00.000Z',
     );
