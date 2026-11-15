@@ -79,9 +79,9 @@ describe.skipIf(noDatabase)('redmine service', () => {
 
   it('turns tracker failures into user-facing errors', async () => {
     const failing = tracker({
-      listProjects: vi.fn(async () =>
-        { throw new IntegrationError('forbidden', 'Not allowed.'); },
-      ),
+      listProjects: vi.fn(async () => {
+        throw new IntegrationError('forbidden', 'Not allowed.');
+      }),
     });
     const { service } = setup(failing);
     const member = actor({ guildId: snowflake(), userId: snowflake() });
@@ -130,7 +130,9 @@ describe.skipIf(noDatabase)('redmine service', () => {
   it('keeps going when one subscription fails', async () => {
     const { service } = setup(
       tracker({
-        listIssues: vi.fn(async () => { throw new Error('boom'); }),
+        listIssues: vi.fn(async () => {
+          throw new Error('boom');
+        }),
       }),
     );
 

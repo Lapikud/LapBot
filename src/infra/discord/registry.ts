@@ -1,7 +1,6 @@
 import type {
   ComponentHandler,
   Feature,
-  Job,
   Permission,
   PermissionDefinition,
   SlashCommand,
@@ -11,7 +10,6 @@ export type Registry = {
   features: readonly Feature[];
   commands: ReadonlyMap<string, SlashCommand>;
   components: ReadonlyMap<string, ComponentHandler>;
-  jobs: ReadonlyMap<string, Job<unknown>>;
   permissions: ReadonlyMap<Permission, PermissionDefinition>;
 };
 
@@ -34,7 +32,6 @@ export function buildRegistry(features: readonly Feature[]): Registry {
   const names = new Map<string, Feature>();
   const commands = new Map<string, SlashCommand>();
   const components = new Map<string, ComponentHandler>();
-  const jobs = new Map<string, Job<unknown>>();
   const permissions = new Map<Permission, PermissionDefinition>();
 
   for (const feature of features) {
@@ -51,10 +48,6 @@ export function buildRegistry(features: readonly Feature[]): Registry {
       addUnique(components, component.prefix, component, 'component prefix');
     }
 
-    for (const job of feature.jobs ?? []) {
-      addUnique(jobs, job.type, job, 'job type');
-    }
-
     for (const permission of feature.permissions ?? []) {
       if (permissions.has(permission.id)) {
         throw new Error(`Duplicate permission "${permission.id}"`);
@@ -64,7 +57,7 @@ export function buildRegistry(features: readonly Feature[]): Registry {
     }
   }
 
-  return { features, commands, components, jobs, permissions };
+  return { features, commands, components, permissions };
 }
 
 export function parseCustomId(
@@ -77,17 +70,4 @@ export function parseCustomId(
   }
 
   return { prefix: `${feature}:${action}`, args };
-}
-
-export function customId(
-  prefix: string,
-  ...args: Array<string | number>
-): string {
-  const id = [prefix, ...args].join(':');
-
-  if (id.length > 100) {
-    throw new Error(`Custom ID exceeds 100 characters: ${id}`);
-  }
-
-  return id;
 }

@@ -8,36 +8,14 @@ import type {
   ModalSubmitInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
-import type { Db } from '~/infra/db';
-import type { Config } from '~/config';
-import type { Logger } from '~/infra/logging';
-import type { Authorizer } from '~/core/ports';
+import type { Logger, Authorizer } from '~/core/ports';
 import type { Permission, PermissionDefinition } from '~/domain';
 
 export type { Permission, PermissionDefinition } from '~/domain';
 
-export type ScheduleOptions = {
-  runAt: Date;
-  key?: string;
-  maxAttempts?: number;
-};
-
-export type Scheduler = {
-  schedule: <P>(
-    job: Job<P>,
-    payload: P,
-    options: ScheduleOptions,
-  ) => Promise<void>;
-  cancel: (key: string) => Promise<void>;
-};
-
 export type AppContext = {
-  client: Client<true>;
-  db: Db;
   log: Logger;
-  config: Config;
   authz: Authorizer;
-  scheduler: Scheduler;
 };
 
 export type CommandInteraction = ChatInputCommandInteraction<'cached'>;
@@ -72,27 +50,11 @@ export type EventListener = {
   attach: (client: Client, ctx: AppContext) => void;
 };
 
-export type JobInfo = {
-  id: number;
-  runAt: Date;
-  attempt: number;
-};
-
-export type JobOutcome = null | { rescheduleAt: Date };
-
-export type Job<P> = {
-  type: string;
-  maxAttempts: number;
-  run: (raw: unknown, info: JobInfo, ctx: AppContext) => Promise<JobOutcome>;
-  payloadType?: P;
-};
-
 export type Feature = {
   name: string;
   permissions?: readonly PermissionDefinition[];
   commands?: readonly SlashCommand[];
   components?: readonly ComponentHandler[];
   events?: readonly EventListener[];
-  jobs?: ReadonlyArray<Job<unknown>>;
-  start?: (ctx: AppContext) => Promise<void>;
+  start?: () => Promise<void>;
 };

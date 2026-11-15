@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Feature } from '~/infra/discord';
-import { buildRegistry, customId, parseCustomId } from '~/infra/discord';
+import { controlId } from '~/domain';
+import { buildRegistry, parseCustomId } from '~/infra/discord';
 
 const noop = async () => undefined;
-const noopJob = async () => null;
 const command = (name: string) => ({
   data: { name, description: name },
   execute: noop,
@@ -42,13 +42,6 @@ describe('buildRegistry', () => {
       ],
     ],
     [
-      'job type',
-      [
-        { name: 'a', jobs: [{ type: 'j', maxAttempts: 1, run: noopJob }] },
-        { name: 'b', jobs: [{ type: 'j', maxAttempts: 1, run: noopJob }] },
-      ],
-    ],
-    [
       'permission',
       [
         { name: 'a', permissions: [{ id: 'p:x', description: '' }] },
@@ -70,7 +63,7 @@ describe('buildRegistry', () => {
 
 describe('custom IDs', () => {
   it('round-trips prefix and arguments', () => {
-    expect(parseCustomId(customId('polls:vote', 12, 'x'))).toEqual({
+    expect(parseCustomId(controlId('polls:vote', 12, 'x'))).toEqual({
       prefix: 'polls:vote',
       args: ['12', 'x'],
     });
@@ -78,6 +71,6 @@ describe('custom IDs', () => {
   });
 
   it('enforces the Discord length limit', () => {
-    expect(() => customId('a:b', 'x'.repeat(100))).toThrow('100 characters');
+    expect(() => controlId('a:b', 'x'.repeat(100))).toThrow('100 characters');
   });
 });

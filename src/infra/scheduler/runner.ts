@@ -1,19 +1,18 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { Db, JobRow } from '~/infra/db';
 import { PermanentError } from '~/domain';
-import type { AppContext, Job, Scheduler } from '~/infra/discord';
-import type { Logger } from '~/infra/logging';
-import { cancelJob, claimDueJobs, finishJob, upsertJob } from '~/infra/db';
+import type { Job, Logger } from '~/core/ports';
+import { claimDueJobs, finishJob } from '~/infra/db';
 
-export type SchedulerOptions = {
+export type RunnerOptions = {
   pollIntervalMs?: number;
   batchSize?: number;
   leaseMs?: number;
 };
 
-export type SchedulerRuntime = Scheduler & {
-  tick: (ctx: AppContext) => Promise<number>;
-  start: (ctx: AppContext) => void;
+export type JobRunner = {
+  tick: () => Promise<number>;
+  start: () => void;
   stop: () => Promise<void>;
 };
 
@@ -23,12 +22,12 @@ export function retryDelayMs(attempt: number): number {
   return Math.min(30_000 * 2 ** (attempt - 1), maxBackoffMs);
 }
 
-export function createScheduler(
+export function createJobRunner(
   db: Db,
   jobs: ReadonlyMap<string, Job<unknown>>,
   log: Logger,
-  options: SchedulerOptions = {},
-): SchedulerRuntime {
+  options: RunnerOptions = {},
+): JobRunner {
   const pollIntervalMs = options.pollIntervalMs ?? 5000;
   const batchSize = options.batchSize ?? 10;
   const leaseMs = options.leaseMs ?? 5 * 60 * 1000;
@@ -36,7 +35,7 @@ export function createScheduler(
   const abort = new AbortController();
   let loop: Promise<void> | undefined;
 
-  async function execute(row: JobRow, ctx: AppContext): Promise<void> {
+  async function execute(row: JobRow): Promise<void> {
     const job = jobs.get(row.type);
     const jobLog = log.child({ jobId: row.id, jobType: row.type });
 
@@ -54,11 +53,11 @@ export function createScheduler(
     }
 
     try {
-      const outcome = await job.run(
-        row.payload,
-        { id: row.id, runAt: row.runAt, attempt: row.attempts },
-        { ...ctx, log: jobLog },
-      );
+      const outcome = await job.run(row.payload, {
+        id: row.id,
+        runAt: row.runAt,
+        attempt: row.attempts,
+      });
 
       await finishJob(
         db,
@@ -90,20 +89,20 @@ export function createScheduler(
     }
   }
 
-  async function tick(ctx: AppContext): Promise<number> {
+  async function tick(): Promise<number> {
     const rows = await claimDueJobs(db, { types, limit: batchSize, leaseMs });
 
-    await Promise.all(rows.map((row) => execute(row, ctx)));
+    await Promise.all(rows.map((row) => execute(row)));
 
     return rows.length;
   }
 
-  async function run(ctx: AppContext): Promise<void> {
+  async function run(): Promise<void> {
     while (!abort.signal.aborted) {
       let claimed = 0;
 
       try {
-        claimed = await tick(ctx);
+        claimed = await tick();
       } catch (error) {
         log.error({ err: error }, 'Scheduler tick failed');
       }
@@ -117,19 +116,9 @@ export function createScheduler(
   }
 
   return {
-    schedule: async (job, payload, scheduleOptions) => {
-      await upsertJob(db, {
-        type: job.type,
-        payload,
-        runAt: scheduleOptions.runAt,
-        key: scheduleOptions.key,
-        maxAttempts: scheduleOptions.maxAttempts ?? job.maxAttempts,
-      });
-    },
-    cancel: (key) => cancelJob(db, key),
     tick,
-    start: (ctx) => {
-      loop ??= run(ctx);
+    start: () => {
+      loop ??= run();
     },
     stop: async () => {
       abort.abort();

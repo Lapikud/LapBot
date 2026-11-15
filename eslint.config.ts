@@ -410,7 +410,7 @@ export default defineConfig(
   },
 
   {
-    files: ['src/lib/async.ts', 'src/infra/scheduler/scheduler.ts'],
+    files: ['src/lib/async.ts', 'src/infra/scheduler/runner.ts'],
     rules: { 'no-await-in-loop': 'off' },
   },
 

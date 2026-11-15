@@ -34,7 +34,7 @@ import {
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
-import { createJobQueue, createScheduler } from '~/infra/scheduler';
+import { createJobQueue, createJobRunner } from '~/infra/scheduler';
 import { systemClock, type Job } from '~/core/ports';
 import {
   connectDatabase,
@@ -222,7 +222,7 @@ export function compose(config: Config, log: Logger) {
 
   const registry = buildRegistry(features);
 
-  const runnerJobs = new Map(registry.jobs);
+  const runnerJobs = new Map<string, Job<unknown>>();
 
   for (const job of jobs) {
     if (runnerJobs.has(job.type)) {
@@ -254,20 +254,13 @@ export async function startApp(
 
   try {
     await runMigrations(database.db);
-    const scheduler = createScheduler(
+    const runner = createJobRunner(
       database.db,
       jobs,
       log.child({ component: 'scheduler' }),
     );
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
-    const ctx: AppContext = {
-      client: ready,
-      db: database.db,
-      log,
-      config,
-      authz,
-      scheduler,
-    };
+    const ctx: AppContext = { log, authz };
 
     for (const feature of registry.features) {
       for (const listener of feature.events ?? []) {
@@ -292,10 +285,7 @@ export async function startApp(
     await Promise.all(
       registry.features.map(async (feature) => {
         try {
-          await feature.start?.({
-            ...ctx,
-            log: log.child({ feature: feature.name }),
-          });
+          await feature.start?.();
         } catch (error) {
           log.error(
             { err: error, feature: feature.name },
@@ -304,7 +294,7 @@ export async function startApp(
         }
       }),
     );
-    scheduler.start(ctx);
+    runner.start();
     log.info(
       { user: ready.user.tag, features: registry.features.map((f) => f.name) },
       'Ready',
@@ -312,7 +302,7 @@ export async function startApp(
 
     return async () => {
       client.removeAllListeners(Events.InteractionCreate);
-      await scheduler.stop();
+      await runner.stop();
       await client.destroy();
       await database.close();
     };

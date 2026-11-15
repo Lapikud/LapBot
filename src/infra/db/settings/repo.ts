@@ -11,19 +11,6 @@ export const guildSettings = pgTable('guild_settings', {
     .defaultNow(),
 });
 
-export async function getGuildTimezone(
-  db: Db,
-  guildId: string,
-  fallback: string,
-): Promise<string> {
-  const [row] = await db
-    .select({ timezone: guildSettings.timezone })
-    .from(guildSettings)
-    .where(eq(guildSettings.guildId, guildId));
-
-  return row?.timezone ?? fallback;
-}
-
 export async function setGuildTimezone(
   db: Db,
   guildId: string,
