@@ -1,3 +1,4 @@
+import type { ReminderService } from '~/core/services';
 import { randomBytes } from 'node:crypto';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
@@ -105,14 +106,22 @@ describe('issueNotifications', () => {
 
 describe('createRedmineFeature', () => {
   it('is disabled without a base URL and requires an encryption key with one', () => {
-    expect(createRedmineFeature({} as Config)).toBeUndefined();
+    expect(
+      createRedmineFeature({} as Config, {} as ReminderService),
+    ).toBeUndefined();
     expect(() =>
-      createRedmineFeature({ REDMINE_BASE_URL: 'https://r' } as Config),
+      createRedmineFeature(
+        { REDMINE_BASE_URL: 'https://r' } as Config,
+        {} as ReminderService,
+      ),
     ).toThrow('CREDENTIAL_ENCRYPTION_KEY');
-    const feature = createRedmineFeature({
-      REDMINE_BASE_URL: 'https://r',
-      CREDENTIAL_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
-    } as Config);
+    const feature = createRedmineFeature(
+      {
+        REDMINE_BASE_URL: 'https://r',
+        CREDENTIAL_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
+      } as Config,
+      {} as ReminderService,
+    );
 
     expect(feature?.jobs).toEqual([]);
   });

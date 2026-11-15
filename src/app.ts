@@ -6,6 +6,7 @@ import {
   buildRegistry,
   createDiscordDirectory,
   createDiscordMessenger,
+  reminderCommands,
   roleCommands,
   permissionCommands,
   settingsCommands,
@@ -13,16 +14,19 @@ import {
 import {
   createAuthorizer,
   createPermissionService,
+  createReminderService,
   createRoleService,
   createSettingsService,
   type LegacyPanel,
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
-import { createScheduler } from '~/infra/scheduler';
+import { createJobQueue, createScheduler } from '~/infra/scheduler';
+import type { Job } from '~/core/ports';
 import {
   connectDatabase,
   createGrantRepository,
+  createReminderRepository,
   createRolePanelRepository,
   createSettingsRepository,
   runMigrations,
@@ -33,7 +37,6 @@ import { eventsFeature } from '~/features/events';
 import { moviesFeature } from '~/features/movies';
 import { pollsFeature } from '~/features/polls';
 import { createRedmineFeature } from '~/features/redmine';
-import { remindersFeature } from '~/features/reminders';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
   const channelId = config.ROLE_SELECTION_CHANNEL_ID;
@@ -73,6 +76,16 @@ export function compose(config: Config, log: Logger) {
     authz,
     defaultTimezone: config.DEFAULT_TIMEZONE,
   });
+  const scheduler = createJobQueue(database.db);
+  const reminders = createReminderService({
+    reminders: createReminderRepository(database.db),
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    timezone: (guildId) => settings.timezone(guildId),
+  });
+  const jobs: Array<Job<unknown>> = [...reminders.jobs];
   const permissions = createPermissionService({
     grants,
     directory,
@@ -84,14 +97,14 @@ export function compose(config: Config, log: Logger) {
     roleCommands(roles),
     permissionCommands(permissions),
     settingsCommands(settings),
-    remindersFeature,
+    reminderCommands(reminders),
     announcementsFeature,
     eventsFeature,
     birthdaysFeature,
     pollsFeature,
     moviesFeature,
   ];
-  const redmine = createRedmineFeature(config);
+  const redmine = createRedmineFeature(config, reminders);
 
   if (redmine) {
     features.push(redmine);
@@ -99,7 +112,17 @@ export function compose(config: Config, log: Logger) {
 
   const registry = buildRegistry(features);
 
-  return { database, client, authz, registry };
+  const runnerJobs = new Map(registry.jobs);
+
+  for (const job of jobs) {
+    if (runnerJobs.has(job.type)) {
+      throw new Error(`Duplicate job type "${job.type}"`);
+    }
+
+    runnerJobs.set(job.type, job);
+  }
+
+  return { database, client, authz, registry, jobs: runnerJobs };
 }
 
 export function createRegistry(config: Config, log: Logger): Registry {
@@ -117,13 +140,13 @@ export async function startApp(
   config: Config,
   log: Logger,
 ): Promise<() => Promise<void>> {
-  const { database, client, authz, registry } = compose(config, log);
+  const { database, client, authz, registry, jobs } = compose(config, log);
 
   try {
     await runMigrations(database.db);
     const scheduler = createScheduler(
       database.db,
-      registry.jobs,
+      jobs,
       log.child({ component: 'scheduler' }),
     );
     const ready = await waitForReady(client, config.DISCORD_TOKEN);

@@ -33,7 +33,7 @@ import {
   parseCalendarDay,
   zonedTime,
 } from '~/domain';
-import { createReminder } from '~/features/reminders';
+import type { ReminderService } from '~/core/services';
 import { createNotificationJobs } from './notifications';
 import {
   addSubscription,
@@ -252,7 +252,10 @@ function issueEmbed(baseUrl: string, issue: RedmineIssue): EmbedBuilder {
     );
 }
 
-export function createRedmineFeature(config: Config): Feature | undefined {
+export function createRedmineFeature(
+  config: Config,
+  reminders: ReminderService,
+): Feature | undefined {
   const base = config.REDMINE_BASE_URL;
 
   if (base === undefined) {
@@ -500,7 +503,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         throw new UserError('That reminder time has already passed.');
       }
 
-      const reminder = await createReminder(ctx, {
+      const reminder = await reminders.schedule({
         guildId: interaction.guildId,
         userId: interaction.user.id,
         channelId: null,

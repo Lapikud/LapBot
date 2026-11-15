@@ -6,3 +6,5 @@ export * from './permissions/repo';
 export * from './settings/repo';
 export * from './roles/model';
 export * from './roles/repo';
+export * from './reminders/model';
+export * from './reminders/repo';

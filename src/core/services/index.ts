@@ -3,3 +3,4 @@ export * from './guard';
 export * from './jobs';
 export * from './settings';
 export * from './roles';
+export * from './reminders';

@@ -1,21 +1,11 @@
 import { and, asc, count, eq } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
+import type { Db } from '../client';
 import { UserError } from '~/domain';
-import type { Recurrence } from '~/domain';
-import { reminders, type Reminder } from './schema';
+import type { NewReminder, ReminderRepository } from '~/core/ports';
+import { reminders, type Reminder } from './model';
 
 export const maxActivePerUser = 25;
 export const maxMessageLength = 1000;
-
-export type NewReminder = {
-  guildId: string;
-  userId: string;
-  channelId: string | null;
-  message: string;
-  runAt: Date;
-  recurrence: Recurrence | null;
-  timezone: string;
-};
 
 export async function insertReminder(
   db: Db,
@@ -91,21 +81,11 @@ export async function updateReminder(
   await db.update(reminders).set(changes).where(eq(reminders.id, id));
 }
 
-export async function requireOwnReminder(
-  db: Db,
-  guildId: string,
-  userId: string,
-  id: number,
-): Promise<Reminder> {
-  const reminder = await getReminder(db, id);
-
-  if (
-    reminder?.guildId !== guildId ||
-    reminder.userId !== userId ||
-    reminder.status !== 'active'
-  ) {
-    throw new UserError(`You have no active reminder #${id}.`);
-  }
-
-  return reminder;
+export function createReminderRepository(db: Db): ReminderRepository {
+  return {
+    insert: (reminder) => insertReminder(db, reminder),
+    find: (id) => getReminder(db, id),
+    active: (guildId, userId) => listActiveReminders(db, guildId, userId),
+    update: (id, changes) => updateReminder(db, id, changes),
+  };
 }
