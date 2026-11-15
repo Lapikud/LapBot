@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RedmineClient, RedmineError } from '~/infra/redmine';
+import { IntegrationError } from '~/domain';
+import { RedmineClient } from '~/infra/redmine';
 
 const issue = {
   id: 7,
@@ -37,7 +38,7 @@ const kind = async (promise: Promise<unknown>) => {
   try {
     await promise;
   } catch (error) {
-    return error instanceof RedmineError ? error.kind : 'other';
+    return error instanceof IntegrationError ? error.kind : 'other';
   }
 
   return 'none';

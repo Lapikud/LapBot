@@ -18,3 +18,5 @@ export * from './movies/model';
 export * from './movies/repo';
 export * from './birthdays/model';
 export * from './birthdays/repo';
+export * from './redmine/model';
+export * from './redmine/repo';

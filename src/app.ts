@@ -4,6 +4,7 @@ import {
   announcementCommands,
   birthdayCommands,
   createClient,
+  redmineCommands,
   createDiscordCalendar,
   eventCommands,
   movieCommands,
@@ -20,6 +21,7 @@ import {
 import {
   createAnnouncementService,
   createAuthorizer,
+  createRedmineService,
   createBirthdayService,
   createEventService,
   createMovieService,
@@ -40,6 +42,8 @@ import {
   createEventRepository,
   createBirthdayRepository,
   createGrantRepository,
+  createTrackerRepository,
+  type Db,
   createMovieRepository,
   createPollRepository,
   createReminderRepository,
@@ -47,7 +51,8 @@ import {
   createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
-import { createRedmineFeature } from '~/features/redmine';
+import { createSecretBox } from '~/infra/crypto';
+import { RedmineClient } from '~/infra/redmine';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
   const channelId = config.ROLE_SELECTION_CHANNEL_ID;
@@ -65,6 +70,40 @@ function legacyPanel(config: Config): LegacyPanel | undefined {
   );
 
   return { channelId, roles };
+}
+
+type RedmineDeps = Omit<
+  Parameters<typeof createRedmineService>[0],
+  'baseUrl' | 'connect' | 'service' | 'tracker' | 'secrets' | 'defaultTimezone'
+> & { db: Db };
+
+function createRedmine(config: Config, { db, ...deps }: RedmineDeps) {
+  const baseUrl = config.REDMINE_BASE_URL;
+
+  if (baseUrl === undefined) {
+    return null;
+  }
+
+  if (config.CREDENTIAL_ENCRYPTION_KEY === undefined) {
+    throw new Error(
+      'CREDENTIAL_ENCRYPTION_KEY is required when REDMINE_BASE_URL is set',
+    );
+  }
+
+  const connect = (apiKey: string) => new RedmineClient(baseUrl, apiKey);
+
+  return createRedmineService({
+    ...deps,
+    baseUrl,
+    connect,
+    service:
+      config.REDMINE_API_KEY === undefined
+        ? undefined
+        : connect(config.REDMINE_API_KEY),
+    tracker: createTrackerRepository(db),
+    secrets: createSecretBox(config.CREDENTIAL_ENCRYPTION_KEY),
+    defaultTimezone: config.DEFAULT_TIMEZONE,
+  });
 }
 
 export function compose(config: Config, log: Logger) {
@@ -166,10 +205,19 @@ export function compose(config: Config, log: Logger) {
     pollCommands(polls),
     movieCommands(movies),
   ];
-  const redmine = createRedmineFeature(config, reminders);
+  const redmine = createRedmine(config, {
+    db: database.db,
+    reminders,
+    scheduler,
+    messenger,
+    authz,
+    log,
+    timezone: (guildId) => settings.timezone(guildId),
+  });
 
   if (redmine) {
-    features.push(redmine);
+    features.push(redmineCommands(redmine, config.REDMINE_BASE_URL ?? ''));
+    jobs.push(...redmine.jobs);
   }
 
   const registry = buildRegistry(features);

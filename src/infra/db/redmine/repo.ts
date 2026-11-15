@@ -1,12 +1,12 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
-import type { RedmineIssue, RedmineStatus } from '~/infra/redmine';
+import type { TrackerRepository } from '~/core/ports';
+import type { Db } from '../client';
 import {
   redmineLinks,
   redmineNotifications,
   redmineSubscriptions,
   type RedmineLink,
-} from './schema';
+} from './model';
 
 export async function saveLink(
   db: Db,
@@ -109,81 +109,17 @@ export async function claimNotification(
   return rows.length > 0;
 }
 
-export type Notification = { key: string; text: string };
-
-export function issueNotifications(
-  issue: RedmineIssue,
-  since: Date,
-  statuses: ReadonlyMap<number, RedmineStatus>,
-  issueUrl: string,
-): Notification[] {
-  if (issue.is_private === true) {
-    return [];
-  }
-
-  const title = `[#${issue.id}](${issueUrl}) ${issue.subject}`;
-  const notifications: Notification[] = [];
-
-  if (new Date(issue.created_on) >= since) {
-    const assignee = issue.assigned_to
-      ? `, assigned to ${issue.assigned_to.name}`
-      : '';
-
-    notifications.push({
-      key: `issue:${issue.id}:created`,
-      text: `🆕 ${issue.tracker.name} ${title} by ${issue.author.name}${assignee}`,
-    });
-  }
-
-  for (const journal of issue.journals ?? []) {
-    if (
-      new Date(journal.created_on) < since ||
-      journal.private_notes === true
-    ) {
-      continue;
-    }
-
-    const changes = journal.details.flatMap((detail) => {
-      if (detail.property !== 'attr') {
-        return [];
-      }
-
-      if (detail.name === 'status_id') {
-        const name = (id: string | null | undefined) =>
-          statuses.get(Number(id))?.name ?? '?';
-
-        return [`status ${name(detail.old_value)} → ${name(detail.new_value)}`];
-      }
-
-      if (detail.name === 'assigned_to_id') {
-        const matches =
-          issue.assigned_to &&
-          String(issue.assigned_to.id) === detail.new_value;
-
-        return [
-          matches === true
-            ? `assigned to ${issue.assigned_to?.name ?? ''}`
-            : 'assignee changed',
-        ];
-      }
-
-      return [];
-    });
-    const notes = journal.notes?.trim() ?? '';
-
-    if (changes.length === 0 && notes === '') {
-      continue;
-    }
-
-    const who = journal.user?.name ?? 'Someone';
-    const comment =
-      notes === '' ? '' : `\n> ${notes.slice(0, 300).replaceAll('\n', '\n> ')}`;
-
-    notifications.push({
-      key: `journal:${journal.id}`,
-      text: `✏️ ${title}: ${[who, ...changes].join(' · ')}${comment}`,
-    });
-  }
-
-  return notifications;
+export function createTrackerRepository(db: Db): TrackerRepository {
+  return {
+    saveLink: (link) => saveLink(db, link),
+    link: (userId) => getLink(db, userId),
+    unlink: (userId) => deleteLink(db, userId),
+    subscribe: (subscription) => addSubscription(db, subscription),
+    unsubscribe: (guildId, channelId, projectId) =>
+      removeSubscription(db, guildId, channelId, projectId),
+    subscriptions: (afterId, limit) => listSubscriptions(db, afterId, limit),
+    setCheckpoint: (id, checkpoint) => setCheckpoint(db, id, checkpoint),
+    claimNotification: (subscriptionId, key) =>
+      claimNotification(db, subscriptionId, key),
+  };
 }

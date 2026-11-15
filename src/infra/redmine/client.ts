@@ -1,34 +1,45 @@
 import { z } from 'zod';
+import type { IssueTracker } from '~/core/ports';
+import {
+  IntegrationError,
+  type IntegrationErrorKind,
+  type Issue,
+  type IssueChanges,
+  type IssueQuery,
+  type IssueStatus,
+  type TrackerProject,
+  type TrackerUser,
+} from '~/domain';
 
 const named = z.object({ id: z.number(), name: z.string() });
 
 const userSchema = z.object({
   id: z.number(),
   login: z.string(),
-  firstname: z.string().optional(),
-  lastname: z.string().optional(),
+  firstname: z.string().exactOptional(),
+  lastname: z.string().exactOptional(),
 });
 
 const projectSchema = z.object({
   id: z.number(),
   name: z.string(),
   identifier: z.string(),
-  description: z.string().nullish(),
+  description: z.string().nullable().exactOptional(),
 });
 
 const journalSchema = z.object({
   id: z.number(),
-  user: named.optional(),
-  notes: z.string().nullish(),
-  private_notes: z.boolean().optional(),
+  user: named.exactOptional(),
+  notes: z.string().nullable().exactOptional(),
+  private_notes: z.boolean().exactOptional(),
   created_on: z.string(),
   details: z
     .array(
       z.object({
         property: z.string(),
         name: z.string(),
-        old_value: z.string().nullish(),
-        new_value: z.string().nullish(),
+        old_value: z.string().nullable().exactOptional(),
+        new_value: z.string().nullable().exactOptional(),
       }),
     )
     .default([]),
@@ -38,77 +49,34 @@ const issueSchema = z.object({
   id: z.number(),
   project: named,
   tracker: named,
-  status: named.extend({ is_closed: z.boolean().optional() }),
+  status: named.extend({ is_closed: z.boolean().exactOptional() }),
   priority: named,
   author: named,
-  assigned_to: named.optional(),
+  assigned_to: named.exactOptional(),
   subject: z.string(),
-  description: z.string().nullish(),
-  due_date: z.string().nullish(),
-  done_ratio: z.number().optional(),
-  is_private: z.boolean().optional(),
+  description: z.string().nullable().exactOptional(),
+  due_date: z.string().nullable().exactOptional(),
+  done_ratio: z.number().exactOptional(),
+  is_private: z.boolean().exactOptional(),
   created_on: z.string(),
   updated_on: z.string(),
-  journals: z.array(journalSchema).optional(),
+  journals: z.array(journalSchema).exactOptional(),
 });
 
 const statusSchema = z.object({
   id: z.number(),
   name: z.string(),
-  is_closed: z.boolean().optional(),
+  is_closed: z.boolean().exactOptional(),
 });
 
 const projectsPage = z.object({
   projects: z.array(projectSchema),
-  total_count: z.number().optional(),
+  total_count: z.number().exactOptional(),
 });
 const issuesPage = z.object({
   issues: z.array(issueSchema),
-  total_count: z.number().optional(),
+  total_count: z.number().exactOptional(),
 });
-
-export type RedmineUser = z.infer<typeof userSchema>;
-export type RedmineProject = z.infer<typeof projectSchema>;
-export type RedmineIssue = z.infer<typeof issueSchema>;
-export type RedmineJournal = z.infer<typeof journalSchema>;
-export type RedmineStatus = z.infer<typeof statusSchema>;
-
-export type RedmineErrorKind =
-  | 'auth'
-  | 'forbidden'
-  | 'not_found'
-  | 'validation'
-  | 'unavailable'
-  | 'invalid_response';
-
-export class RedmineError extends Error {
-  override readonly name = 'RedmineError';
-  constructor(
-    readonly kind: RedmineErrorKind,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-export type IssueQuery = {
-  projectId?: number | string;
-  assignedToMe?: boolean;
-  status?: 'open' | 'closed' | '*';
-  updatedSince?: Date;
-  dueDate?: string;
-  sort?: string;
-  offset?: number;
-  limit?: number;
-};
-
-export type IssueChanges = {
-  subject?: string;
-  description?: string;
-  status_id?: number;
-  assigned_to_id?: number;
-  notes?: string;
-};
 
 type Request = {
   method?: 'GET' | 'POST' | 'PUT';
@@ -116,7 +84,7 @@ type Request = {
   query?: Record<string, string>;
 };
 
-const messages: Record<number, [RedmineErrorKind, string]> = {
+const messages: Record<number, [IntegrationErrorKind, string]> = {
   401: [
     'auth',
     'Redmine rejected the API key. Link your account again with `/redmine link`.',
@@ -127,7 +95,7 @@ const messages: Record<number, [RedmineErrorKind, string]> = {
 
 const redmineTime = (date: Date) => `${date.toISOString().slice(0, 19)}Z`;
 
-export class RedmineClient {
+export class RedmineClient implements IssueTracker {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey: string,
@@ -151,7 +119,7 @@ export class RedmineClient {
     } catch (error) {
       const retryable =
         method === 'GET' &&
-        error instanceof RedmineError &&
+        error instanceof IntegrationError &&
         error.kind === 'unavailable';
 
       if (!retryable) {
@@ -181,7 +149,10 @@ export class RedmineClient {
         signal: AbortSignal.timeout(this.options.timeoutMs ?? 10_000),
       });
     } catch {
-      throw new RedmineError('unavailable', 'Redmine did not respond in time.');
+      throw new IntegrationError(
+        'unavailable',
+        'Redmine did not respond in time.',
+      );
     }
 
     if (response.status === 422) {
@@ -189,7 +160,7 @@ export class RedmineClient {
         .object({ errors: z.array(z.string()) })
         .safeParse(await response.json().catch(() => null));
 
-      throw new RedmineError(
+      throw new IntegrationError(
         'validation',
         parsed.success
           ? parsed.data.errors.join('; ')
@@ -200,11 +171,11 @@ export class RedmineClient {
     const known = messages[response.status];
 
     if (known) {
-      throw new RedmineError(...known);
+      throw new IntegrationError(...known);
     }
 
     if (!response.ok) {
-      throw new RedmineError(
+      throw new IntegrationError(
         'unavailable',
         `Redmine is unavailable (HTTP ${response.status}).`,
       );
@@ -225,7 +196,7 @@ export class RedmineClient {
     );
 
     if (!parsed.success) {
-      throw new RedmineError(
+      throw new IntegrationError(
         'invalid_response',
         'Redmine sent a response I do not understand.',
       );
@@ -234,7 +205,7 @@ export class RedmineClient {
     return parsed.data;
   }
 
-  async currentUser(): Promise<RedmineUser> {
+  async currentUser(): Promise<TrackerUser> {
     const data = await this.get(
       'users/current.json',
       z.object({ user: userSchema }),
@@ -246,7 +217,7 @@ export class RedmineClient {
   async listProjects(
     offset = 0,
     limit = 25,
-  ): Promise<{ projects: RedmineProject[]; total: number }> {
+  ): Promise<{ projects: TrackerProject[]; total: number }> {
     const data = await this.get('projects.json', projectsPage, {
       offset: String(offset),
       limit: String(Math.min(limit, 100)),
@@ -260,7 +231,7 @@ export class RedmineClient {
 
   async listIssues(
     query: IssueQuery = {},
-  ): Promise<{ issues: RedmineIssue[]; total: number }> {
+  ): Promise<{ issues: Issue[]; total: number }> {
     const params: Record<string, string> = {
       status_id: query.status ?? 'open',
       sort: query.sort ?? 'updated_on:desc',
@@ -292,7 +263,7 @@ export class RedmineClient {
     };
   }
 
-  async getIssue(id: number, withJournals = false): Promise<RedmineIssue> {
+  async getIssue(id: number, withJournals = false): Promise<Issue> {
     const query = withJournals ? { include: 'journals' } : undefined;
     const data = await this.get(
       `issues/${id}.json`,
@@ -303,7 +274,7 @@ export class RedmineClient {
     return data.issue;
   }
 
-  async listStatuses(): Promise<RedmineStatus[]> {
+  async listStatuses(): Promise<IssueStatus[]> {
     const data = await this.get(
       'issue_statuses.json',
       z.object({ issue_statuses: z.array(statusSchema) }),
@@ -314,7 +285,7 @@ export class RedmineClient {
 
   async createIssue(
     fields: IssueChanges & { project_id: number | string; subject: string },
-  ): Promise<RedmineIssue> {
+  ): Promise<Issue> {
     const data = await this.request('issues.json', {
       method: 'POST',
       body: { issue: fields },
@@ -322,7 +293,7 @@ export class RedmineClient {
     const parsed = z.object({ issue: issueSchema }).safeParse(data);
 
     if (!parsed.success) {
-      throw new RedmineError(
+      throw new IntegrationError(
         'invalid_response',
         'Redmine created the issue but sent an unexpected response.',
       );
