@@ -1,8 +1,8 @@
 import { and, asc, count, eq } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
-import type { Recurrence } from '../../shared/time.js';
-import { reminders, type Reminder } from './schema.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
+import type { Recurrence } from '~/shared/time';
+import { reminders, type Reminder } from './schema';
 
 export const maxActivePerUser = 25;
 export const maxMessageLength = 1000;
@@ -26,8 +26,8 @@ export async function insertReminder(
       `Reminders can be at most ${maxMessageLength} characters.`,
     );
   }
+
   return db.transaction(async (tx) => {
-    // ponytail: two simultaneous requests can both pass this soft limit; fine for abuse prevention.
     const [active] = await tx
       .select({ total: count() })
       .from(reminders)
@@ -38,15 +38,19 @@ export async function insertReminder(
           eq(reminders.status, 'active'),
         ),
       );
+
     if ((active?.total ?? 0) >= maxActivePerUser) {
       throw new UserError(
         `You can have at most ${maxActivePerUser} active reminders.`,
       );
     }
+
     const [row] = await tx.insert(reminders).values(input).returning();
+
     if (!row) {
       throw new Error('Insert returned no row');
     }
+
     return row;
   });
 }
@@ -56,6 +60,7 @@ export async function getReminder(
   id: number,
 ): Promise<Reminder | undefined> {
   const [row] = await db.select().from(reminders).where(eq(reminders.id, id));
+
   return row;
 }
 
@@ -86,7 +91,6 @@ export async function updateReminder(
   await db.update(reminders).set(changes).where(eq(reminders.id, id));
 }
 
-/** Active reminders the user owns in this guild; others are reported as missing. */
 export async function requireOwnReminder(
   db: Db,
   guildId: string,
@@ -94,6 +98,7 @@ export async function requireOwnReminder(
   id: number,
 ): Promise<Reminder> {
   const reminder = await getReminder(db, id);
+
   if (
     reminder?.guildId !== guildId ||
     reminder.userId !== userId ||
@@ -101,5 +106,6 @@ export async function requireOwnReminder(
   ) {
     throw new UserError(`You have no active reminder #${id}.`);
   }
+
   return reminder;
 }

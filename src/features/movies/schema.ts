@@ -32,10 +32,6 @@ export const movieSuggestions = pgTable(
   ],
 );
 
-/**
- * A movie night. Voting and scheduling live in the polls and events features;
- * these IDs only link to them, so they carry no foreign keys across features.
- */
 export const movieScreenings = pgTable(
   'movie_screenings',
   {

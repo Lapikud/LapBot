@@ -1,15 +1,15 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
+import type { Db } from '~/db/client';
 import type {
   RedmineIssue,
   RedmineStatus,
-} from '../../integrations/redmine/client.js';
+} from '~/integrations/redmine/client';
 import {
   redmineLinks,
   redmineNotifications,
   redmineSubscriptions,
   type RedmineLink,
-} from './schema.js';
+} from './schema';
 
 export async function saveLink(
   db: Db,
@@ -32,6 +32,7 @@ export async function getLink(
     .select()
     .from(redmineLinks)
     .where(eq(redmineLinks.userId, userId));
+
   return row;
 }
 
@@ -40,6 +41,7 @@ export async function deleteLink(db: Db, userId: string): Promise<boolean> {
     .delete(redmineLinks)
     .where(eq(redmineLinks.userId, userId))
     .returning({ userId: redmineLinks.userId });
+
   return rows.length > 0;
 }
 
@@ -52,6 +54,7 @@ export async function addSubscription(
     .values(input)
     .onConflictDoNothing()
     .returning({ id: redmineSubscriptions.id });
+
   return rows.length > 0;
 }
 
@@ -71,10 +74,10 @@ export async function removeSubscription(
       ),
     )
     .returning({ id: redmineSubscriptions.id });
+
   return rows.length > 0;
 }
 
-/** Subscriptions in ID order, paged so each poll run stays bounded. */
 export async function listSubscriptions(db: Db, afterId = 0, limit = 50) {
   return db
     .select()
@@ -95,7 +98,6 @@ export async function setCheckpoint(
     .where(eq(redmineSubscriptions.id, id));
 }
 
-/** Records a notification; false means it was already sent. */
 export async function claimNotification(
   db: Db,
   subscriptionId: number,
@@ -106,15 +108,12 @@ export async function claimNotification(
     .values({ subscriptionId, key })
     .onConflictDoNothing()
     .returning({ key: redmineNotifications.key });
+
   return rows.length > 0;
 }
 
 export type Notification = { key: string; text: string };
 
-/**
- * Turns an issue with journals into notifications for changes at or after
- * `since`. Private issues and private notes are never included.
- */
 export function issueNotifications(
   issue: RedmineIssue,
   since: Date,
@@ -124,17 +123,21 @@ export function issueNotifications(
   if (issue.is_private === true) {
     return [];
   }
+
   const title = `[#${issue.id}](${issueUrl}) ${issue.subject}`;
   const notifications: Notification[] = [];
+
   if (new Date(issue.created_on) >= since) {
     const assignee = issue.assigned_to
       ? `, assigned to ${issue.assigned_to.name}`
       : '';
+
     notifications.push({
       key: `issue:${issue.id}:created`,
       text: `🆕 ${issue.tracker.name} ${title} by ${issue.author.name}${assignee}`,
     });
   }
+
   for (const journal of issue.journals ?? []) {
     if (
       new Date(journal.created_on) < since ||
@@ -142,38 +145,48 @@ export function issueNotifications(
     ) {
       continue;
     }
+
     const changes = journal.details.flatMap((detail) => {
       if (detail.property !== 'attr') {
         return [];
       }
+
       if (detail.name === 'status_id') {
         const name = (id: string | null | undefined) =>
           statuses.get(Number(id))?.name ?? '?';
+
         return [`status ${name(detail.old_value)} → ${name(detail.new_value)}`];
       }
+
       if (detail.name === 'assigned_to_id') {
         const matches =
           issue.assigned_to &&
           String(issue.assigned_to.id) === detail.new_value;
+
         return [
           matches === true
             ? `assigned to ${issue.assigned_to?.name ?? ''}`
             : 'assignee changed',
         ];
       }
+
       return [];
     });
     const notes = journal.notes?.trim() ?? '';
+
     if (changes.length === 0 && notes === '') {
       continue;
     }
+
     const who = journal.user?.name ?? 'Someone';
     const comment =
       notes === '' ? '' : `\n> ${notes.slice(0, 300).replaceAll('\n', '\n> ')}`;
+
     notifications.push({
       key: `journal:${journal.id}`,
       text: `✏️ ${title}: ${[who, ...changes].join(' · ')}${comment}`,
     });
   }
+
   return notifications;
 }

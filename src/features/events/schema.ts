@@ -16,10 +16,6 @@ export const rsvpStatus = pgEnum('rsvp_status', [
   'not_going',
 ]);
 
-/**
- * The bot's events are the source of truth for RSVPs and reminders. A native
- * Discord scheduled event, when enabled, is only a mirror of this row.
- */
 export const events = pgTable(
   'events',
   {

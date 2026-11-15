@@ -8,11 +8,11 @@ import {
   StringSelectMenuBuilder,
   type BaseMessageOptions,
 } from 'discord.js';
-import { customId } from '../../core/registry.js';
-import type { AppContext, ComponentHandler } from '../../core/feature.js';
-import { UserError } from '../../shared/errors.js';
-import { selfAssignProblem } from './guards.js';
-import { requirePanel, setPanelMessage, type Panel } from './service.js';
+import { customId } from '~/core/registry';
+import type { AppContext, ComponentHandler } from '~/core/feature';
+import { UserError } from '~/shared/errors';
+import { selfAssignProblem } from './guards';
+import { requirePanel, setPanelMessage, type Panel } from './service';
 
 export function renderPanel(panel: Panel): BaseMessageOptions {
   const embed = new EmbedBuilder()
@@ -26,6 +26,7 @@ export function renderPanel(panel: Panel): BaseMessageOptions {
     .setCustomId(customId('roles:open', panel.id))
     .setLabel('Choose roles')
     .setStyle(ButtonStyle.Primary);
+
   return {
     embeds: [embed],
     components:
@@ -35,7 +36,6 @@ export function renderPanel(panel: Panel): BaseMessageOptions {
   };
 }
 
-/** Re-renders a panel message, reposting it if it was deleted. */
 export async function publishPanel(
   ctx: AppContext,
   panel: Panel,
@@ -43,28 +43,37 @@ export async function publishPanel(
   const channel = await ctx.client.channels
     .fetch(panel.channelId)
     .catch(() => null);
+
   if (channel?.type !== ChannelType.GuildText) {
     throw new UserError(`I can no longer access <#${panel.channelId}>.`);
   }
+
   const content = renderPanel(panel);
+
   if (panel.messageId !== null) {
     const existing = await channel.messages
       .fetch(panel.messageId)
       .catch(() => null);
+
     if (existing) {
       await existing.edit(content);
+
       return;
     }
   }
+
   const message = await channel.send(content);
+
   await setPanelMessage(ctx.db, panel.id, message.id);
 }
 
 function parsePanelId(args: readonly string[]): number {
   const id = Number(args[0]);
+
   if (!Number.isSafeInteger(id)) {
     throw new UserError('This role panel is invalid.');
   }
+
   return id;
 }
 
@@ -76,9 +85,11 @@ const openHandler: ComponentHandler = {
       interaction.guildId,
       parsePanelId(args),
     );
+
     if (panel.roles.length === 0) {
       throw new UserError('This panel has no roles yet.');
     }
+
     const select = new StringSelectMenuBuilder()
       .setCustomId(customId('roles:choose', panel.id))
       .setPlaceholder('Select your roles')
@@ -91,6 +102,7 @@ const openHandler: ComponentHandler = {
           default: interaction.member.roles.cache.has(role.roleId),
         })),
       );
+
     await interaction.reply({
       content:
         'Pick the roles you want. Unselected roles from this panel are removed.',
@@ -108,6 +120,7 @@ const chooseHandler: ComponentHandler = {
     if (!interaction.isStringSelectMenu()) {
       return;
     }
+
     await interaction.deferUpdate();
     const panel = await requirePanel(
       ctx.db,
@@ -119,26 +132,31 @@ const chooseHandler: ComponentHandler = {
     const toRemove: string[] = [];
     const skipped: string[] = [];
 
-    // Re-validated against the panel's current roles; submitted values are untrusted.
     for (const { roleId, label } of panel.roles) {
       const role = interaction.guild.roles.cache.get(roleId);
+
       if (!role || selfAssignProblem(role) !== undefined) {
         skipped.push(label);
         continue;
       }
+
       const has = interaction.member.roles.cache.has(roleId);
+
       if (wanted.has(roleId) && !has) {
         toAdd.push(roleId);
       } else if (!wanted.has(roleId) && has) {
         toRemove.push(roleId);
       }
     }
+
     if (toAdd.length > 0) {
       await interaction.member.roles.add(toAdd, 'Role panel selection');
     }
+
     if (toRemove.length > 0) {
       await interaction.member.roles.remove(toRemove, 'Role panel selection');
     }
+
     ctx.log.info(
       {
         guildId: interaction.guildId,
@@ -156,6 +174,7 @@ const chooseHandler: ComponentHandler = {
         ? [`Unavailable right now: ${skipped.join(', ')}`]
         : []),
     ];
+
     await interaction.editReply({ content: lines.join('\n'), components: [] });
   },
 };

@@ -27,7 +27,6 @@ export const announcements = pgTable(
     title: text('title'),
     content: text('content').notNull(),
     embed: boolean('embed').notNull().default(true),
-    /** A role ID, or the guild ID for @everyone. */
     mentionRoleId: text('mention_role_id'),
     status: announcementStatus('status').notNull().default('draft'),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),

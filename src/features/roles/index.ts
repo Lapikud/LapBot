@@ -6,21 +6,13 @@ import {
   type GuildMember,
   type Role,
 } from 'discord.js';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, deferred, defineListener } from '../../core/define.js';
-import type {
-  CommandInteraction,
-  Feature,
-  SlashCommand,
-} from '../../core/feature.js';
-import { UserError } from '../../shared/errors.js';
-import {
-  requireAbove,
-  requireEditable,
-  requireSelfAssignable,
-} from './guards.js';
-import { handleReaction, syncLegacyPanel } from './legacy.js';
-import { panelComponents, publishPanel } from './panels.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, deferred, defineListener } from '~/core/define';
+import type { CommandInteraction, Feature, SlashCommand } from '~/core/feature';
+import { UserError } from '~/shared/errors';
+import { requireAbove, requireEditable, requireSelfAssignable } from './guards';
+import { handleReaction, syncLegacyPanel } from './legacy';
+import { panelComponents, publishPanel } from './panels';
 import {
   addPanelRole,
   createPanel,
@@ -30,7 +22,7 @@ import {
   removePanelRole,
   requirePanel,
   setPanelTitle,
-} from './service.js';
+} from './service';
 
 const data = new SlashCommandBuilder()
   .setName('role')
@@ -155,10 +147,13 @@ function parseColor(value: string | null): number | undefined {
   if (value === null) {
     return undefined;
   }
+
   const match = /^#?([\da-f]{6})$/i.exec(value);
+
   if (match?.[1] === undefined) {
     throw new UserError('Color must be a hex value like #FFAC1C.');
   }
+
   return Number.parseInt(match[1], 16);
 }
 
@@ -167,6 +162,7 @@ async function memberAndRole(
 ): Promise<{ role: Role; member: GuildMember }> {
   const role = interaction.options.getRole('role', true);
   const user = interaction.options.getUser('member', true);
+
   requireAbove(interaction.member, role);
   requireEditable(role);
   if (
@@ -177,6 +173,7 @@ async function memberAndRole(
       'Only administrators can hand out administrator roles.',
     );
   }
+
   return { role, member: await interaction.guild.members.fetch(user.id) };
 }
 
@@ -200,13 +197,16 @@ const command = {
         reason: `Requested by ${interaction.user.tag}`,
         ...(() => {
           const color = parseColor(interaction.options.getString('color'));
+
           return color === undefined ? {} : { colors: { primaryColor: color } };
         })(),
       });
+
       await respond(interaction, `Created ${role.toString()}.`);
     }),
     delete: deferred(async (interaction) => {
       const role = interaction.options.getRole('role', true);
+
       requireAbove(interaction.member, role);
       requireEditable(role);
       await role.delete(`Requested by ${interaction.user.tag}`);
@@ -214,6 +214,7 @@ const command = {
     }),
     assign: deferred(async (interaction) => {
       const { role, member } = await memberAndRole(interaction);
+
       await member.roles.add(role, `Assigned by ${interaction.user.tag}`);
       await respond(
         interaction,
@@ -222,6 +223,7 @@ const command = {
     }),
     remove: deferred(async (interaction) => {
       const { role, member } = await memberAndRole(interaction);
+
       await member.roles.remove(role, `Removed by ${interaction.user.tag}`);
       await respond(
         interaction,
@@ -246,6 +248,7 @@ const command = {
               (p) => `• #${p.id} ${p.title} (${p.kind}) in <#${p.channelId}>`,
             )),
       ];
+
       await respond(interaction, lines.join('\n'));
     },
     'panel create': deferred(async (interaction, ctx) => {
@@ -259,6 +262,7 @@ const command = {
         title: interaction.options.getString('title', true),
         createdBy: interaction.user.id,
       });
+
       await publishPanel(
         ctx,
         await requirePanel(ctx.db, interaction.guildId, id),
@@ -274,30 +278,37 @@ const command = {
         interaction.guildId,
         interaction.options.getInteger('panel', true),
       );
+
       if (panel.kind === 'reaction') {
         throw new UserError(
           'The legacy reaction panel is configured through environment variables.',
         );
       }
+
       const add = interaction.options.getRole('add');
       const remove = interaction.options.getRole('remove');
       const title = interaction.options.getString('title');
+
       if (add) {
         requireSelfAssignable(add);
         requireAbove(interaction.member, add);
         const label = interaction.options.getString('label') ?? add.name;
+
         await addPanelRole(ctx.db, panel.id, {
           roleId: add.id,
           label,
           emoji: null,
         });
       }
+
       if (remove && !(await removePanelRole(ctx.db, panel.id, remove.id))) {
         throw new UserError(`${remove.name} is not on this panel.`);
       }
+
       if (title !== null) {
         await setPanelTitle(ctx.db, panel.id, title);
       }
+
       await publishPanel(
         ctx,
         await requirePanel(ctx.db, interaction.guildId, panel.id),
@@ -310,25 +321,30 @@ const command = {
         interaction.guildId,
         interaction.options.getInteger('panel', true),
       );
+
       if (panel.messageId !== null) {
         const channel = await ctx.client.channels
           .fetch(panel.channelId)
           .catch(() => null);
+
         if (channel?.isTextBased() === true) {
           await channel.messages.delete(panel.messageId).catch(() => null);
         }
       }
+
       await deletePanel(ctx.db, panel.id);
       const note =
         panel.kind === 'reaction'
           ? ' Unset ROLE_SELECTION_CHANNEL_ID, or it will be posted again on the next start.'
           : '';
+
       await respond(interaction, `Removed panel #${panel.id}.${note}`);
     }),
   }),
   autocomplete: async (interaction, ctx) => {
     const query = interaction.options.getFocused().toLowerCase();
     const panels = await listPanels(ctx.db, interaction.guildId);
+
     await interaction.respond(
       panels
         .filter(

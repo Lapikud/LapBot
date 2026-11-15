@@ -6,24 +6,21 @@ import {
   roleMention,
   userMention,
 } from 'discord.js';
-import { DateTime } from 'luxon';
+import { format } from 'date-fns';
 import { z } from 'zod';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, defineJob } from '../../core/define.js';
-import { isPermanentDiscordError } from '../../core/discord/errors.js';
-import type {
-  AppContext,
-  CommandInteraction,
-  Feature,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
-import { UserError } from '../../shared/errors.js';
-import { nextDailyRun } from '../../shared/time.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, defineJob } from '~/core/define';
+import { isPermanentDiscordError } from '~/core/discord/errors';
+import type { AppContext, CommandInteraction, Feature } from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
+import { sequential } from '~/shared/async';
+import { UserError } from '~/shared/errors';
+import { calendarDay, nextDailyRun } from '~/shared/time';
 import {
   birthdayVisibility,
   type Birthday,
   type BirthdayVisibility,
-} from './schema.js';
+} from './schema';
 import {
   claimTodaysBirthdays,
   deleteSettings,
@@ -34,7 +31,7 @@ import {
   saveSettings,
   setBirthday,
   upcomingBirthdays,
-} from './service.js';
+} from './service';
 
 const dailyKey = (guildId: string) => `birthdays:${guildId}`;
 const visibilities = birthdayVisibility.enumValues;
@@ -50,9 +47,9 @@ const removeRoleJob = defineJob({
     try {
       const guild = await ctx.client.guilds.fetch(guildId);
       const member = await guild.members.fetch(userId);
+
       await member.roles.remove(roleId, 'Birthday is over');
     } catch (error) {
-      // A member who left, or a deleted role, needs no cleanup.
       if (!isPermanentDiscordError(error)) {
         throw error;
       }
@@ -62,20 +59,17 @@ const removeRoleJob = defineJob({
 
 async function giveRole(
   ctx: AppContext,
-  guildId: string,
-  roleId: string,
+  target: { guildId: string; roleId: string; zone: string },
   userIds: string[],
-  zone: string,
 ) {
+  const { guildId, roleId, zone } = target;
   const guild = await ctx.client.guilds.fetch(guildId);
-  const midnight = DateTime.now()
-    .setZone(zone)
-    .plus({ days: 1 })
-    .startOf('day')
-    .toJSDate();
-  for (const userId of userIds) {
+  const midnight = nextDailyRun(zone, 0);
+
+  await sequential(userIds, async (userId) => {
     try {
       const member = await guild.members.fetch(userId);
+
       await member.roles.add(roleId, 'Birthday');
       await ctx.scheduler.schedule(
         removeRoleJob,
@@ -88,32 +82,35 @@ async function giveRole(
     } catch (error) {
       ctx.log.warn({ err: error, userId }, 'Could not give birthday role');
     }
-  }
+  });
 }
 
 export const dailyJob = defineJob({
   type: 'birthdays:daily',
   payload: z.object({ guildId: z.string() }),
-  // When the bot was down at the usual hour, today's birthdays are still
-  // announced on recovery; birthdays on days fully missed are not.
   handle: async ({ guildId }, _info, ctx) => {
     const settings = await getSettings(ctx.db, guildId);
+
     if (!settings) {
       return null;
     }
+
     const zone = await getGuildTimezone(
       ctx.db,
       guildId,
       ctx.config.DEFAULT_TIMEZONE,
     );
-    const today = DateTime.now().setZone(zone);
+    const today = calendarDay(new Date(), zone);
     const userIds = await claimTodaysBirthdays(ctx.db, guildId, today);
+
     if (userIds.length > 0) {
       try {
         const channel = await ctx.client.channels.fetch(settings.channelId);
+
         if (channel?.isSendable() !== true) {
           throw new UserError('Birthday channel is not available');
         }
+
         await channel.send({
           content: `🎉 Palju õnne! Happy birthday ${userIds.map((id) => userMention(id)).join(', ')}!`,
           allowedMentions: { users: userIds },
@@ -123,23 +120,32 @@ export const dailyJob = defineJob({
           await releaseClaims(ctx.db, guildId, userIds, today.year);
           throw error;
         }
+
         ctx.log.error(
           { err: error, guildId },
           'Birthday channel is unusable; skipping today',
         );
       }
+
       if (settings.roleId !== null) {
-        await giveRole(ctx, guildId, settings.roleId, userIds, zone);
+        await giveRole(
+          ctx,
+          { guildId, roleId: settings.roleId, zone },
+          userIds,
+        );
       }
     }
+
     return { rescheduleAt: nextDailyRun(zone, settings.hour) };
   },
 });
 
 function describe(birthday: Birthday): string {
-  const date = DateTime.local(2024, birthday.month, birthday.day).toFormat(
-    'd LLLL',
+  const date = format(
+    new Date(2024, birthday.month - 1, birthday.day),
+    'd MMMM',
   );
+
   return `<@${birthday.userId}> — ${date}`;
 }
 
@@ -227,13 +233,17 @@ async function readSettings(
   const current = await getSettings(ctx.db, interaction.guildId);
   const channelId =
     interaction.options.getChannel('channel')?.id ?? current?.channelId;
+
   if (channelId === undefined) {
     throw new UserError('Choose an announcement channel.');
   }
+
   const role = interaction.options.getRole('role');
+
   if (role && (role.managed || !role.editable)) {
     throw new UserError(`I cannot manage ${role.name}.`);
   }
+
   return {
     guildId: interaction.guildId,
     channelId,
@@ -247,19 +257,24 @@ async function configure(
   ctx: AppContext,
 ): Promise<void> {
   const guildId = interaction.guildId;
+
   if (interaction.options.getBoolean('disable') === true) {
     await deleteSettings(ctx.db, guildId);
     await ctx.scheduler.cancel(dailyKey(guildId));
     await respond(interaction, 'Birthday announcements are off.');
+
     return;
   }
+
   const settings = await readSettings(interaction, ctx);
+
   await saveSettings(ctx.db, settings);
   const zone = await getGuildTimezone(
     ctx.db,
     guildId,
     ctx.config.DEFAULT_TIMEZONE,
   );
+
   await ctx.scheduler.schedule(
     dailyJob,
     { guildId },
@@ -273,6 +288,7 @@ async function configure(
     settings.roleId === null
       ? ''
       : ` with ${roleMention(settings.roleId)} for the day`;
+
   await respond(
     interaction,
     `Birthdays are announced in ${channelMention(settings.channelId)} at ${settings.hour}:00 (${zone})${role}.`,
@@ -295,6 +311,7 @@ export const birthdaysFeature: Feature = {
             visibilities.find(
               (v) => v === interaction.options.getString('visibility'),
             ) ?? 'public';
+
           await setBirthday(ctx.db, {
             guildId: interaction.guildId,
             userId: interaction.user.id,
@@ -307,6 +324,7 @@ export const birthdaysFeature: Feature = {
             interaction.options.getInteger('day', true) === 29
               ? ' In non-leap years it is celebrated on 28 February.'
               : '';
+
           await respond(interaction, `Saved (${visibility}).${leap}`);
         },
         remove: async (interaction, ctx) => {
@@ -315,6 +333,7 @@ export const birthdaysFeature: Feature = {
             interaction.guildId,
             interaction.user.id,
           );
+
           await respond(
             interaction,
             removed
@@ -334,6 +353,7 @@ export const birthdaysFeature: Feature = {
             birthday &&
             (user.id === interaction.user.id ||
               birthday.visibility === 'public');
+
           await respond(
             interaction,
             visible === true ? describe(birthday) : 'No birthday to show.',
@@ -348,13 +368,14 @@ export const birthdaysFeature: Feature = {
           const list = await upcomingBirthdays(
             ctx.db,
             interaction.guildId,
-            DateTime.now().setZone(zone),
+            calendarDay(new Date(), zone),
           );
+
           await respond(
             interaction,
             list.length === 0
               ? 'No public birthdays yet.'
-              : list.map(describe).join('\n'),
+              : list.map((birthday) => describe(birthday)).join('\n'),
           );
         },
         settings: configure,

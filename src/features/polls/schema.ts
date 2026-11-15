@@ -35,7 +35,6 @@ export const polls = pgTable(
     showResults: pollResultVisibility('show_results').notNull().default('live'),
     closesAt: timestamp('closes_at', { withTimezone: true }),
     status: pollStatus('status').notNull().default('open'),
-    /** The feature that created the poll, e.g. 'movies'; null for /poll. */
     source: text('source'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
@@ -56,7 +55,6 @@ export const pollOptions = pgTable(
       .references(() => polls.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
     label: text('label').notNull(),
-    /** An identifier owned by the source feature, e.g. a movie suggestion. */
     ref: text('ref'),
   },
   (table) => [

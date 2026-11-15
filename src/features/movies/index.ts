@@ -5,19 +5,15 @@ import {
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand } from '../../core/define.js';
-import type {
-  AppContext,
-  CommandInteraction,
-  Feature,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
-import { UserError } from '../../shared/errors.js';
-import { discordTime, parseFutureWhen, parseWhen } from '../../shared/time.js';
-import { createEvent } from '../events/index.js';
-import { createPoll, getResults, latestPollBySource } from '../polls/index.js';
-import type { MovieSuggestion } from './schema.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand } from '~/core/define';
+import type { AppContext, CommandInteraction, Feature } from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
+import { UserError } from '~/shared/errors';
+import { discordTime, parseFutureWhen, parseWhen } from '~/shared/time';
+import { createEvent } from '~/features/events';
+import { createPoll, getResults, latestPollBySource } from '~/features/polls';
+import type { MovieSuggestion } from './schema';
 import {
   listUnwatched,
   markWatched,
@@ -26,17 +22,13 @@ import {
   requireSuggestion,
   suggestMovie,
   watchHistory,
-} from './service.js';
+} from './service';
 
 const pollSource = 'movies';
 
 const label = (movie: Pick<MovieSuggestion, 'title' | 'year'>) =>
   movie.year === null ? movie.title : `${movie.title} (${movie.year})`;
 
-/**
- * The movie for a screening: the one given, otherwise the winner of the most
- * recent movie poll. Ties are never broken automatically.
- */
 export async function pickMovie(
   ctx: AppContext,
   guildId: string,
@@ -48,21 +40,29 @@ export async function pickMovie(
       pollId: null,
     };
   }
+
   const poll = await latestPollBySource(ctx.db, guildId, pollSource);
+
   if (poll?.status !== 'closed') {
     throw new UserError('Pick a movie, or close a `/movie vote` poll first.');
   }
+
   const { winners, tie } = await getResults(ctx.db, poll);
+
   if (winners.length === 0) {
     throw new UserError('The last movie poll had no votes. Pick a movie.');
   }
+
   if (tie) {
     const tied = winners.map((w) => `#${w.ref ?? '?'} ${w.label}`).join(', ');
+
     throw new UserError(
       `The last poll is a tie between ${tied}. Pick one with the \`movie\` option.`,
     );
   }
+
   const winner = winners[0];
+
   return {
     movie: await requireSuggestion(ctx.db, guildId, Number(winner?.ref)),
     pollId: poll.id,
@@ -195,6 +195,7 @@ export const moviesFeature: Feature = {
             note: interaction.options.getString('note'),
             suggestedBy: interaction.user.id,
           });
+
           await respond(
             interaction,
             `Added #${movie.id} ${label(movie)} to the list.`,
@@ -202,6 +203,7 @@ export const moviesFeature: Feature = {
         },
         suggestions: async (interaction, ctx) => {
           const movies = await listUnwatched(ctx.db, interaction.guildId);
+
           await respond(
             interaction,
             movies.length === 0
@@ -217,9 +219,11 @@ export const moviesFeature: Feature = {
             interaction.guildId,
             interaction.options.getInteger('movie', true),
           );
+
           if (movie.suggestedBy !== interaction.user.id) {
             await ctx.authz.require(interaction.member, 'movie:manage');
           }
+
           await removeSuggestion(ctx.db, movie.id);
           await respond(interaction, `Removed ${label(movie)}.`);
         },
@@ -229,15 +233,18 @@ export const moviesFeature: Feature = {
             interaction.guildId,
             interaction.options.getInteger('count') ?? 10,
           );
+
           if (movies.length < 2) {
             throw new UserError(
               'At least two unwatched suggestions are needed for a vote.',
             );
           }
+
           const closesAt = parseFutureWhen(
             interaction.options.getString('closes') ?? '2d',
             await zoneOf(interaction, ctx),
           );
+
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
           const poll = await createPoll(ctx, {
             guildId: interaction.guildId,
@@ -253,6 +260,7 @@ export const moviesFeature: Feature = {
             closesAt,
             source: pollSource,
           });
+
           await interaction.editReply(
             `Movie poll #${poll.id} closes ${discordTime(closesAt, 'R')}.`,
           );
@@ -268,6 +276,7 @@ export const moviesFeature: Feature = {
             interaction.options.getString('start', true),
             timezone,
           );
+
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
           const event = await createEvent(ctx, {
             guildId: interaction.guildId,
@@ -283,6 +292,7 @@ export const moviesFeature: Feature = {
             capacity: interaction.options.getInteger('capacity'),
             reminderMinutes: [60],
           });
+
           await recordScreening(ctx.db, {
             guildId: interaction.guildId,
             suggestionId: movie.id,
@@ -305,11 +315,13 @@ export const moviesFeature: Feature = {
             date === null
               ? new Date()
               : parseWhen(date, await zoneOf(interaction, ctx));
+
           await markWatched(ctx.db, interaction.guildId, movie.id, watchedAt);
           await respond(interaction, `Marked ${label(movie)} as watched.`);
         },
         history: async (interaction, ctx) => {
           const history = await watchHistory(ctx.db, interaction.guildId);
+
           await respond(
             interaction,
             history.length === 0
@@ -326,6 +338,7 @@ export const moviesFeature: Feature = {
       autocomplete: async (interaction, ctx) => {
         const query = interaction.options.getFocused().toLowerCase();
         const movies = await listUnwatched(ctx.db, interaction.guildId);
+
         await interaction.respond(
           movies
             .filter((m) => m.title.toLowerCase().includes(query))

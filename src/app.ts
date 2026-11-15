@@ -1,28 +1,24 @@
 import { Events, type Client } from 'discord.js';
-import type { Config } from './core/config.js';
-import { createClient } from './core/discord/client.js';
-import { createInteractionHandler } from './core/discord/router.js';
-import type { AppContext, Feature } from './core/feature.js';
-import type { Logger } from './core/logger.js';
-import { createAuthorizer } from './core/permissions/authorizer.js';
-import { buildRegistry, type Registry } from './core/registry.js';
-import { createScheduler } from './core/scheduler/scheduler.js';
-import { connectDatabase, runMigrations } from './db/client.js';
-import { announcementsFeature } from './features/announcements/index.js';
-import { birthdaysFeature } from './features/birthdays/index.js';
-import { eventsFeature } from './features/events/index.js';
-import { moviesFeature } from './features/movies/index.js';
-import { createPermissionsFeature } from './features/permissions/index.js';
-import { pollsFeature } from './features/polls/index.js';
-import { createRedmineFeature } from './features/redmine/index.js';
-import { remindersFeature } from './features/reminders/index.js';
-import { rolesFeature } from './features/roles/index.js';
-import { settingsFeature } from './features/settings/index.js';
+import type { Config } from '~/core/config';
+import { createClient } from '~/core/discord/client';
+import { createInteractionHandler } from '~/core/discord/router';
+import type { AppContext, Feature } from '~/core/feature';
+import type { Logger } from '~/core/logger';
+import { createAuthorizer } from '~/core/permissions/authorizer';
+import { buildRegistry, type Registry } from '~/core/registry';
+import { createScheduler } from '~/core/scheduler/scheduler';
+import { connectDatabase, runMigrations } from '~/db/client';
+import { announcementsFeature } from '~/features/announcements';
+import { birthdaysFeature } from '~/features/birthdays';
+import { eventsFeature } from '~/features/events';
+import { moviesFeature } from '~/features/movies';
+import { createPermissionsFeature } from '~/features/permissions';
+import { pollsFeature } from '~/features/polls';
+import { createRedmineFeature } from '~/features/redmine';
+import { remindersFeature } from '~/features/reminders';
+import { rolesFeature } from '~/features/roles';
+import { settingsFeature } from '~/features/settings';
 
-/**
- * The composition root: every feature the bot runs is listed here. Removing
- * a line disables that feature; its pending jobs stay in the database.
- */
 export function createRegistry(config: Config): Registry {
   const features: Feature[] = [
     rolesFeature,
@@ -36,10 +32,13 @@ export function createRegistry(config: Config): Registry {
     moviesFeature,
   ];
   const redmine = createRedmineFeature(config);
+
   if (redmine) {
     features.push(redmine);
   }
+
   const registry = buildRegistry(features);
+
   return registry;
 }
 
@@ -50,7 +49,6 @@ function waitForReady(client: Client, token: string): Promise<Client<true>> {
   });
 }
 
-/** Starts the bot and returns a function that shuts it down gracefully. */
 export async function startApp(
   config: Config,
   log: Logger,
@@ -84,7 +82,9 @@ export async function startApp(
         });
       }
     }
+
     const handleInteraction = createInteractionHandler(registry, ctx);
+
     client.on(Events.InteractionCreate, (interaction) => {
       handleInteraction(interaction).catch((error: unknown) => {
         log.error({ err: error }, 'Interaction handler crashed');
@@ -94,7 +94,6 @@ export async function startApp(
       log.error({ err: error }, 'Discord client error');
     });
 
-    // A feature that fails to start is logged, not fatal to the others.
     await Promise.all(
       registry.features.map(async (feature) => {
         try {

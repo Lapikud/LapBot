@@ -1,5 +1,5 @@
 import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
-import { PermanentError } from '../../shared/errors.js';
+import { PermanentError } from '~/shared/errors';
 
 const permanentCodes = new Set<number | string>([
   RESTJSONErrorCodes.UnknownChannel,
@@ -13,12 +13,10 @@ const permanentCodes = new Set<number | string>([
   RESTJSONErrorCodes.CannotSendMessagesToThisUser,
 ]);
 
-/** Deleted or inaccessible Discord objects; retrying will not help. */
 export function isPermanentDiscordError(error: unknown): boolean {
   return error instanceof DiscordAPIError && permanentCodes.has(error.code);
 }
 
-/** Rethrows permanent Discord failures as PermanentError for the scheduler. */
 export function asJobError(error: unknown): unknown {
   return isPermanentDiscordError(error) && error instanceof Error
     ? new PermanentError(error.message)

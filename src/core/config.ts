@@ -1,7 +1,6 @@
-import { IANAZone } from 'luxon';
+import { isZone } from '~/shared/time';
 import { z } from 'zod';
 
-// Blank values in .env files arrive as '' and mean "not set".
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess(
     (value) => (value === '' ? undefined : value),
@@ -23,7 +22,7 @@ const envSchema = z.object({
   DEFAULT_TIMEZONE: z
     .string()
     .default('Europe/Tallinn')
-    .refine((zone) => IANAZone.isValidZone(zone), 'must be an IANA timezone'),
+    .refine((zone) => isZone(zone), 'must be an IANA timezone'),
 
   ROLE_SELECTION_CHANNEL_ID: optional(snowflake),
   TARKVARA_ROLE_ID: optional(snowflake),
@@ -46,8 +45,10 @@ export type Config = z.infer<typeof envSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = envSchema.safeParse(env);
+
   if (!result.success) {
     throw new Error(`Invalid configuration:\n${z.prettifyError(result.error)}`);
   }
+
   return result.data;
 }

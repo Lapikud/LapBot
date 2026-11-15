@@ -9,11 +9,10 @@ import type {
   ModalSubmitInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
-import type { Db } from '../db/client.js';
-import type { Config } from './config.js';
-import type { Logger } from './logger.js';
+import type { Db } from '~/db/client';
+import type { Config } from './config';
+import type { Logger } from './logger';
 
-/** Action identifiers such as `event:create`; features declare their own. */
 export type Permission = `${string}:${string}`;
 
 export type PermissionDefinition = {
@@ -23,13 +22,11 @@ export type PermissionDefinition = {
 
 export type Authorizer = {
   can: (member: GuildMember, permission: Permission) => Promise<boolean>;
-  /** Throws a UserError when the member lacks the permission. */
   require: (member: GuildMember, permission: Permission) => Promise<void>;
 };
 
 export type ScheduleOptions = {
   runAt: Date;
-  /** Scheduling again with the same key replaces the pending job. */
   key?: string;
   maxAttempts?: number;
 };
@@ -56,10 +53,6 @@ export type CommandInteraction = ChatInputCommandInteraction<'cached'>;
 
 export type SlashCommand = {
   data: RESTPostAPIChatInputApplicationCommandsJSONBody;
-  /**
-   * Permission required per subcommand path ("create", "panel create"), or
-   * `'*'` for the whole command. Unlisted subcommands are open to members.
-   */
   permissions?: Partial<Record<string, Permission>>;
   execute: (interaction: CommandInteraction, ctx: AppContext) => Promise<void>;
   autocomplete?: (
@@ -73,10 +66,6 @@ export type ComponentInteraction =
   | AnySelectMenuInteraction<'cached'>
   | ModalSubmitInteraction<'cached'>;
 
-/**
- * Handles buttons, select menus and modals whose custom ID starts with
- * `prefix` followed by `:`. Remaining `:`-separated segments become `args`.
- */
 export type ComponentHandler = {
   prefix: string;
   permission?: Permission;
@@ -94,19 +83,16 @@ export type EventListener = {
 
 export type JobInfo = {
   id: number;
-  /** When the job was due; handlers decide what lateness means for them. */
   runAt: Date;
   attempt: number;
 };
 
-/** Returning a date makes the job recur at that time. */
 export type JobOutcome = null | { rescheduleAt: Date };
 
 export type Job<P> = {
   type: string;
   maxAttempts: number;
   run: (raw: unknown, info: JobInfo, ctx: AppContext) => Promise<JobOutcome>;
-  /** Carries the payload type for `Scheduler.schedule`; never set. */
   payloadType?: P;
 };
 
@@ -117,6 +103,5 @@ export type Feature = {
   components?: readonly ComponentHandler[];
   events?: readonly EventListener[];
   jobs?: ReadonlyArray<Job<unknown>>;
-  /** Runs once after the client is ready and migrations have applied. */
   start?: (ctx: AppContext) => Promise<void>;
 };

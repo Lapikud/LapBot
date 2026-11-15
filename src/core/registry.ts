@@ -5,7 +5,7 @@ import type {
   Permission,
   PermissionDefinition,
   SlashCommand,
-} from './feature.js';
+} from './feature';
 
 export type Registry = {
   features: readonly Feature[];
@@ -26,6 +26,7 @@ function addUnique<V>(
   if (map.has(key)) {
     throw new Error(`Duplicate ${what} "${key}"`);
   }
+
   map.set(key, value);
 }
 
@@ -41,19 +42,24 @@ export function buildRegistry(features: readonly Feature[]): Registry {
     for (const command of feature.commands ?? []) {
       addUnique(commands, command.data.name, command, 'command');
     }
+
     for (const component of feature.components ?? []) {
       if (!componentPrefix.test(component.prefix)) {
         throw new Error(`Invalid component prefix "${component.prefix}"`);
       }
+
       addUnique(components, component.prefix, component, 'component prefix');
     }
+
     for (const job of feature.jobs ?? []) {
       addUnique(jobs, job.type, job, 'job type');
     }
+
     for (const permission of feature.permissions ?? []) {
       if (permissions.has(permission.id)) {
         throw new Error(`Duplicate permission "${permission.id}"`);
       }
+
       permissions.set(permission.id, permission);
     }
   }
@@ -61,14 +67,15 @@ export function buildRegistry(features: readonly Feature[]): Registry {
   return { features, commands, components, jobs, permissions };
 }
 
-/** Splits `feature:action:arg...` into its handler prefix and arguments. */
 export function parseCustomId(
   id: string,
 ): { prefix: string; args: string[] } | undefined {
   const [feature, action, ...args] = id.split(':');
+
   if (feature === undefined || action === undefined) {
     return undefined;
   }
+
   return { prefix: `${feature}:${action}`, args };
 }
 
@@ -77,8 +84,10 @@ export function customId(
   ...args: Array<string | number>
 ): string {
   const id = [prefix, ...args].join(':');
+
   if (id.length > 100) {
     throw new Error(`Custom ID exceeds 100 characters: ${id}`);
   }
+
   return id;
 }

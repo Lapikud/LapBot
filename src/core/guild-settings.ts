@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import type { Db } from '../db/client.js';
+import type { Db } from '~/db/client';
 
 export const guildSettings = pgTable('guild_settings', {
   guildId: text('guild_id').primaryKey(),
@@ -10,7 +10,6 @@ export const guildSettings = pgTable('guild_settings', {
     .defaultNow(),
 });
 
-/** Guild setting stored in the database wins over DEFAULT_TIMEZONE. */
 export async function getGuildTimezone(
   db: Db,
   guildId: string,
@@ -20,6 +19,7 @@ export async function getGuildTimezone(
     .select({ timezone: guildSettings.timezone })
     .from(guildSettings)
     .where(eq(guildSettings.guildId, guildId));
+
   return row?.timezone ?? fallback;
 }
 

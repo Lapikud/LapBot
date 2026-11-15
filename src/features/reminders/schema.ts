@@ -25,7 +25,6 @@ export const reminders = pgTable(
     id: serial('id').primaryKey(),
     guildId: text('guild_id').notNull(),
     userId: text('user_id').notNull(),
-    /** Null delivers by direct message. */
     channelId: text('channel_id'),
     message: text('message').notNull(),
     runAt: timestamp('run_at', { withTimezone: true }).notNull(),

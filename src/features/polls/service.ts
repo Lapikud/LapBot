@@ -8,15 +8,15 @@ import {
   inArray,
   sql,
 } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
 import {
   pollOptions,
   polls,
   pollVotes,
   type Poll,
   type PollOption,
-} from './schema.js';
+} from './schema';
 
 export const maxOptions = 25;
 
@@ -37,7 +37,6 @@ export type OptionResult = PollOption & { votes: number };
 export type PollResults = {
   options: OptionResult[];
   voters: number;
-  /** Options sharing the highest vote count; empty when nobody voted. */
   winners: OptionResult[];
   tie: boolean;
 };
@@ -47,23 +46,29 @@ export async function insertPoll(
   input: NewPoll,
 ): Promise<PollWithOptions> {
   const labels = input.options.map((option) => option.label.trim());
+
   if (labels.length < 2 || labels.length > maxOptions) {
     throw new UserError(`A poll needs between 2 and ${maxOptions} options.`);
   }
+
   if (labels.some((label) => label === '' || label.length > 100)) {
     throw new UserError('Options must be 1–100 characters.');
   }
+
   if (
     new Set(labels.map((label) => label.toLowerCase())).size !== labels.length
   ) {
     throw new UserError('Options must be distinct.');
   }
+
   return db.transaction(async (tx) => {
     const { options, ...values } = input;
     const [poll] = await tx.insert(polls).values(values).returning();
+
     if (!poll) {
       throw new Error('Insert returned no row');
     }
+
     const inserted = await tx
       .insert(pollOptions)
       .values(
@@ -75,6 +80,7 @@ export async function insertPoll(
         })),
       )
       .returning();
+
     return {
       ...poll,
       options: inserted.toSorted((a, b) => a.position - b.position),
@@ -87,14 +93,17 @@ export async function getPoll(
   id: number,
 ): Promise<PollWithOptions | undefined> {
   const [poll] = await db.select().from(polls).where(eq(polls.id, id));
+
   if (!poll) {
     return undefined;
   }
+
   const options = await db
     .select()
     .from(pollOptions)
     .where(eq(pollOptions.pollId, id))
     .orderBy(asc(pollOptions.position));
+
   return { ...poll, options };
 }
 
@@ -104,9 +113,11 @@ export async function requirePoll(
   id: number,
 ): Promise<PollWithOptions> {
   const poll = await getPoll(db, id);
+
   if (poll?.guildId !== guildId) {
     throw new UserError(`Poll #${id} does not exist.`);
   }
+
   return poll;
 }
 
@@ -116,11 +127,6 @@ export function isOpen(poll: Poll, now = new Date()): boolean {
   );
 }
 
-/**
- * Replaces a member's votes with `optionIds` (empty clears them). The poll
- * row is locked so a vote cannot race with closing or with the same member
- * voting twice at once.
- */
 export async function castVote(
   db: Db,
   pollId: number,
@@ -133,13 +139,17 @@ export async function castVote(
       .from(polls)
       .where(eq(polls.id, pollId))
       .for('update');
+
     if (!poll || !isOpen(poll)) {
       throw new UserError('This poll is closed.');
     }
+
     const unique = [...new Set(optionIds)];
+
     if (!poll.multiple && unique.length > 1) {
       throw new UserError('This poll allows only one choice.');
     }
+
     if (unique.length > 0) {
       const valid = await tx
         .select({ id: pollOptions.id })
@@ -147,10 +157,12 @@ export async function castVote(
         .where(
           and(eq(pollOptions.pollId, pollId), inArray(pollOptions.id, unique)),
         );
+
       if (valid.length !== unique.length) {
         throw new UserError('That option is not part of this poll.');
       }
     }
+
     await tx
       .delete(pollVotes)
       .where(and(eq(pollVotes.pollId, pollId), eq(pollVotes.userId, userId)));
@@ -185,6 +197,7 @@ export async function getResults(
   const top = Math.max(0, ...options.map((option) => option.votes));
   const winners =
     top === 0 ? [] : options.filter((option) => option.votes === top);
+
   return {
     options,
     voters: voters?.total ?? 0,
@@ -202,10 +215,10 @@ export async function getVoterChoices(
     .select({ optionId: pollVotes.optionId })
     .from(pollVotes)
     .where(and(eq(pollVotes.pollId, pollId), eq(pollVotes.userId, userId)));
+
   return rows.map((row) => row.optionId);
 }
 
-/** Voter IDs per option. Never call this for anonymous polls. */
 export async function getVoters(
   db: Db,
   pollId: number,
@@ -217,13 +230,14 @@ export async function getVoters(
     .orderBy(asc(pollVotes.createdAt))
     .limit(5000);
   const voters = new Map<number, string[]>();
+
   for (const row of rows) {
     voters.set(row.optionId, [...(voters.get(row.optionId) ?? []), row.userId]);
   }
+
   return voters;
 }
 
-/** Returns the poll if this call closed it, so closing side effects run once. */
 export async function finishPoll(
   db: Db,
   id: number,
@@ -239,6 +253,7 @@ export async function finishPoll(
     })
     .where(and(eq(polls.id, id), eq(polls.status, 'open')))
     .returning();
+
   return row;
 }
 
@@ -270,5 +285,6 @@ export async function latestPollBySource(
     .where(and(eq(polls.guildId, guildId), eq(polls.source, source)))
     .orderBy(desc(polls.createdAt), desc(polls.id))
     .limit(1);
+
   return row ? getPoll(db, row.id) : undefined;
 }

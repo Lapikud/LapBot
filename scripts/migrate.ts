@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { connectDatabase, runMigrations } from '../src/db/client.js';
+import { connectDatabase, runMigrations } from '~/db/client';
 
-// The bot also migrates on startup; this runs migrations without starting it.
 const url = z.url().parse(process.env.DATABASE_URL);
 const database = connectDatabase(url);
+
 try {
   await runMigrations(database.db);
   console.log('Migrations applied.');

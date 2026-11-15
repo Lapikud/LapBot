@@ -8,10 +8,6 @@ import {
   text,
 } from 'drizzle-orm/pg-core';
 
-/**
- * public: announced and listed. announce: announced but never listed.
- * private: stored for the member only; never announced or shown to others.
- */
 export const birthdayVisibility = pgEnum('birthday_visibility', [
   'public',
   'announce',

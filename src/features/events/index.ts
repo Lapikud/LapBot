@@ -13,25 +13,25 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, defineJob } from '../../core/define.js';
-import { asJobError, isUnknownObject } from '../../core/discord/errors.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, defineJob } from '~/core/define';
+import { asJobError, isUnknownObject } from '~/core/discord/errors';
 import type {
   AppContext,
   CommandInteraction,
   ComponentHandler,
   Feature,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
-import { customId } from '../../core/registry.js';
-import { UserError } from '../../shared/errors.js';
+} from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
+import { customId } from '~/core/registry';
+import { UserError } from '~/shared/errors';
 import {
   discordTime,
   parseFutureWhen,
   parseWhen,
   requireZone,
-} from '../../shared/time.js';
-import type { Event, RsvpStatus } from './schema.js';
+} from '~/shared/time';
+import type { Event, RsvpStatus } from './schema';
 import {
   getEvent,
   insertEvent,
@@ -44,7 +44,7 @@ import {
   updateEvent,
   type NewEvent,
   type RsvpCounts,
-} from './service.js';
+} from './service';
 
 const rsvpLabels: Record<RsvpStatus, string> = {
   going: 'Going',
@@ -84,9 +84,11 @@ export function renderEvent(
       { name: 'Maybe', value: String(counts.maybe), inline: true },
     )
     .setFooter({ text: `Event #${event.id}` });
+
   if (event.description !== null) {
     embed.setDescription(event.description);
   }
+
   const buttons = rsvpStatuses.map((status) =>
     new ButtonBuilder()
       .setCustomId(customId('events:rsvp', event.id, status))
@@ -95,6 +97,7 @@ export function renderEvent(
         status === 'going' ? ButtonStyle.Success : ButtonStyle.Secondary,
       ),
   );
+
   return {
     embeds: [embed],
     components: cancelled
@@ -107,8 +110,10 @@ async function refreshMessage(ctx: AppContext, event: Event): Promise<void> {
   if (event.messageId === null) {
     return;
   }
+
   try {
     const channel = await ctx.client.channels.fetch(event.channelId);
+
     if (channel?.isTextBased() === true) {
       await channel.messages.edit(
         event.messageId,
@@ -119,6 +124,7 @@ async function refreshMessage(ctx: AppContext, event: Event): Promise<void> {
     if (!isUnknownObject(error)) {
       throw error;
     }
+
     ctx.log.warn({ eventId: event.id }, 'Event message or channel was deleted');
   }
 }
@@ -131,13 +137,14 @@ export const remindJob = defineJob({
   payload: z.object({ eventId: z.number().int(), minutes: z.number().int() }),
   handle: async ({ eventId, minutes }, _info, ctx) => {
     const event = await getEvent(ctx.db, eventId);
-    // A reminder after the start is pointless, so late ones are dropped.
+
     if (
       event?.status !== 'scheduled' ||
       event.startsAt.getTime() <= Date.now()
     ) {
       return;
     }
+
     const attendees = await listAttendees(ctx.db, eventId);
     const going = attendees
       .filter((a) => a.status === 'going')
@@ -148,8 +155,10 @@ export const remindJob = defineJob({
         ? ''
         : ` https://discord.com/channels/${event.guildId}/${event.channelId}/${event.messageId}`;
     const pings = going.map((id) => `<@${id}>`).join(' ');
+
     try {
       const channel = await ctx.client.channels.fetch(event.channelId);
+
       if (channel?.isSendable() === true) {
         await channel.send({
           content: `⏰ **${event.title}** starts ${discordTime(event.startsAt, 'R')} (${minutes} min reminder).${link}\n${pings}`,
@@ -167,37 +176,49 @@ async function scheduleReminders(
   event: Event,
   previous: readonly number[] = [],
 ): Promise<void> {
-  for (const minutes of previous) {
-    await ctx.scheduler.cancel(reminderKey(event.id, minutes));
-  }
+  await Promise.all(
+    previous.map((minutes) =>
+      ctx.scheduler.cancel(reminderKey(event.id, minutes)),
+    ),
+  );
+
   if (event.status !== 'scheduled') {
     return;
   }
-  for (const minutes of event.reminderMinutes) {
-    const runAt = new Date(event.startsAt.getTime() - minutes * 60_000);
-    if (runAt.getTime() > Date.now()) {
-      await ctx.scheduler.schedule(
+
+  const upcoming = event.reminderMinutes
+    .map((minutes) => ({
+      minutes,
+      runAt: new Date(event.startsAt.getTime() - minutes * 60_000),
+    }))
+    .filter(({ runAt }) => runAt.getTime() > Date.now());
+
+  await Promise.all(
+    upcoming.map(({ minutes, runAt }) =>
+      ctx.scheduler.schedule(
         remindJob,
         { eventId: event.id, minutes },
         { runAt, key: reminderKey(event.id, minutes) },
-      );
-    }
-  }
+      ),
+    ),
+  );
 }
 
-/** Mirrors the event as a native Discord scheduled event. Failures are not fatal. */
 async function syncNativeEvent(
   ctx: AppContext,
   event: Event,
 ): Promise<string | null> {
   try {
     const guild = await ctx.client.guilds.fetch(event.guildId);
+
     if (event.status === 'cancelled') {
       if (event.discordEventId !== null) {
         await guild.scheduledEvents.delete(event.discordEventId);
       }
+
       return null;
     }
+
     const details = {
       name: event.title.slice(0, 100),
       scheduledStartTime: event.startsAt,
@@ -209,29 +230,30 @@ async function syncNativeEvent(
         location: (event.location ?? 'See the event post').slice(0, 100),
       },
     };
+
     if (event.discordEventId !== null) {
       await guild.scheduledEvents.edit(event.discordEventId, details);
+
       return event.discordEventId;
     }
+
     const created = await guild.scheduledEvents.create({
       ...details,
       privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
       entityType: GuildScheduledEventEntityType.External,
     });
+
     return created.id;
   } catch (error) {
     ctx.log.warn(
       { err: error, eventId: event.id },
       'Could not sync native Discord event',
     );
+
     return event.discordEventId;
   }
 }
 
-/**
- * Public API: creates, publishes and schedules reminders for an event. Movie
- * nights and any other feature that needs an event go through this.
- */
 export async function createEvent(
   ctx: AppContext,
   input: NewEvent & { native?: boolean },
@@ -240,9 +262,11 @@ export async function createEvent(
   const channel = await ctx.client.channels
     .fetch(values.channelId)
     .catch(() => null);
+
   if (channel?.isSendable() !== true) {
     throw new UserError('I cannot post in that channel.');
   }
+
   let event = await insertEvent(ctx.db, values);
   const message = await channel.send({
     ...renderEvent(event, { going: 0, maybe: 0, not_going: 0 }),
@@ -254,11 +278,13 @@ export async function createEvent(
         }),
   });
   const discordEventId = native ? await syncNativeEvent(ctx, event) : null;
+
   event = await updateEvent(ctx.db, event.id, {
     messageId: message.id,
     discordEventId,
   });
   await scheduleReminders(ctx, event);
+
   return event;
 }
 
@@ -266,10 +292,13 @@ function parseReminderMinutes(value: string | null): number[] {
   if (value === null) {
     return [60];
   }
+
   if (value.trim() === '') {
     return [];
   }
+
   const minutes = value.split(',').map((part) => Number(part.trim()));
+
   if (
     minutes.length > maxReminders ||
     minutes.some((m) => !Number.isInteger(m) || m < 1 || m > 10_080)
@@ -278,6 +307,7 @@ function parseReminderMinutes(value: string | null): number[] {
       `Reminders are up to ${maxReminders} comma-separated minute values, e.g. "60,15".`,
     );
   }
+
   return [...new Set(minutes)];
 }
 
@@ -290,9 +320,11 @@ async function requireManageable(
     interaction.guildId,
     interaction.options.getInteger('id', true),
   );
+
   if (event.organizerId !== interaction.user.id) {
     await ctx.authz.require(interaction.member, 'event:manage');
   }
+
   return event;
 }
 
@@ -301,6 +333,7 @@ const rsvpHandler: ComponentHandler = {
   execute: async (interaction, [id, answer], ctx) => {
     const status = rsvpStatuses.find((s) => s === answer);
     const eventId = Number(id);
+
     if (
       !interaction.isButton() ||
       status === undefined ||
@@ -308,13 +341,16 @@ const rsvpHandler: ComponentHandler = {
     ) {
       throw new UserError('This button is invalid.');
     }
+
     await setRsvp(ctx.db, eventId, interaction.user.id, status);
     const event = await getEvent(ctx.db, eventId);
+
     if (event) {
       await interaction.update(
         renderEvent(event, await rsvpCounts(ctx.db, eventId)),
       );
     }
+
     await interaction.followUp({
       content: `RSVP saved: **${rsvpLabels[status]}**.`,
       flags: MessageFlags.Ephemeral,
@@ -444,9 +480,11 @@ async function editEvent(
   ctx: AppContext,
 ): Promise<void> {
   const event = await requireManageable(interaction, ctx);
+
   if (event.status !== 'scheduled') {
     throw new UserError('Cancelled events cannot be edited.');
   }
+
   const option = (name: string) =>
     interaction.options.getString(name) ?? undefined;
   const start = option('start');
@@ -462,16 +500,20 @@ async function editEvent(
         : parseFutureWhen(start, event.timezone),
     endsAt: end === undefined ? event.endsAt : parseWhen(end, event.timezone),
   };
+
   if (changes.endsAt && changes.endsAt <= changes.startsAt) {
     throw new UserError('The end must be after the start.');
   }
+
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   let updated = await updateEvent(ctx.db, event.id, changes);
+
   if (updated.discordEventId !== null) {
     updated = await updateEvent(ctx.db, event.id, {
       discordEventId: await syncNativeEvent(ctx, updated),
     });
   }
+
   await refreshMessage(ctx, updated);
   await scheduleReminders(ctx, updated, event.reminderMinutes);
   ctx.log.info(
@@ -506,6 +548,7 @@ export const eventsFeature: Feature = {
               : requireZone(zoneOption);
           const end = interaction.options.getString('end');
           const mention = interaction.options.getRole('mention');
+
           if (
             mention &&
             !mention.mentionable &&
@@ -513,6 +556,7 @@ export const eventsFeature: Feature = {
           ) {
             throw new UserError('You may not mention that role.');
           }
+
           const input = {
             guildId: interaction.guildId,
             title: interaction.options.getString('title', true),
@@ -535,8 +579,10 @@ export const eventsFeature: Feature = {
             ),
             native: interaction.options.getBoolean('native') ?? false,
           };
+
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
           const event = await createEvent(ctx, input);
+
           ctx.log.info(
             { eventId: event.id, actorId: interaction.user.id },
             'Event created',
@@ -548,13 +594,16 @@ export const eventsFeature: Feature = {
         edit: editEvent,
         cancel: async (interaction, ctx) => {
           const event = await requireManageable(interaction, ctx);
+
           if (event.status === 'cancelled') {
             throw new UserError('That event is already cancelled.');
           }
+
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
           const cancelled = await updateEvent(ctx.db, event.id, {
             status: 'cancelled',
           });
+
           await Promise.all([
             refreshMessage(ctx, cancelled),
             scheduleReminders(ctx, cancelled, event.reminderMinutes),
@@ -570,6 +619,7 @@ export const eventsFeature: Feature = {
         },
         list: async (interaction, ctx) => {
           const upcoming = await listUpcoming(ctx.db, interaction.guildId);
+
           await respond(
             interaction,
             upcoming.length === 0
@@ -589,6 +639,7 @@ export const eventsFeature: Feature = {
             interaction.options.getInteger('id', true),
           );
           const counts = await rsvpCounts(ctx.db, event.id);
+
           await interaction.reply({
             embeds: renderEvent(event, counts).embeds ?? [],
             flags: MessageFlags.Ephemeral,
@@ -605,16 +656,22 @@ export const eventsFeature: Feature = {
             const ids = attendees
               .filter((a) => a.status === status)
               .map((a) => `<@${a.userId}>`);
+
             return `**${rsvpLabels[status]} (${ids.length})**\n${ids.join(' ') || '—'}`;
           };
+
           await respond(
             interaction,
-            rsvpStatuses.map(section).join('\n\n').slice(0, 2000),
+            rsvpStatuses
+              .map((status) => section(status))
+              .join('\n\n')
+              .slice(0, 2000),
           );
         },
       }),
       autocomplete: async (interaction, ctx) => {
         const upcoming = await listUpcoming(ctx.db, interaction.guildId);
+
         await interaction.respond(
           upcoming.map((e) => ({
             name: `#${e.id} ${e.title}`.slice(0, 100),

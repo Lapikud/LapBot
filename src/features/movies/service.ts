@@ -1,13 +1,12 @@
 import { and, asc, desc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
 import {
   movieScreenings,
   movieSuggestions,
   type MovieSuggestion,
-} from './schema.js';
+} from './schema';
 
-/** "The Matrix!" and "the  matrix" are the same suggestion. */
 export function normalizeTitle(title: string): string {
   return title
     .normalize('NFKD')
@@ -38,23 +37,28 @@ export async function suggestMovie(
   },
 ): Promise<MovieSuggestion> {
   const normalizedTitle = normalizeTitle(input.title);
+
   if (normalizedTitle === '') {
     throw new UserError('Give a movie title.');
   }
+
   const [row] = await db
     .insert(movieSuggestions)
     .values({ ...input, title: input.title.trim(), normalizedTitle })
     .onConflictDoNothing()
     .returning();
+
   if (!row) {
     const existing = await findActive(db, input.guildId, normalizedTitle);
     const when = existing && (await lastWatched(db, existing.id));
+
     throw new UserError(
       when
         ? `That movie was already watched (${when.toISOString().slice(0, 10)}).`
         : 'That movie is already suggested.',
     );
   }
+
   return row;
 }
 
@@ -69,6 +73,7 @@ async function findActive(db: Db, guildId: string, normalizedTitle: string) {
         isNull(movieSuggestions.removedAt),
       ),
     );
+
   return row;
 }
 
@@ -87,6 +92,7 @@ export async function lastWatched(
     )
     .orderBy(desc(movieScreenings.watchedAt))
     .limit(1);
+
   return row?.watchedAt ?? undefined;
 }
 
@@ -105,13 +111,14 @@ export async function requireSuggestion(
         isNull(movieSuggestions.removedAt),
       ),
     );
+
   if (!row) {
     throw new UserError(`Movie #${id} is not on the list.`);
   }
+
   return row;
 }
 
-/** Suggestions not yet watched, oldest first so long-waiting ones get a turn. */
 export async function listUnwatched(
   db: Db,
   guildId: string,
@@ -152,13 +159,14 @@ export async function recordScreening(
     .insert(movieScreenings)
     .values(input)
     .returning({ id: movieScreenings.id });
+
   if (!row) {
     throw new Error('Insert returned no row');
   }
+
   return row.id;
 }
 
-/** Marks the latest unwatched screening as watched, or records a new one. */
 export async function markWatched(
   db: Db,
   guildId: string,
@@ -176,6 +184,7 @@ export async function markWatched(
     )
     .orderBy(desc(movieScreenings.createdAt))
     .limit(1);
+
   await (pending
     ? db
         .update(movieScreenings)

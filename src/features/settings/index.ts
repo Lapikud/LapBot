@@ -3,13 +3,10 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { bySubcommand } from '../../core/define.js';
-import type { Feature } from '../../core/feature.js';
-import {
-  getGuildTimezone,
-  setGuildTimezone,
-} from '../../core/guild-settings.js';
-import { requireZone } from '../../shared/time.js';
+import { bySubcommand } from '~/core/define';
+import type { Feature } from '~/core/feature';
+import { getGuildTimezone, setGuildTimezone } from '~/core/guild-settings';
+import { requireZone } from '~/shared/time';
 
 const data = new SlashCommandBuilder()
   .setName('settings')
@@ -35,6 +32,7 @@ export const settingsFeature: Feature = {
       execute: bySubcommand({
         timezone: async (interaction, ctx) => {
           const zone = interaction.options.getString('zone');
+
           if (zone !== null) {
             await ctx.authz.require(interaction.member, 'settings:manage');
             await setGuildTimezone(
@@ -43,11 +41,13 @@ export const settingsFeature: Feature = {
               requireZone(zone),
             );
           }
+
           const current = await getGuildTimezone(
             ctx.db,
             interaction.guildId,
             ctx.config.DEFAULT_TIMEZONE,
           );
+
           await interaction.reply({
             content: `Server timezone: **${current}**`,
             flags: MessageFlags.Ephemeral,

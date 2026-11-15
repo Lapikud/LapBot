@@ -5,18 +5,18 @@ import {
   type Role,
   type SlashCommandStringOption,
 } from 'discord.js';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, deferred } from '../../core/define.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, deferred } from '~/core/define';
 import type {
   AppContext,
   CommandInteraction,
   Feature,
   Permission,
   PermissionDefinition,
-} from '../../core/feature.js';
-import { isAdministrator } from '../../core/permissions/authorizer.js';
-import { grant, listGrants, revoke } from '../../core/permissions/store.js';
-import { UserError } from '../../shared/errors.js';
+} from '~/core/feature';
+import { isAdministrator } from '~/core/permissions/authorizer';
+import { grant, listGrants, revoke } from '~/core/permissions/store';
+import { UserError } from '~/shared/errors';
 
 const managePermission: Permission = 'permissions:manage';
 
@@ -65,11 +65,6 @@ const data = new SlashCommandBuilder()
       .addStringOption(permissionOption),
   );
 
-/**
- * Stops members with `permissions:manage` from escalating: they may only hand
- * out permissions they hold themselves, only to roles below their own, and
- * never `permissions:manage` itself. Discord administrators are exempt.
- */
 export async function checkDelegation(
   ctx: Pick<AppContext, 'authz'>,
   actor: GuildMember,
@@ -79,14 +74,17 @@ export async function checkDelegation(
   if (isAdministrator(actor)) {
     return;
   }
+
   if (permission === managePermission) {
     throw new UserError(
       'Only administrators can delegate permission management.',
     );
   }
+
   if (actor.roles.highest.comparePositionTo(role) <= 0) {
     throw new UserError(`${role.name} is not below your highest role.`);
   }
+
   if (!(await ctx.authz.can(actor, permission))) {
     throw new UserError('You can only grant permissions you hold yourself.');
   }
@@ -98,9 +96,11 @@ export function createPermissionsFeature(
   const readPermission = (interaction: CommandInteraction): Permission => {
     const value = interaction.options.getString('permission', true);
     const definition = [...known().values()].find((p) => p.id === value);
+
     if (!definition) {
       throw new UserError(`Unknown permission \`${value}\`.`);
     }
+
     return definition.id;
   };
 
@@ -109,6 +109,7 @@ export function createPermissionsFeature(
     async (interaction: CommandInteraction, ctx: AppContext) => {
       const role = interaction.options.getRole('role', true);
       const permission = readPermission(interaction);
+
       await checkDelegation(ctx, interaction.member, role, permission);
       const input = {
         guildId: interaction.guildId,
@@ -119,11 +120,13 @@ export function createPermissionsFeature(
         action === 'grant'
           ? await grant(ctx.db, { ...input, grantedBy: interaction.user.id })
           : await revoke(ctx.db, input);
+
       ctx.log.info(
         { ...input, actorId: interaction.user.id, action, changed },
         'Permission change',
       );
       const verb = action === 'grant' ? 'Granted' : 'Revoked';
+
       await respond(
         interaction,
         changed
@@ -154,6 +157,7 @@ export function createPermissionsFeature(
             const lines = grants.map(
               (g) => `<@&${g.roleId}> — \`${g.permission}\``,
             );
+
             await respond(
               interaction,
               lines.length === 0
@@ -166,6 +170,7 @@ export function createPermissionsFeature(
             const member = await interaction.guild.members.fetch(user.id);
             const permission = readPermission(interaction);
             const allowed = await ctx.authz.can(member, permission);
+
             await respond(
               interaction,
               `${member.toString()} ${allowed ? 'holds' : 'does not hold'} \`${permission}\`.`,
@@ -174,6 +179,7 @@ export function createPermissionsFeature(
         }),
         autocomplete: async (interaction) => {
           const query = interaction.options.getFocused().toLowerCase();
+
           await interaction.respond(
             [...known().values()]
               .filter(

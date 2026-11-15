@@ -10,42 +10,41 @@ import {
   TextInputStyle,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { DateTime } from 'luxon';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, deferred } from '../../core/define.js';
-import type { Config } from '../../core/config.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, deferred } from '~/core/define';
+import type { Config } from '~/core/config';
 import type {
   AppContext,
   CommandInteraction,
   ComponentHandler,
   Feature,
   SlashCommand,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
+} from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
 import {
   RedmineClient,
   RedmineError,
   type RedmineIssue,
   type RedmineUser,
-} from '../../integrations/redmine/client.js';
-import { createSecretBox, type SecretBox } from '../../shared/crypto.js';
-import { UserError } from '../../shared/errors.js';
-import { createReminder } from '../reminders/index.js';
-import { createNotificationJobs } from './notifications.js';
+} from '~/integrations/redmine/client';
+import { createSecretBox, type SecretBox } from '~/shared/crypto';
+import { UserError } from '~/shared/errors';
+import { addCalendarDays, parseCalendarDay, zonedTime } from '~/shared/time';
+import { createReminder } from '~/features/reminders';
+import { createNotificationJobs } from './notifications';
 import {
   addSubscription,
   deleteLink,
   getLink,
   removeSubscription,
   saveLink,
-} from './service.js';
+} from './service';
 
 type Handler = (
   interaction: CommandInteraction,
   ctx: AppContext,
 ) => Promise<void>;
 
-/** Redmine failures become user-facing messages; nothing about keys leaks. */
 function withRedmineErrors(handler: Handler): Handler {
   return async (interaction, ctx) => {
     try {
@@ -58,6 +57,7 @@ function withRedmineErrors(handler: Handler): Handler {
         );
         throw new UserError(error.message);
       }
+
       throw error;
     }
   };
@@ -231,6 +231,7 @@ const data = new SlashCommandBuilder()
 
 function issueLine(baseUrl: string, issue: RedmineIssue): string {
   const assignee = issue.assigned_to ? ` · ${issue.assigned_to.name}` : '';
+
   return `[#${issue.id}](<${baseUrl}issues/${issue.id}>) **${issue.subject}** — ${issue.status.name}${assignee}`;
 }
 
@@ -248,20 +249,19 @@ function issueEmbed(baseUrl: string, issue: RedmineIssue): EmbedBuilder {
     );
 }
 
-/**
- * Discord-side permission is necessary but never sufficient: every request
- * below runs with the member's own Redmine key, so Redmine still decides.
- */
 export function createRedmineFeature(config: Config): Feature | undefined {
   const base = config.REDMINE_BASE_URL;
+
   if (base === undefined) {
     return undefined;
   }
+
   if (config.CREDENTIAL_ENCRYPTION_KEY === undefined) {
     throw new Error(
       'CREDENTIAL_ENCRYPTION_KEY is required when REDMINE_BASE_URL is set',
     );
   }
+
   const baseUrl = base.endsWith('/') ? base : `${base}/`;
   const box: SecretBox = createSecretBox(config.CREDENTIAL_ENCRYPTION_KEY);
   const service =
@@ -275,11 +275,13 @@ export function createRedmineFeature(config: Config): Feature | undefined {
     userId: string,
   ): Promise<{ client: RedmineClient; redmineUserId: number }> {
     const link = await getLink(ctx.db, userId);
+
     if (!link) {
       throw new UserError(
         'Link your Redmine account first with `/redmine link`.',
       );
     }
+
     return {
       client: new RedmineClient(baseUrl, box.decrypt(link.encryptedApiKey)),
       redmineUserId: link.redmineUserId,
@@ -292,6 +294,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         'Redmine notifications are not configured (REDMINE_API_KEY).',
       );
     }
+
     return service;
   };
 
@@ -300,18 +303,19 @@ export function createRedmineFeature(config: Config): Feature | undefined {
     async (interaction, ctx) => {
       const channelId =
         interaction.options.getChannel('channel')?.id ?? interaction.channelId;
-      // The project must be visible to the member and to the service account.
       const { client } = await clientFor(ctx, interaction.user.id);
       const identifier = interaction.options.getString('project', true);
       const { projects } = await client.listProjects(0, 100);
       const project = projects.find(
         (p) => p.identifier === identifier || String(p.id) === identifier,
       );
+
       if (!project) {
         throw new UserError(
           `Project "${identifier}" not found among your projects.`,
         );
       }
+
       if (action === 'unsubscribe') {
         const removed = await removeSubscription(
           ctx.db,
@@ -319,14 +323,17 @@ export function createRedmineFeature(config: Config): Feature | undefined {
           channelId,
           project.id,
         );
+
         await respond(
           interaction,
           removed
             ? `Unsubscribed <#${channelId}> from ${project.name}.`
             : 'No such subscription.',
         );
+
         return;
       }
+
       await requireService().listIssues({ projectId: project.id, limit: 1 });
       const added = await addSubscription(ctx.db, {
         guildId: interaction.guildId,
@@ -335,6 +342,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         projectName: project.name,
         createdBy: interaction.user.id,
       });
+
       ctx.log.info(
         {
           guildId: interaction.guildId,
@@ -357,6 +365,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       const { client } = await clientFor(ctx, interaction.user.id);
       const { projects, total } = await client.listProjects();
       const lines = projects.map((p) => `\`${p.identifier}\` ${p.name}`);
+
       await respond(
         interaction,
         [
@@ -376,6 +385,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         limit: 15,
       });
       const lines = issues.map((issue) => issueLine(baseUrl, issue));
+
       await respond(
         interaction,
         lines.length === 0
@@ -388,6 +398,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       const issue = await client.getIssue(
         interaction.options.getInteger('issue', true),
       );
+
       await respond(interaction, { embeds: [issueEmbed(baseUrl, issue)] });
     },
     'issue create': async (interaction, ctx) => {
@@ -404,16 +415,20 @@ export function createRedmineFeature(config: Config): Feature | undefined {
           ? { assigned_to_id: redmineUserId }
           : {}),
       });
+
       await respond(interaction, `Created ${issueLine(baseUrl, issue)}`);
     },
     'issue update': async (interaction, ctx) => {
       const { client } = await clientFor(ctx, interaction.user.id);
       const status = interaction.options.getInteger('status');
       const notes = interaction.options.getString('notes');
+
       if (status === null && notes === null) {
         throw new UserError('Give a new status or notes.');
       }
+
       const id = interaction.options.getInteger('issue', true);
+
       await client.updateIssue(id, {
         ...(status === null ? {} : { status_id: status }),
         ...(notes === null ? {} : { notes }),
@@ -427,22 +442,28 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       );
       const member = interaction.options.getUser('member');
       let assignee = redmineUserId;
+
       if (member && member.id !== interaction.user.id) {
         const link = await getLink(ctx.db, member.id);
+
         if (!link) {
           throw new UserError(
             `${member.username} has not linked a Redmine account.`,
           );
         }
+
         assignee = link.redmineUserId;
       }
+
       const id = interaction.options.getInteger('issue', true);
+
       await client.updateIssue(id, { assigned_to_id: assignee });
       await respond(interaction, `Assigned #${id}.`);
     },
     'issue comment': async (interaction, ctx) => {
       const { client } = await clientFor(ctx, interaction.user.id);
       const id = interaction.options.getInteger('issue', true);
+
       await client.updateIssue(id, {
         notes: interaction.options.getString('text', true),
       });
@@ -453,21 +474,29 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       const issue = await client.getIssue(
         interaction.options.getInteger('issue', true),
       );
+
       if (issue.due_date === undefined || issue.due_date === null) {
         throw new UserError(`#${issue.id} has no due date.`);
       }
+
       const timezone = await getGuildTimezone(
         ctx.db,
         interaction.guildId,
         ctx.config.DEFAULT_TIMEZONE,
       );
-      const runAt = DateTime.fromISO(issue.due_date, { zone: timezone })
-        .minus({ days: interaction.options.getInteger('days_before') ?? 1 })
-        .set({ hour: 9 })
-        .toJSDate();
+      const due = parseCalendarDay(issue.due_date);
+
+      if (!due) {
+        throw new UserError(`#${issue.id} has an unreadable due date.`);
+      }
+
+      const daysBefore = interaction.options.getInteger('days_before') ?? 1;
+      const runAt = zonedTime(addCalendarDays(due, -daysBefore), 9, timezone);
+
       if (runAt.getTime() <= Date.now()) {
         throw new UserError('That reminder time has already passed.');
       }
+
       const reminder = await createReminder(ctx, {
         guildId: interaction.guildId,
         userId: interaction.user.id,
@@ -477,6 +506,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         recurrence: null,
         timezone,
       });
+
       await respond(
         interaction,
         `I will DM you <t:${Math.floor(runAt.getTime() / 1000)}:R> (reminder #${reminder.id}).`,
@@ -488,6 +518,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
         .setStyle(TextInputStyle.Short)
         .setMinLength(20)
         .setMaxLength(100);
+
       await interaction.showModal(
         new ModalBuilder()
           .setCustomId('redmine:link')
@@ -504,6 +535,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
     },
     unlink: async (interaction, ctx) => {
       const removed = await deleteLink(ctx.db, interaction.user.id);
+
       ctx.log.info(
         { userId: interaction.user.id, removed },
         'Redmine account unlinked',
@@ -523,9 +555,11 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       if (!interaction.isModalSubmit()) {
         return;
       }
+
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const apiKey = interaction.fields.getTextInputValue('key').trim();
       let user: RedmineUser;
+
       try {
         user = await new RedmineClient(baseUrl, apiKey).currentUser();
       } catch (error) {
@@ -536,8 +570,10 @@ export function createRedmineFeature(config: Config): Feature | undefined {
               : error.message,
           );
         }
+
         throw error;
       }
+
       await saveLink(ctx.db, {
         userId: interaction.user.id,
         redmineUserId: user.id,
@@ -562,7 +598,6 @@ export function createRedmineFeature(config: Config): Feature | undefined {
       subscribe: 'redmine:subscription:manage',
       unsubscribe: 'redmine:subscription:manage',
     },
-    // Redmine can be slow, so everything but the modal is deferred first.
     execute: bySubcommand(
       Object.fromEntries(
         Object.entries(handlers).map(([path, handler]) => [
@@ -574,6 +609,7 @@ export function createRedmineFeature(config: Config): Feature | undefined {
     autocomplete: async (interaction, ctx) => {
       const { client } = await clientFor(ctx, interaction.user.id);
       const statuses = await client.listStatuses();
+
       await interaction.respond(
         statuses.slice(0, 25).map((s) => ({ name: s.name, value: s.id })),
       );

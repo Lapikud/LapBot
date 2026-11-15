@@ -4,6 +4,7 @@ export type { Logger } from 'pino';
 
 export function createLogger(level: string): Logger {
   const pretty = process.stdout.isTTY && process.env.NODE_ENV !== 'production';
+
   return pino({
     level,
     redact: {

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
-import { announcements, type Announcement } from './schema.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
+import { announcements, type Announcement } from './schema';
 
 type Status = Announcement['status'];
 
@@ -19,9 +19,11 @@ export async function insertAnnouncement(
   >,
 ): Promise<Announcement> {
   const [row] = await db.insert(announcements).values(input).returning();
+
   if (!row) {
     throw new Error('Insert returned no row');
   }
+
   return row;
 }
 
@@ -34,9 +36,11 @@ export async function requireAnnouncement(
     .select()
     .from(announcements)
     .where(and(eq(announcements.id, id), eq(announcements.guildId, guildId)));
+
   if (!row) {
     throw new UserError(`Announcement #${id} does not exist.`);
   }
+
   return row;
 }
 
@@ -48,6 +52,7 @@ export async function getAnnouncement(
     .select()
     .from(announcements)
     .where(eq(announcements.id, id));
+
   return row;
 }
 
@@ -70,11 +75,6 @@ export async function listAnnouncements(db: Db, guildId: string) {
     .limit(25);
 }
 
-/**
- * Moves an announcement between states only if it is currently in one of
- * `from`. Publishing claims the row this way first, so concurrent publish
- * attempts cannot post it twice.
- */
 export async function transition(
   db: Db,
   id: number,
@@ -88,6 +88,7 @@ export async function transition(
       and(eq(announcements.id, id), inArray(announcements.status, [...from])),
     )
     .returning();
+
   return row;
 }
 

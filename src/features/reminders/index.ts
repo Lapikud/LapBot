@@ -5,24 +5,20 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, defineJob } from '../../core/define.js';
-import { asJobError } from '../../core/discord/errors.js';
-import type {
-  AppContext,
-  CommandInteraction,
-  Feature,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
-import { PermanentError, UserError } from '../../shared/errors.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, defineJob } from '~/core/define';
+import { asJobError } from '~/core/discord/errors';
+import type { AppContext, CommandInteraction, Feature } from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
+import { PermanentError, UserError } from '~/shared/errors';
 import {
   discordTime,
   nextFutureOccurrence,
   parseFutureWhen,
   recurrences,
   requireZone,
-} from '../../shared/time.js';
-import type { Reminder } from './schema.js';
+} from '~/shared/time';
+import type { Reminder } from './schema';
 import {
   getReminder,
   insertReminder,
@@ -30,21 +26,27 @@ import {
   requireOwnReminder,
   updateReminder,
   type NewReminder,
-} from './service.js';
+} from './service';
 
 const jobKey = (id: number) => `reminder:${id}`;
 
 async function deliver(ctx: AppContext, reminder: Reminder): Promise<void> {
   const text = `⏰ **Reminder:** ${reminder.message}`;
+
   if (reminder.channelId === null) {
     const user = await ctx.client.users.fetch(reminder.userId);
+
     await user.send({ content: text });
+
     return;
   }
+
   const channel = await ctx.client.channels.fetch(reminder.channelId);
+
   if (channel?.isSendable() !== true) {
     throw new PermanentError('Reminder channel is not a text channel');
   }
+
   await channel.send({
     content: `<@${reminder.userId}> ${text}`,
     allowedMentions: { users: [reminder.userId] },
@@ -54,44 +56,52 @@ async function deliver(ctx: AppContext, reminder: Reminder): Promise<void> {
 export const deliverJob = defineJob({
   type: 'reminders:deliver',
   payload: z.object({ reminderId: z.number().int() }),
-  // Reminders are still useful late, so overdue ones are delivered on recovery.
   handle: async ({ reminderId }, _info, ctx) => {
     const reminder = await getReminder(ctx.db, reminderId);
+
     if (reminder?.status !== 'active') {
       return null;
     }
+
     try {
       await deliver(ctx, reminder);
     } catch (error) {
       const jobError = asJobError(error);
+
       if (jobError instanceof PermanentError) {
         await updateReminder(ctx.db, reminder.id, {
           status: 'failed',
           failure: jobError.message,
         });
       }
+
       throw jobError;
     }
+
     if (reminder.recurrence === null) {
       await updateReminder(ctx.db, reminder.id, { status: 'done' });
+
       return null;
     }
+
     const next = nextFutureOccurrence(
       reminder.runAt,
       reminder.recurrence,
       reminder.timezone,
     );
+
     await updateReminder(ctx.db, reminder.id, { runAt: next });
+
     return { rescheduleAt: next };
   },
 });
 
-/** Public API: other features create reminders through this. */
 export async function createReminder(
   ctx: AppContext,
   input: NewReminder,
 ): Promise<Reminder> {
   const reminder = await insertReminder(ctx.db, input);
+
   await ctx.scheduler.schedule(
     deliverJob,
     { reminderId: reminder.id },
@@ -100,12 +110,14 @@ export async function createReminder(
       key: jobKey(reminder.id),
     },
   );
+
   return reminder;
 }
 
 export function describeReminder(reminder: Reminder): string {
   const where = reminder.channelId === null ? 'DM' : `<#${reminder.channelId}>`;
   const repeat = reminder.recurrence === null ? '' : `, ${reminder.recurrence}`;
+
   return `#${reminder.id} ${discordTime(reminder.runAt, 'f')} (${where}${repeat}) — ${reminder.message.slice(0, 80)}`;
 }
 
@@ -178,6 +190,7 @@ async function zoneFor(
   ctx: AppContext,
 ): Promise<string> {
   const explicit = interaction.options.getString('timezone');
+
   return explicit === null
     ? getGuildTimezone(ctx.db, interaction.guildId, ctx.config.DEFAULT_TIMEZONE)
     : requireZone(explicit);
@@ -196,9 +209,11 @@ export const remindersFeature: Feature = {
         const channel = interaction.options.getChannel('channel', false, [
           ChannelType.GuildText,
         ]);
+
         if (channel) {
           await ctx.authz.require(interaction.member, 'reminder:channel');
         }
+
         const timezone = await zoneFor(interaction, ctx);
         const reminder = await createReminder(ctx, {
           guildId: interaction.guildId,
@@ -209,7 +224,6 @@ export const remindersFeature: Feature = {
             interaction.options.getString('when', true),
             timezone,
           ),
-          // Discord enforces the choices, but option values are still untrusted.
           recurrence:
             recurrences.find(
               (r) => r === interaction.options.getString('repeat'),
@@ -219,6 +233,7 @@ export const remindersFeature: Feature = {
         const note = channel
           ? ''
           : ' Make sure you allow DMs from server members.';
+
         await respond(
           interaction,
           `Reminder set: ${describeReminder(reminder)}.${note}`,
@@ -234,11 +249,12 @@ export const remindersFeature: Feature = {
             interaction.guildId,
             interaction.user.id,
           );
+
           await respond(
             interaction,
             active.length === 0
               ? 'You have no active reminders.'
-              : active.map(describeReminder).join('\n'),
+              : active.map((reminder) => describeReminder(reminder)).join('\n'),
           );
         },
         edit: async (interaction, ctx) => {
@@ -251,13 +267,16 @@ export const remindersFeature: Feature = {
           const when = interaction.options.getString('when');
           const message =
             interaction.options.getString('message') ?? reminder.message;
+
           if (when === null && message === reminder.message) {
             throw new UserError('Give a new time or message.');
           }
+
           const runAt =
             when === null
               ? reminder.runAt
               : parseFutureWhen(when, reminder.timezone);
+
           await updateReminder(ctx.db, reminder.id, { message, runAt });
           await ctx.scheduler.schedule(
             deliverJob,
@@ -276,6 +295,7 @@ export const remindersFeature: Feature = {
             interaction.user.id,
             interaction.options.getInteger('id', true),
           );
+
           await updateReminder(ctx.db, reminder.id, { status: 'cancelled' });
           await ctx.scheduler.cancel(jobKey(reminder.id));
           await respond(interaction, `Cancelled reminder #${reminder.id}.`);
@@ -287,6 +307,7 @@ export const remindersFeature: Feature = {
           interaction.guildId,
           interaction.user.id,
         );
+
         await interaction.respond(
           active.map((r) => ({
             name: `#${r.id} ${r.message}`.slice(0, 100),

@@ -1,32 +1,36 @@
 import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import { DateTime } from 'luxon';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
+import { isLeapYear } from 'date-fns';
+import type { CalendarDay } from '~/shared/time';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
 import {
   birthdays,
   birthdaySettings,
   type Birthday,
   type BirthdayVisibility,
-} from './schema.js';
+} from './schema';
 
 export function validateDate(month: number, day: number): void {
-  // 2024 is a leap year, so 29 February is accepted.
-  if (!DateTime.local(2024, month, day).isValid) {
+  const date = new Date(2024, month - 1, day);
+
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
     throw new UserError('That is not a valid date.');
   }
 }
 
-/**
- * The (month, day) pairs celebrated on a date. 29 February birthdays are
- * celebrated on 28 February in non-leap years.
- */
 export function celebratedOn(
-  date: DateTime,
+  date: CalendarDay,
 ): Array<{ month: number; day: number }> {
   const dates = [{ month: date.month, day: date.day }];
-  if (date.month === 2 && date.day === 28 && !date.isInLeapYear) {
+
+  if (
+    date.month === 2 &&
+    date.day === 28 &&
+    !isLeapYear(new Date(date.year, 0, 1))
+  ) {
     dates.push({ month: 2, day: 29 });
   }
+
   return dates;
 }
 
@@ -59,6 +63,7 @@ export async function removeBirthday(
     .delete(birthdays)
     .where(and(eq(birthdays.guildId, guildId), eq(birthdays.userId, userId)))
     .returning({ userId: birthdays.userId });
+
   return rows.length > 0;
 }
 
@@ -71,14 +76,14 @@ export async function getBirthday(
     .select()
     .from(birthdays)
     .where(and(eq(birthdays.guildId, guildId), eq(birthdays.userId, userId)));
+
   return row;
 }
 
-/** Public birthdays ordered from `today` onward, wrapping around the year. */
 export async function upcomingBirthdays(
   db: Db,
   guildId: string,
-  today: DateTime,
+  today: CalendarDay,
   limit = 10,
 ): Promise<Birthday[]> {
   const rows = await db
@@ -90,23 +95,21 @@ export async function upcomingBirthdays(
     .limit(2000);
   const key = (b: { month: number; day: number }) => b.month * 100 + b.day;
   const start = key(today);
+
   return rows
     .toSorted((a, b) => {
       const ka = (key(a) - start + 1300) % 1300;
       const kb = (key(b) - start + 1300) % 1300;
+
       return ka - kb;
     })
     .slice(0, limit);
 }
 
-/**
- * Claims today's birthdays for announcement by stamping the year. Only rows
- * not yet stamped are returned, so a rerun on the same day announces nobody.
- */
 export async function claimTodaysBirthdays(
   db: Db,
   guildId: string,
-  today: DateTime,
+  today: CalendarDay,
 ): Promise<string[]> {
   const dates = celebratedOn(today);
   const rows = await db
@@ -128,10 +131,10 @@ export async function claimTodaysBirthdays(
       ),
     )
     .returning({ userId: birthdays.userId });
+
   return rows.map((row) => row.userId);
 }
 
-/** Undoes a claim when the announcement could not be posted, so a retry can. */
 export async function releaseClaims(
   db: Db,
   guildId: string,
@@ -141,6 +144,7 @@ export async function releaseClaims(
   if (userIds.length === 0) {
     return;
   }
+
   await db
     .update(birthdays)
     .set({ lastAnnouncedYear: sql`${year} - 1` })
@@ -158,6 +162,7 @@ export async function getSettings(db: Db, guildId: string) {
     .select()
     .from(birthdaySettings)
     .where(eq(birthdaySettings.guildId, guildId));
+
   return row;
 }
 

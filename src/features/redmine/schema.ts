@@ -8,7 +8,6 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
-/** API keys are stored encrypted with CREDENTIAL_ENCRYPTION_KEY. */
 export const redmineLinks = pgTable('redmine_links', {
   userId: text('user_id').primaryKey(),
   redmineUserId: integer('redmine_user_id').notNull(),
@@ -28,7 +27,6 @@ export const redmineSubscriptions = pgTable(
     projectId: integer('project_id').notNull(),
     projectName: text('project_name').notNull(),
     createdBy: text('created_by').notNull(),
-    /** Issues updated at or after this time have not been fully processed. */
     checkpoint: timestamp('checkpoint', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -38,7 +36,6 @@ export const redmineSubscriptions = pgTable(
   ],
 );
 
-/** One row per notification sent, so overlapping polls never repeat one. */
 export const redmineNotifications = pgTable(
   'redmine_notifications',
   {

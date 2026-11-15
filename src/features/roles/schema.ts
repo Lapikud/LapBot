@@ -29,7 +29,6 @@ export const rolePanels = pgTable(
   },
   (table) => [
     index('role_panels_guild_idx').on(table.guildId),
-    // The env-configured legacy panel exists at most once per channel.
     uniqueIndex('role_panels_reaction_channel_idx')
       .on(table.guildId, table.channelId)
       .where(sql`${table.kind} = 'reaction'`),

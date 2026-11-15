@@ -81,7 +81,6 @@ export type RedmineErrorKind =
   | 'unavailable'
   | 'invalid_response';
 
-/** A normalised Redmine failure. `message` is safe to show to users. */
 export class RedmineError extends Error {
   override readonly name = 'RedmineError';
   constructor(
@@ -126,7 +125,6 @@ const messages: Record<number, [RedmineErrorKind, string]> = {
   404: ['not_found', 'Redmine could not find that (or you cannot see it).'],
 };
 
-/** Redmine timestamps are second precision; this is the format its filters accept. */
 const redmineTime = (date: Date) => `${date.toISOString().slice(0, 19)}Z`;
 
 export class RedmineClient {
@@ -141,23 +139,26 @@ export class RedmineClient {
       path,
       this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
     );
+
     for (const [key, value] of Object.entries(request.query ?? {})) {
       url.searchParams.set(key, value);
     }
+
     const method = request.method ?? 'GET';
-    // Only reads are retried; repeating a write could apply it twice.
-    const attempts = method === 'GET' ? 2 : 1;
-    for (let attempt = 1; ; attempt++) {
-      try {
-        return await this.send(url, method, request.body);
-      } catch (error) {
-        if (
-          !(error instanceof RedmineError && error.kind === 'unavailable') ||
-          attempt >= attempts
-        ) {
-          throw error;
-        }
+
+    try {
+      return await this.send(url, method, request.body);
+    } catch (error) {
+      const retryable =
+        method === 'GET' &&
+        error instanceof RedmineError &&
+        error.kind === 'unavailable';
+
+      if (!retryable) {
+        throw error;
       }
+
+      return this.send(url, method, request.body);
     }
   }
 
@@ -167,6 +168,7 @@ export class RedmineClient {
     body: unknown,
   ): Promise<unknown> {
     let response: Response;
+
     try {
       response = await (this.options.fetch ?? fetch)(url, {
         method,
@@ -181,10 +183,12 @@ export class RedmineClient {
     } catch {
       throw new RedmineError('unavailable', 'Redmine did not respond in time.');
     }
+
     if (response.status === 422) {
       const parsed = z
         .object({ errors: z.array(z.string()) })
         .safeParse(await response.json().catch(() => null));
+
       throw new RedmineError(
         'validation',
         parsed.success
@@ -192,17 +196,22 @@ export class RedmineClient {
           : 'Redmine rejected the request.',
       );
     }
+
     const known = messages[response.status];
+
     if (known) {
       throw new RedmineError(...known);
     }
+
     if (!response.ok) {
       throw new RedmineError(
         'unavailable',
         `Redmine is unavailable (HTTP ${response.status}).`,
       );
     }
+
     const text = await response.text();
+
     return text === '' ? null : JSON.parse(text);
   }
 
@@ -214,12 +223,14 @@ export class RedmineClient {
     const parsed = schema.safeParse(
       await this.request(path, query === undefined ? {} : { query }),
     );
+
     if (!parsed.success) {
       throw new RedmineError(
         'invalid_response',
         'Redmine sent a response I do not understand.',
       );
     }
+
     return parsed.data;
   }
 
@@ -228,6 +239,7 @@ export class RedmineClient {
       'users/current.json',
       z.object({ user: userSchema }),
     );
+
     return data.user;
   }
 
@@ -239,6 +251,7 @@ export class RedmineClient {
       offset: String(offset),
       limit: String(Math.min(limit, 100)),
     });
+
     return {
       projects: data.projects,
       total: data.total_count ?? data.projects.length,
@@ -254,19 +267,25 @@ export class RedmineClient {
       offset: String(query.offset ?? 0),
       limit: String(Math.min(query.limit ?? 25, 100)),
     };
+
     if (query.projectId !== undefined) {
       params.project_id = String(query.projectId);
     }
+
     if (query.assignedToMe === true) {
       params.assigned_to_id = 'me';
     }
+
     if (query.updatedSince) {
       params.updated_on = `>=${redmineTime(query.updatedSince)}`;
     }
+
     if (query.dueDate !== undefined) {
       params.due_date = query.dueDate;
     }
+
     const data = await this.get('issues.json', issuesPage, params);
+
     return {
       issues: data.issues,
       total: data.total_count ?? data.issues.length,
@@ -280,6 +299,7 @@ export class RedmineClient {
       z.object({ issue: issueSchema }),
       query,
     );
+
     return data.issue;
   }
 
@@ -288,6 +308,7 @@ export class RedmineClient {
       'issue_statuses.json',
       z.object({ issue_statuses: z.array(statusSchema) }),
     );
+
     return data.issue_statuses;
   }
 
@@ -299,12 +320,14 @@ export class RedmineClient {
       body: { issue: fields },
     });
     const parsed = z.object({ issue: issueSchema }).safeParse(data);
+
     if (!parsed.success) {
       throw new RedmineError(
         'invalid_response',
         'Redmine created the issue but sent an unexpected response.',
       );
     }
+
     return parsed.data.issue;
   }
 

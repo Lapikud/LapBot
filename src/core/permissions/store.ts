@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { rolePermissions } from './schema.js';
+import type { Db } from '~/db/client';
+import { rolePermissions } from './schema';
 
 export async function hasGrant(
   db: Db,
@@ -11,6 +11,7 @@ export async function hasGrant(
   if (roleIds.length === 0) {
     return false;
   }
+
   const rows = await db
     .select({ roleId: rolePermissions.roleId })
     .from(rolePermissions)
@@ -22,10 +23,10 @@ export async function hasGrant(
       ),
     )
     .limit(1);
+
   return rows.length > 0;
 }
 
-/** Returns false when the grant already existed. */
 export async function grant(
   db: Db,
   input: {
@@ -40,10 +41,10 @@ export async function grant(
     .values(input)
     .onConflictDoNothing()
     .returning({ roleId: rolePermissions.roleId });
+
   return rows.length > 0;
 }
 
-/** Returns false when there was nothing to revoke. */
 export async function revoke(
   db: Db,
   input: { guildId: string; roleId: string; permission: string },
@@ -58,6 +59,7 @@ export async function revoke(
       ),
     )
     .returning({ roleId: rolePermissions.roleId });
+
   return rows.length > 0;
 }
 

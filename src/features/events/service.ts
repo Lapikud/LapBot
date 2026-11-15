@@ -1,13 +1,13 @@
 import { and, asc, count, eq, gte, ne } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
 import {
   eventRsvps,
   events,
   rsvpStatus,
   type Event,
   type RsvpStatus,
-} from './schema.js';
+} from './schema';
 
 export type NewEvent = Omit<
   typeof events.$inferInsert,
@@ -22,6 +22,7 @@ export async function insertEvent(db: Db, input: NewEvent): Promise<Event> {
   if (input.endsAt && input.endsAt <= input.startsAt) {
     throw new UserError('The end must be after the start.');
   }
+
   if (
     input.capacity !== undefined &&
     input.capacity !== null &&
@@ -29,15 +30,19 @@ export async function insertEvent(db: Db, input: NewEvent): Promise<Event> {
   ) {
     throw new UserError('Capacity must be at least 1.');
   }
+
   const [row] = await db.insert(events).values(input).returning();
+
   if (!row) {
     throw new Error('Insert returned no row');
   }
+
   return row;
 }
 
 export async function getEvent(db: Db, id: number): Promise<Event | undefined> {
   const [row] = await db.select().from(events).where(eq(events.id, id));
+
   return row;
 }
 
@@ -47,9 +52,11 @@ export async function requireEvent(
   id: number,
 ): Promise<Event> {
   const event = await getEvent(db, id);
+
   if (event?.guildId !== guildId) {
     throw new UserError(`Event #${id} does not exist.`);
   }
+
   return event;
 }
 
@@ -82,9 +89,11 @@ export async function updateEvent(
     .set(changes)
     .where(eq(events.id, id))
     .returning();
+
   if (!row) {
     throw new UserError(`Event #${id} does not exist.`);
   }
+
   return row;
 }
 
@@ -95,16 +104,14 @@ export async function rsvpCounts(db: Db, eventId: number): Promise<RsvpCounts> {
     .where(eq(eventRsvps.eventId, eventId))
     .groupBy(eventRsvps.status);
   const counts: RsvpCounts = { going: 0, maybe: 0, not_going: 0 };
+
   for (const row of rows) {
     counts[row.status] = row.total;
   }
+
   return counts;
 }
 
-/**
- * Records or changes a member's RSVP. The event row is locked so that
- * concurrent "going" responses can never exceed the capacity.
- */
 export async function setRsvp(
   db: Db,
   eventId: number,
@@ -121,9 +128,11 @@ export async function setRsvp(
       .from(events)
       .where(eq(events.id, eventId))
       .for('update');
+
     if (event?.status !== 'scheduled') {
       throw new UserError('This event is no longer open for RSVPs.');
     }
+
     if (status === 'going' && event.capacity !== null) {
       const [others] = await tx
         .select({ total: count() })
@@ -135,12 +144,14 @@ export async function setRsvp(
             ne(eventRsvps.userId, userId),
           ),
         );
+
       if ((others?.total ?? 0) >= event.capacity) {
         throw new UserError(
           'This event is full. You can still answer "Maybe".',
         );
       }
     }
+
     await tx
       .insert(eventRsvps)
       .values({ eventId, userId, status })

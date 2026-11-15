@@ -5,20 +5,16 @@ import {
   type BaseMessageOptions,
   type Interaction,
 } from 'discord.js';
-import { ignore, UserError } from '../../shared/errors.js';
+import { ignore, UserError } from '~/shared/errors';
 import type {
   AppContext,
   CommandInteraction,
   ComponentInteraction,
-} from '../feature.js';
-import { parseCustomId, type Registry } from '../registry.js';
+} from '~/core/feature';
+import { parseCustomId, type Registry } from '~/core/registry';
 
 type Repliable = CommandInteraction | ComponentInteraction;
 
-/**
- * Answers privately, whatever state the interaction is in: a fresh reply,
- * the completion of a deferred reply, or a follow-up after an answer.
- */
 export async function respond(
   interaction: Repliable,
   content: string | Pick<BaseMessageOptions, 'content' | 'embeds'>,
@@ -27,6 +23,7 @@ export async function respond(
     ...(typeof content === 'string' ? { content } : content),
     allowedMentions: { parse: [] },
   };
+
   if (interaction.replied) {
     await interaction.followUp({ ...message, flags: MessageFlags.Ephemeral });
   } else if (interaction.deferred) {
@@ -51,14 +48,18 @@ async function runCommand(
   ctx: AppContext,
 ): Promise<void> {
   const command = registry.commands.get(interaction.commandName);
+
   if (!command) {
     throw new UserError('This command is no longer available.');
   }
+
   const permissions = command.permissions ?? {};
   const required = permissions['*'] ?? permissions[subcommandPath(interaction)];
+
   if (required !== undefined) {
     await ctx.authz.require(interaction.member, required);
   }
+
   await command.execute(interaction, ctx);
 }
 
@@ -69,12 +70,15 @@ async function runComponent(
 ): Promise<void> {
   const parsed = parseCustomId(interaction.customId);
   const handler = parsed && registry.components.get(parsed.prefix);
+
   if (!parsed || !handler) {
     throw new UserError('This control is no longer active.');
   }
+
   if (handler.permission !== undefined) {
     await ctx.authz.require(interaction.member, handler.permission);
   }
+
   await handler.execute(interaction, parsed.args, ctx);
 }
 
@@ -84,6 +88,7 @@ async function runAutocomplete(
   ctx: AppContext,
 ): Promise<void> {
   const command = registry.commands.get(interaction.commandName);
+
   try {
     await command?.autocomplete?.(interaction, ctx);
   } catch (error) {
@@ -92,6 +97,7 @@ async function runAutocomplete(
       'Autocomplete failed',
     );
   }
+
   if (!interaction.responded) {
     await interaction.respond([]).catch(ignore);
   }
@@ -110,7 +116,6 @@ function describe(interaction: Repliable): Record<string, string> {
   };
 }
 
-/** The single error boundary for every interaction the bot receives. */
 export function createInteractionHandler(
   registry: Registry,
   ctx: AppContext,
@@ -125,12 +130,16 @@ export function createInteractionHandler(
           })
           .catch(ignore);
       }
+
       return;
     }
+
     if (interaction.isAutocomplete()) {
       await runAutocomplete(registry, interaction, ctx);
+
       return;
     }
+
     if (
       !interaction.isChatInputCommand() &&
       !interaction.isMessageComponent() &&
@@ -145,6 +154,7 @@ export function createInteractionHandler(
         : runComponent(registry, interaction, ctx));
     } catch (error) {
       let message: string;
+
       if (error instanceof UserError) {
         message = error.message;
         ctx.log.debug(
@@ -153,12 +163,14 @@ export function createInteractionHandler(
         );
       } else {
         const ref = randomUUID().slice(0, 8);
+
         ctx.log.error(
           { err: error, ref, ...describe(interaction) },
           'Interaction failed',
         );
         message = `Something went wrong. Reference: \`${ref}\``;
       }
+
       await respond(interaction, message).catch((replyError: unknown) => {
         ctx.log.warn({ err: replyError }, 'Could not report interaction error');
       });

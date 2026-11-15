@@ -13,20 +13,20 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond } from '../../core/discord/router.js';
-import { bySubcommand, defineJob } from '../../core/define.js';
-import { isUnknownObject } from '../../core/discord/errors.js';
+import { respond } from '~/core/discord/router';
+import { bySubcommand, defineJob } from '~/core/define';
+import { isUnknownObject } from '~/core/discord/errors';
 import type {
   AppContext,
   CommandInteraction,
   ComponentHandler,
   Feature,
-} from '../../core/feature.js';
-import { getGuildTimezone } from '../../core/guild-settings.js';
-import { customId } from '../../core/registry.js';
-import { UserError } from '../../shared/errors.js';
-import { discordTime, parseFutureWhen } from '../../shared/time.js';
-import type { Poll } from './schema.js';
+} from '~/core/feature';
+import { getGuildTimezone } from '~/core/guild-settings';
+import { customId } from '~/core/registry';
+import { UserError } from '~/shared/errors';
+import { discordTime, parseFutureWhen } from '~/shared/time';
+import type { Poll } from './schema';
 import {
   castVote,
   finishPoll,
@@ -42,20 +42,22 @@ import {
   type NewPoll,
   type PollResults,
   type PollWithOptions,
-} from './service.js';
+} from './service';
 
-export type { PollResults, PollWithOptions } from './service.js';
-export { getResults, latestPollBySource } from './service.js';
+export type { PollResults, PollWithOptions } from './service';
+export { getResults, latestPollBySource } from './service';
 
 const closeKey = (id: number) => `poll:${id}:close`;
 
 function bar(votes: number, total: number): string {
   const filled = total === 0 ? 0 : Math.round((votes / total) * 10);
+
   return '█'.repeat(filled) + '░'.repeat(10 - filled);
 }
 
 function describeOutcome(results: PollResults, leader: string): string {
   const label = results.tie ? 'Tie' : leader;
+
   return `**${label}:** ${results.winners.map((w) => w.label).join(', ')}`;
 }
 
@@ -71,12 +73,14 @@ export function renderPoll(
       : `• ${option.label}`,
   );
   let status = poll.status === 'cancelled' ? 'Cancelled' : 'Closed';
+
   if (open) {
     status =
       poll.closesAt === null
         ? 'Open'
         : `Closes ${discordTime(poll.closesAt, 'R')}`;
   }
+
   const outcome =
     !open && results.winners.length > 0
       ? `\n\n${describeOutcome(results, 'Winner')}`
@@ -93,9 +97,11 @@ export function renderPoll(
         status,
       ].join(' · '),
     });
+
   if (!open) {
     return { embeds: [embed], components: [] };
   }
+
   const select = new StringSelectMenuBuilder()
     .setCustomId(customId('polls:vote', poll.id))
     .setPlaceholder(poll.multiple ? 'Choose one or more' : 'Choose one')
@@ -111,6 +117,7 @@ export function renderPoll(
     .setCustomId(customId('polls:clear', poll.id))
     .setLabel('Clear my vote')
     .setStyle(ButtonStyle.Secondary);
+
   return {
     embeds: [embed],
     components: [
@@ -122,11 +129,14 @@ export function renderPoll(
 
 async function refreshMessage(ctx: AppContext, poll: Poll): Promise<void> {
   const full = await getPoll(ctx.db, poll.id);
+
   if (full?.messageId === null || full?.messageId === undefined) {
     return;
   }
+
   try {
     const channel = await ctx.client.channels.fetch(full.channelId);
+
     if (channel?.isTextBased() === true) {
       await channel.messages.edit(
         full.messageId,
@@ -137,6 +147,7 @@ async function refreshMessage(ctx: AppContext, poll: Poll): Promise<void> {
     if (!isUnknownObject(error)) {
       throw error;
     }
+
     ctx.log.warn({ pollId: poll.id }, 'Poll message or channel was deleted');
   }
 }
@@ -144,16 +155,15 @@ async function refreshMessage(ctx: AppContext, poll: Poll): Promise<void> {
 export const closeJob = defineJob({
   type: 'polls:close',
   payload: z.object({ pollId: z.number().int() }),
-  // Polls are closed even when the job runs late; only the message is updated.
   handle: async ({ pollId }, _info, ctx) => {
     const closed = await finishPoll(ctx.db, pollId, 'closed');
+
     if (closed) {
       await refreshMessage(ctx, closed);
     }
   },
 });
 
-/** Public API: publishes a poll and schedules its closing. */
 export async function createPoll(
   ctx: AppContext,
   input: NewPoll,
@@ -161,13 +171,16 @@ export async function createPoll(
   const channel = await ctx.client.channels
     .fetch(input.channelId)
     .catch(() => null);
+
   if (channel?.isSendable() !== true) {
     throw new UserError('I cannot post in that channel.');
   }
+
   const poll = await insertPoll(ctx.db, input);
   const message = await channel.send(
     renderPoll(poll, await getResults(ctx.db, poll)),
   );
+
   await setPollMessage(ctx.db, poll.id, message.id);
   if (poll.closesAt !== null) {
     await ctx.scheduler.schedule(
@@ -176,20 +189,23 @@ export async function createPoll(
       { runAt: poll.closesAt, key: closeKey(poll.id) },
     );
   }
+
   return { ...poll, messageId: message.id };
 }
 
-/** Public API: closes a poll now. Returns false if it was not open. */
 export async function closePoll(
   ctx: AppContext,
   pollId: number,
 ): Promise<boolean> {
   const closed = await finishPoll(ctx.db, pollId, 'closed');
+
   if (!closed) {
     return false;
   }
+
   await ctx.scheduler.cancel(closeKey(pollId));
   await refreshMessage(ctx, closed);
+
   return true;
 }
 
@@ -201,14 +217,18 @@ async function vote(
 ): Promise<void> {
   await castVote(ctx.db, pollId, interaction.user.id, optionIds);
   const poll = await getPoll(ctx.db, pollId);
+
   if (!poll || interaction.isModalSubmit()) {
     return;
   }
+
   const results = await getResults(ctx.db, poll);
+
   await interaction.update(renderPoll(poll, results));
   const chosen = poll.options
     .filter((o) => optionIds.includes(o.id))
     .map((o) => o.label);
+
   await interaction.followUp({
     content:
       chosen.length === 0
@@ -220,9 +240,11 @@ async function vote(
 
 function parseId(value: string | undefined): number {
   const id = Number(value);
+
   if (!Number.isSafeInteger(id)) {
     throw new UserError('This poll control is invalid.');
   }
+
   return id;
 }
 
@@ -232,6 +254,7 @@ const voteHandler: ComponentHandler = {
     if (!interaction.isStringSelectMenu()) {
       return;
     }
+
     await vote(interaction, parseId(id), interaction.values.map(Number), ctx);
   },
 };
@@ -241,9 +264,11 @@ const clearHandler: ComponentHandler = {
   execute: async (interaction, [id], ctx) => {
     const pollId = parseId(id);
     const current = await getVoterChoices(ctx.db, pollId, interaction.user.id);
+
     if (current.length === 0) {
       throw new UserError('You have not voted.');
     }
+
     await vote(interaction, pollId, [], ctx);
   },
 };
@@ -257,9 +282,11 @@ async function requireManageable(
     interaction.guildId,
     interaction.options.getInteger('id', true),
   );
+
   if (poll.creatorId !== interaction.user.id) {
     await ctx.authz.require(interaction.member, 'poll:manage');
   }
+
   return poll;
 }
 
@@ -348,20 +375,24 @@ async function showResults(
   const manager =
     poll.creatorId === interaction.user.id ||
     (await ctx.authz.can(interaction.member, 'poll:manage'));
+
   if (poll.showResults === 'closed' && isOpen(poll) && !manager) {
     throw new UserError('Results are shown when the poll closes.');
   }
+
   const results = await getResults(ctx.db, poll);
   const voters =
     !poll.anonymous && manager ? await getVoters(ctx.db, poll.id) : undefined;
   const lines = results.options.map((option) => {
     const names = voters?.get(option.id)?.map((id) => userMention(id)) ?? [];
+
     return [`**${option.label}** — ${option.votes}`, ...names].join(' ');
   });
   const winner =
     results.winners.length === 0
       ? 'No votes yet.'
       : describeOutcome(results, 'Leading');
+
   await respond(
     interaction,
     [`**${poll.question}**`, ...lines, winner].join('\n').slice(0, 2000),
@@ -388,6 +419,7 @@ export const pollsFeature: Feature = {
             interaction.guildId,
             ctx.config.DEFAULT_TIMEZONE,
           );
+
           await interaction.deferReply({ flags: MessageFlags.Ephemeral });
           const poll = await createPoll(ctx, {
             guildId: interaction.guildId,
@@ -408,12 +440,14 @@ export const pollsFeature: Feature = {
                 : 'live',
             closesAt: closes === null ? null : parseFutureWhen(closes, zone),
           });
+
           await interaction.editReply(
             `Poll #${poll.id} is up in <#${poll.channelId}>.`,
           );
         },
         list: async (interaction, ctx) => {
           const open = await listOpenPolls(ctx.db, interaction.guildId);
+
           await respond(
             interaction,
             open.length === 0
@@ -426,17 +460,21 @@ export const pollsFeature: Feature = {
         results: showResults,
         close: async (interaction, ctx) => {
           const poll = await requireManageable(interaction, ctx);
+
           if (!(await closePoll(ctx, poll.id))) {
             throw new UserError('That poll is not open.');
           }
+
           await respond(interaction, `Poll #${poll.id} is closed.`);
         },
         cancel: async (interaction, ctx) => {
           const poll = await requireManageable(interaction, ctx);
           const cancelled = await finishPoll(ctx.db, poll.id, 'cancelled');
+
           if (!cancelled) {
             throw new UserError('That poll is not open.');
           }
+
           await ctx.scheduler.cancel(closeKey(poll.id));
           await refreshMessage(ctx, cancelled);
           await respond(interaction, `Poll #${poll.id} is cancelled.`);
@@ -444,6 +482,7 @@ export const pollsFeature: Feature = {
       }),
       autocomplete: async (interaction, ctx) => {
         const open = await listOpenPolls(ctx.db, interaction.guildId);
+
         await interaction.respond(
           open.map((p) => ({
             name: `#${p.id} ${p.question}`.slice(0, 100),

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, lte, lt, or, sql } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { scheduledJobs, type JobRow } from './schema.js';
+import type { Db } from '~/db/client';
+import { scheduledJobs, type JobRow } from './schema';
 
 export type NewJob = {
   type: string;
@@ -10,7 +10,6 @@ export type NewJob = {
   maxAttempts?: number | undefined;
 };
 
-/** Inserts a job, or replaces the job holding the same key. */
 export async function upsertJob(db: Db, job: NewJob): Promise<void> {
   const values = {
     type: job.type,
@@ -19,6 +18,7 @@ export async function upsertJob(db: Db, job: NewJob): Promise<void> {
     key: job.key ?? null,
     maxAttempts: job.maxAttempts ?? 5,
   };
+
   await db
     .insert(scheduledJobs)
     .values(values)
@@ -47,11 +47,6 @@ export async function cancelJob(db: Db, key: string): Promise<void> {
     );
 }
 
-/**
- * Claims due jobs, including running jobs whose lease expired because the
- * process that claimed them died. SKIP LOCKED lets concurrent workers claim
- * disjoint batches.
- */
 export async function claimDueJobs(
   db: Db,
   options: { types: readonly string[]; limit: number; leaseMs: number },
@@ -59,6 +54,7 @@ export async function claimDueJobs(
   if (options.types.length === 0) {
     return [];
   }
+
   const due = db
     .select({ id: scheduledJobs.id })
     .from(scheduledJobs)
@@ -98,10 +94,6 @@ type Finish =
   | { kind: 'retry'; runAt: Date; error: string }
   | { kind: 'failed'; error: string };
 
-/**
- * Records a job's outcome. Only applies while the job is still running, so a
- * concurrent cancel or replacement wins over a finishing handler.
- */
 export async function finishJob(
   db: Db,
   id: number,
@@ -114,6 +106,7 @@ export async function finishJob(
     retry: { status: 'pending' },
     failed: { status: 'failed', finishedAt: now },
   } as const;
+
   await db
     .update(scheduledJobs)
     .set({

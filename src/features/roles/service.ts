@@ -1,7 +1,7 @@
 import { and, asc, count, eq, max } from 'drizzle-orm';
-import type { Db } from '../../db/client.js';
-import { UserError } from '../../shared/errors.js';
-import { rolePanelRoles, rolePanels } from './schema.js';
+import type { Db } from '~/db/client';
+import { UserError } from '~/shared/errors';
+import { rolePanelRoles, rolePanels } from './schema';
 
 export const maxPanelRoles = 25;
 
@@ -13,7 +13,6 @@ export type PanelRole = {
 
 export type Panel = typeof rolePanels.$inferSelect & { roles: PanelRole[] };
 
-/** The role bound to a reaction on a reaction panel, if that is what it is. */
 export async function findReactionRole(
   db: Db,
   reaction: {
@@ -37,6 +36,7 @@ export async function findReactionRole(
       ),
     )
     .limit(1);
+
   return row?.roleId;
 }
 
@@ -49,9 +49,11 @@ export async function getPanel(
     .select()
     .from(rolePanels)
     .where(and(eq(rolePanels.id, panelId), eq(rolePanels.guildId, guildId)));
+
   if (!panel) {
     return undefined;
   }
+
   const roles = await db
     .select({
       roleId: rolePanelRoles.roleId,
@@ -61,6 +63,7 @@ export async function getPanel(
     .from(rolePanelRoles)
     .where(eq(rolePanelRoles.panelId, panelId))
     .orderBy(asc(rolePanelRoles.position));
+
   return { ...panel, roles };
 }
 
@@ -70,9 +73,11 @@ export async function requirePanel(
   panelId: number,
 ): Promise<Panel> {
   const panel = await getPanel(db, guildId, panelId);
+
   if (!panel) {
     throw new UserError(`Role panel #${panelId} does not exist.`);
   }
+
   return panel;
 }
 
@@ -90,7 +95,6 @@ export async function listPanels(db: Db, guildId: string) {
     .limit(100);
 }
 
-/** Every role members can give themselves through a panel in this guild. */
 export async function listSelfAssignableRoles(
   db: Db,
   guildId: string,
@@ -121,9 +125,11 @@ export async function createPanel(
     .insert(rolePanels)
     .values(input)
     .returning({ id: rolePanels.id });
+
   if (!row) {
     throw new Error('Insert returned no row');
   }
+
   return row.id;
 }
 
@@ -142,6 +148,7 @@ export async function findReactionPanel(
         eq(rolePanels.kind, 'reaction'),
       ),
     );
+
   return panel;
 }
 
@@ -187,7 +194,6 @@ export async function addPanelRole(
   role: PanelRole,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    // Lock the panel so concurrent additions cannot exceed the limit.
     await tx
       .select({ id: rolePanels.id })
       .from(rolePanels)
@@ -197,14 +203,17 @@ export async function addPanelRole(
       .select({ total: count(), last: max(rolePanelRoles.position) })
       .from(rolePanelRoles)
       .where(eq(rolePanelRoles.panelId, panelId));
+
     if ((stats?.total ?? 0) >= maxPanelRoles) {
       throw new UserError(`A panel can hold at most ${maxPanelRoles} roles.`);
     }
+
     const inserted = await tx
       .insert(rolePanelRoles)
       .values({ ...role, panelId, position: (stats?.last ?? -1) + 1 })
       .onConflictDoNothing()
       .returning({ roleId: rolePanelRoles.roleId });
+
     if (inserted.length === 0) {
       throw new UserError('That role is already on this panel.');
     }
@@ -225,6 +234,7 @@ export async function removePanelRole(
       ),
     )
     .returning({ roleId: rolePanelRoles.roleId });
+
   return rows.length > 0;
 }
 
