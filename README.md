@@ -64,6 +64,27 @@ birthday channel) live in the database and win over environment defaults
 | `/permissions grant/revoke/list/check`                                     | `permissions:manage`                                           |
 | `/settings timezone`                                                       | viewing is open; changing needs `settings:manage`              |
 
+## Web UI
+
+Set `WEB_PORT` (and `DISCORD_GUILD_ID`) to start a small web UI next to the bot:
+<http://localhost:3000>. It covers:
+
+- **PSAs:** write an announcement, choose one channel and exactly which roles
+  (or @everyone) it mentions, preview it as Discord will show it, then publish
+  now, schedule it, or save a draft.
+- **Events, polls, permissions and the server timezone.**
+
+The UI uses the same services as the slash commands, so the same rules apply:
+it only posts where the bot can post, and only mentionable roles can be pinged
+unless the bot may mention everyone.
+
+**There is no sign-in yet.** Whoever can open the page acts as a server
+administrator, which is why it listens on `127.0.0.1` only (Compose publishes
+it on the host's loopback). Reach it from elsewhere through an SSH tunnel, not
+a public proxy. Sign-in plugs in through the `Authenticator` port;
+`createDiscordOAuth` in `src/infra/web/auth.ts` is a Discord OAuth2 adapter
+that is written and tested but not connected yet.
+
 ## Permissions
 
 The bot has its own action-based permissions (`event:create`, `poll:manage`,
@@ -195,6 +216,7 @@ src/
     redmine/          Redmine adapter for the IssueTracker port
     crypto/           AES-256-GCM SecretBox
     logging/          pino
+    web/              server-rendered web UI and the Authenticator adapters
 tests/                mirrors src/
 drizzle/              SQL migrations
 ```
@@ -251,7 +273,6 @@ drizzle/              SQL migrations
 - Birthday announcements are not sent for days the bot was entirely offline.
 - User-facing text is English (the legacy panel and birthday wishes are
   Estonian).
-- The web UI and PSA composer are not built yet. The services already take an
-  `Actor`, so a web adapter can reuse them unchanged.
+- The web UI has no sign-in yet (see [Web UI](#web-ui)).
 - Native Discord polls are not used, because bot polls must persist and work
   with movie nights.

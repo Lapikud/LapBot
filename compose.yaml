@@ -5,6 +5,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://lapbot:${POSTGRES_PASSWORD:-lapbot}@postgres:5432/lapbot
+      WEB_HOST: 0.0.0.0
+    ports:
+      - '127.0.0.1:${WEB_PORT:-3000}:${WEB_PORT:-3000}'
     depends_on:
       postgres:
         condition: service_healthy
