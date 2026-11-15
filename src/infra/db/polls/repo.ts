@@ -8,58 +8,23 @@ import {
   inArray,
   sql,
 } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
-import { UserError } from '~/domain';
-import {
-  pollOptions,
-  polls,
-  pollVotes,
-  type Poll,
-  type PollOption,
-} from './schema';
-
-export const maxOptions = 25;
-
-export type NewPoll = Pick<
-  Poll,
-  'guildId' | 'channelId' | 'creatorId' | 'question'
-> &
-  Partial<
-    Pick<Poll, 'multiple' | 'anonymous' | 'showResults' | 'closesAt' | 'source'>
-  > & {
-    options: ReadonlyArray<{ label: string; ref?: string | null }>;
-  };
-
-export type PollWithOptions = Poll & { options: PollOption[] };
-
-export type OptionResult = PollOption & { votes: number };
-
-export type PollResults = {
-  options: OptionResult[];
-  voters: number;
-  winners: OptionResult[];
-  tie: boolean;
-};
+import type {
+  NewPoll,
+  PollRepository,
+  PollResults,
+  PollWithOptions,
+} from '~/core/ports';
+import type { Db } from '../client';
+import { isPollOpen, tally, UserError, validatePollOptions } from '~/domain';
+import { pollOptions, polls, pollVotes, type Poll } from './model';
 
 export async function insertPoll(
   db: Db,
   input: NewPoll,
 ): Promise<PollWithOptions> {
-  const labels = input.options.map((option) => option.label.trim());
-
-  if (labels.length < 2 || labels.length > maxOptions) {
-    throw new UserError(`A poll needs between 2 and ${maxOptions} options.`);
-  }
-
-  if (labels.some((label) => label === '' || label.length > 100)) {
-    throw new UserError('Options must be 1–100 characters.');
-  }
-
-  if (
-    new Set(labels.map((label) => label.toLowerCase())).size !== labels.length
-  ) {
-    throw new UserError('Options must be distinct.');
-  }
+  const labels = validatePollOptions(
+    input.options.map((option) => option.label),
+  );
 
   return db.transaction(async (tx) => {
     const { options, ...values } = input;
@@ -107,26 +72,6 @@ export async function getPoll(
   return { ...poll, options };
 }
 
-export async function requirePoll(
-  db: Db,
-  guildId: string,
-  id: number,
-): Promise<PollWithOptions> {
-  const poll = await getPoll(db, id);
-
-  if (poll?.guildId !== guildId) {
-    throw new UserError(`Poll #${id} does not exist.`);
-  }
-
-  return poll;
-}
-
-export function isOpen(poll: Poll, now = new Date()): boolean {
-  return (
-    poll.status === 'open' && (poll.closesAt === null || poll.closesAt > now)
-  );
-}
-
 export async function castVote(
   db: Db,
   pollId: number,
@@ -140,7 +85,7 @@ export async function castVote(
       .where(eq(polls.id, pollId))
       .for('update');
 
-    if (!poll || !isOpen(poll)) {
+    if (!poll || !isPollOpen(poll)) {
       throw new UserError('This poll is closed.');
     }
 
@@ -189,21 +134,12 @@ export async function getResults(
       .from(pollVotes)
       .where(eq(pollVotes.pollId, poll.id)),
   ]);
-  const byOption = new Map(counts.map((row) => [row.optionId, row.votes]));
-  const options = poll.options.map((option) => ({
-    ...option,
-    votes: byOption.get(option.id) ?? 0,
-  }));
-  const top = Math.max(0, ...options.map((option) => option.votes));
-  const winners =
-    top === 0 ? [] : options.filter((option) => option.votes === top);
 
-  return {
-    options,
-    voters: voters?.total ?? 0,
-    winners,
-    tie: winners.length > 1,
-  };
+  return tally(
+    poll.options,
+    new Map(counts.map((row) => [row.optionId, row.votes])),
+    voters?.total ?? 0,
+  );
 }
 
 export async function getVoterChoices(
@@ -287,4 +223,21 @@ export async function latestPollBySource(
     .limit(1);
 
   return row ? getPoll(db, row.id) : undefined;
+}
+
+export function createPollRepository(db: Db): PollRepository {
+  return {
+    insert: (poll) => insertPoll(db, poll),
+    find: (id) => getPoll(db, id),
+    vote: (pollId, userId, optionIds) =>
+      castVote(db, pollId, userId, optionIds),
+    results: (poll) => getResults(db, poll),
+    choices: (pollId, userId) => getVoterChoices(db, pollId, userId),
+    voters: (pollId) => getVoters(db, pollId),
+    finish: (id, status) => finishPoll(db, id, status),
+    setMessage: (id, messageId) => setPollMessage(db, id, messageId),
+    open: (guildId) => listOpenPolls(db, guildId),
+    latestBySource: (guildId, source) =>
+      latestPollBySource(db, guildId, source),
+  };
 }

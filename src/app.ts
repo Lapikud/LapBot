@@ -5,6 +5,8 @@ import {
   createClient,
   createDiscordCalendar,
   eventCommands,
+  movieCommands,
+  pollCommands,
   createInteractionHandler,
   buildRegistry,
   createDiscordDirectory,
@@ -18,6 +20,8 @@ import {
   createAnnouncementService,
   createAuthorizer,
   createEventService,
+  createMovieService,
+  createPollService,
   createPermissionService,
   createReminderService,
   createRoleService,
@@ -33,14 +37,14 @@ import {
   createAnnouncementRepository,
   createEventRepository,
   createGrantRepository,
+  createMovieRepository,
+  createPollRepository,
   createReminderRepository,
   createRolePanelRepository,
   createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
 import { birthdaysFeature } from '~/features/birthdays';
-import { createMoviesFeature } from '~/features/movies';
-import { pollsFeature } from '~/features/polls';
 import { createRedmineFeature } from '~/features/redmine';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
@@ -110,7 +114,24 @@ export function compose(config: Config, log: Logger) {
     log: log.child({ service: 'events' }),
     timezone: (guildId) => settings.timezone(guildId),
   });
+  const polls = createPollService({
+    polls: createPollRepository(database.db),
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'polls' }),
+    timezone: (guildId) => settings.timezone(guildId),
+  });
+  const movies = createMovieService({
+    movies: createMovieRepository(database.db),
+    polls,
+    events,
+    authz,
+    timezone: (guildId) => settings.timezone(guildId),
+  });
   const jobs: Array<Job<unknown>> = [
+    ...polls.jobs,
     ...reminders.jobs,
     ...announcements.jobs,
     ...events.jobs,
@@ -130,8 +151,8 @@ export function compose(config: Config, log: Logger) {
     announcementCommands(announcements),
     eventCommands(events),
     birthdaysFeature,
-    pollsFeature,
-    createMoviesFeature(events),
+    pollCommands(polls),
+    movieCommands(movies),
   ];
   const redmine = createRedmineFeature(config, reminders);
 

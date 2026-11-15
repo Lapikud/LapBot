@@ -1,19 +1,12 @@
 import { and, asc, desc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
-import type { Db } from '~/infra/db';
-import { UserError } from '~/domain';
+import type { MovieRepository } from '~/core/ports';
+import type { Db } from '../client';
+import { normalizeTitle, UserError } from '~/domain';
 import {
   movieScreenings,
   movieSuggestions,
   type MovieSuggestion,
-} from './schema';
-
-export function normalizeTitle(title: string): string {
-  return title
-    .normalize('NFKD')
-    .toLowerCase()
-    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-}
+} from './model';
 
 const watched = (db: Db) =>
   db
@@ -213,4 +206,17 @@ export async function watchHistory(db: Db, guildId: string, limit = 25) {
     )
     .orderBy(desc(movieScreenings.watchedAt))
     .limit(limit);
+}
+
+export function createMovieRepository(db: Db): MovieRepository {
+  return {
+    suggest: (suggestion) => suggestMovie(db, suggestion),
+    find: (guildId, id) => requireSuggestion(db, guildId, id),
+    unwatched: (guildId, limit) => listUnwatched(db, guildId, limit),
+    remove: (id) => removeSuggestion(db, id),
+    recordScreening: (screening) => recordScreening(db, screening),
+    markWatched: (guildId, suggestionId, at) =>
+      markWatched(db, guildId, suggestionId, at),
+    history: (guildId, limit) => watchHistory(db, guildId, limit),
+  };
 }

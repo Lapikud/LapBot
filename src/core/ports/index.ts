@@ -9,3 +9,5 @@ export type * from './roles';
 export type * from './reminders';
 export type * from './announcements';
 export * from './events';
+export type * from './polls';
+export type * from './movies';

@@ -1,0 +1,175 @@
+import {
+  movieLabel,
+  parseFutureWhen,
+  parseWhen,
+  UserError,
+  type Actor,
+} from '~/domain';
+import type { Authorizer, MovieRepository } from '~/core/ports';
+import type { EventService } from './events';
+import { guard } from './guard';
+import type { PollService } from './polls';
+
+const pollSource = 'movies';
+
+export type MovieNight = {
+  start: string;
+  movieId?: number;
+  location?: string;
+  capacity?: number;
+  channelId: string;
+};
+
+type Deps = {
+  movies: MovieRepository;
+  polls: PollService;
+  events: EventService;
+  authz: Authorizer;
+  timezone: (guildId: string) => Promise<string>;
+};
+
+export function createMovieService(deps: Deps) {
+  const { movies, polls, events, authz, timezone } = deps;
+
+  const pick = async (actor: Actor, movieId: number | undefined) => {
+    if (movieId !== undefined) {
+      return { movie: await movies.find(actor.guildId, movieId), pollId: null };
+    }
+
+    const poll = await polls.latestBySource(actor.guildId, pollSource);
+
+    if (poll?.status !== 'closed') {
+      throw new UserError('Pick a movie, or close a "/movie vote" poll first.');
+    }
+
+    const { winners, tie } = await polls.results(poll);
+    const [winner] = winners;
+
+    if (winner === undefined) {
+      throw new UserError('The last movie poll had no votes. Pick a movie.');
+    }
+
+    if (tie) {
+      const tied = winners.map((w) => `#${w.ref ?? '?'} ${w.label}`).join(', ');
+
+      throw new UserError(
+        `The last poll is a tie between ${tied}. Pick one with the "movie" option.`,
+      );
+    }
+
+    return {
+      movie: await movies.find(actor.guildId, Number(winner.ref)),
+      pollId: poll.id,
+    };
+  };
+
+  return {
+    pick,
+    suggest: (
+      actor: Actor,
+      suggestion: { title: string; year: number | null; note: string | null },
+    ) =>
+      movies.suggest({
+        ...suggestion,
+        guildId: actor.guildId,
+        suggestedBy: actor.userId,
+      }),
+    unwatched: (guildId: string, limit?: number) =>
+      movies.unwatched(guildId, limit),
+    history: (guildId: string) => movies.history(guildId),
+    remove: async (actor: Actor, id: number) => {
+      const movie = await movies.find(actor.guildId, id);
+
+      if (movie.suggestedBy !== actor.userId) {
+        await authz.require(actor, 'movie:manage');
+      }
+
+      await movies.remove(movie.id);
+
+      return movie;
+    },
+    vote: guard(
+      authz,
+      'movie:manage',
+      async (
+        actor,
+        request: { count?: number; closes?: string; channelId: string },
+      ) => {
+        const candidates = await movies.unwatched(
+          actor.guildId,
+          request.count ?? 10,
+        );
+
+        if (candidates.length < 2) {
+          throw new UserError(
+            'At least two unwatched suggestions are needed for a vote.',
+          );
+        }
+
+        const closesAt = parseFutureWhen(
+          request.closes ?? '2d',
+          await timezone(actor.guildId),
+        );
+
+        return polls.publish(actor, {
+          guildId: actor.guildId,
+          channelId: request.channelId,
+          creatorId: actor.userId,
+          question: '🎬 What should we watch next?',
+          options: candidates.map((m) => ({
+            label: movieLabel(m).slice(0, 100),
+            ref: String(m.id),
+          })),
+          closesAt,
+          source: pollSource,
+        });
+      },
+    ),
+    night: guard(authz, 'movie:manage', async (actor, night: MovieNight) => {
+      const { movie, pollId } = await pick(actor, night.movieId);
+      const zone = await timezone(actor.guildId);
+      const startsAt = parseFutureWhen(night.start, zone);
+      const event = await events.publish(actor, {
+        guildId: actor.guildId,
+        title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
+        description: movie.note,
+        startsAt,
+        endsAt: null,
+        timezone: zone,
+        location: night.location ?? null,
+        organizerId: actor.userId,
+        channelId: night.channelId,
+        capacity: night.capacity ?? null,
+        mentionRoleId: null,
+        reminderMinutes: [60],
+      });
+
+      await movies.recordScreening({
+        guildId: actor.guildId,
+        suggestionId: movie.id,
+        eventId: event.id,
+        pollId,
+        scheduledFor: startsAt,
+      });
+
+      return { movie, event };
+    }),
+    watched: guard(
+      authz,
+      'movie:manage',
+      async (actor, id: number, date?: string) => {
+        const movie = await movies.find(actor.guildId, id);
+        const at =
+          date === undefined
+            ? new Date()
+            : parseWhen(date, await timezone(actor.guildId));
+
+        await movies.markWatched(actor.guildId, movie.id, at);
+
+        return movie;
+      },
+    ),
+  };
+}
+
+export type MovieService = ReturnType<typeof createMovieService>;

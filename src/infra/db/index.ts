@@ -12,3 +12,7 @@ export * from './announcements/model';
 export * from './announcements/repo';
 export * from './events/model';
 export * from './events/repo';
+export * from './polls/model';
+export * from './polls/repo';
+export * from './movies/model';
+export * from './movies/repo';

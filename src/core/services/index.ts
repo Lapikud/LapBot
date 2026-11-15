@@ -6,3 +6,5 @@ export * from './roles';
 export * from './reminders';
 export * from './announcements';
 export * from './events';
+export * from './polls';
+export * from './movies';

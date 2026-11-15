@@ -4,3 +4,5 @@ export * from './message';
 export * from './permission';
 export * from './role';
 export * from './time';
+export * from './poll';
+export * from './movie';
