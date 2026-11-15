@@ -7,7 +7,11 @@ import { describe, expect, it } from 'vitest';
 import { createRegistry } from '~/app';
 import type { Config } from '~/config';
 
-const config = { DEFAULT_TIMEZONE: 'Europe/Tallinn' } as Config;
+const config = {
+  DEFAULT_TIMEZONE: 'Europe/Tallinn',
+  REDMINE_BASE_URL: 'https://redmine.example',
+  CREDENTIAL_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+} as Config;
 
 function problems(
   path: string,
@@ -49,6 +53,25 @@ function problems(
   return found;
 }
 
+type Counted = {
+  name: string;
+  description?: string;
+  options?: readonly Counted[];
+  choices?: ReadonlyArray<{ name: string; value: string | number }>;
+};
+
+function characters(node: Counted): number {
+  return (
+    node.name.length +
+    (node.description?.length ?? 0) +
+    (node.choices ?? []).reduce(
+      (sum, choice) => sum + choice.name.length + String(choice.value).length,
+      0,
+    ) +
+    (node.options ?? []).reduce((sum, option) => sum + characters(option), 0)
+  );
+}
+
 describe('composition root', () => {
   const registry = createRegistry(config, pino({ level: 'silent' }));
 
@@ -65,6 +88,15 @@ describe('composition root', () => {
     expect(commands.flatMap((c) => problems(`/${c.name}`, c.options))).toEqual(
       [],
     );
+  });
+
+  it('keeps every command under the 4000 character limit', () => {
+    const sizes = [...registry.commands.values()].map((c) => ({
+      name: c.data.name,
+      size: characters(c.data as Counted),
+    }));
+
+    expect(sizes.filter(({ size }) => size > 4000)).toEqual([]);
   });
 
   it('only requires permissions that some feature declares', () => {
