@@ -5,7 +5,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 FROM base AS build
 RUN pnpm install --frozen-lockfile
-COPY tsconfig.json tsconfig.build.json ./
+COPY tsconfig.json tsdown.config.ts ./
 COPY src ./src
 RUN pnpm build
 
@@ -20,5 +20,4 @@ COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
 COPY package.json ./
 USER node
-# Migrations run on startup; SIGTERM triggers a graceful shutdown.
-CMD ["node", "--enable-source-maps", "dist/index.js"]
+CMD ["node", "--enable-source-maps", "dist/index.mjs"]
