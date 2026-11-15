@@ -1,3 +1,4 @@
+import type { GrantRepository } from '~/core/ports';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../client';
 import { rolePermissions } from './model';
@@ -82,4 +83,14 @@ export async function listGrants(
     )
     .orderBy(rolePermissions.roleId, rolePermissions.permission)
     .limit(500);
+}
+
+export function createGrantRepository(db: Db): GrantRepository {
+  return {
+    holds: (guildId, roleIds, permission) =>
+      hasGrant(db, guildId, roleIds, permission),
+    grant: (change) => grant(db, change),
+    revoke: (change) => revoke(db, change),
+    list: (guildId, roleId) => listGrants(db, guildId, roleId),
+  };
 }

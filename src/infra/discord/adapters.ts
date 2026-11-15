@@ -39,7 +39,7 @@ async function orFalse(action: () => Promise<unknown>): Promise<boolean> {
   }
 }
 
-export function createDiscordMessenger(client: Client<true>): Messenger {
+export function createDiscordMessenger(client: Client): Messenger {
   const textChannel = async (id: string): Promise<GuildTextBasedChannel> => {
     const channel = await permanent(() => client.channels.fetch(id));
 
@@ -86,7 +86,7 @@ export function createDiscordMessenger(client: Client<true>): Messenger {
 
       return recent.find(
         (message) =>
-          message.author.id === client.user.id && message.content === content,
+          message.author.id === client.user?.id && message.content === content,
       )?.id;
     },
     ownReactions: async (channelId, messageId) => {
@@ -106,7 +106,7 @@ export function createDiscordMessenger(client: Client<true>): Messenger {
   };
 }
 
-export function createDiscordDirectory(client: Client<true>): Directory {
+export function createDiscordDirectory(client: Client): Directory {
   const guild = (id: string): Promise<Guild> =>
     permanent(() => client.guilds.fetch(id));
 
@@ -207,7 +207,7 @@ export function createDiscordDirectory(client: Client<true>): Directory {
   };
 }
 
-export function createDiscordCalendar(client: Client<true>): Calendar {
+export function createDiscordCalendar(client: Client): Calendar {
   return {
     upsert: async (guildId, id, event) => {
       const guild = await client.guilds.fetch(guildId);

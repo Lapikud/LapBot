@@ -1,3 +1,4 @@
+import { toActor, respond, bySubcommand } from '~/infra/discord';
 import {
   ChannelType,
   InteractionContextType,
@@ -5,7 +6,6 @@ import {
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { respond, bySubcommand } from '~/infra/discord';
 import type { AppContext, CommandInteraction, Feature } from '~/infra/discord';
 import { getGuildTimezone } from '~/infra/db';
 import { UserError, discordTime, parseFutureWhen, parseWhen } from '~/domain';
@@ -219,7 +219,10 @@ export const moviesFeature: Feature = {
           );
 
           if (movie.suggestedBy !== interaction.user.id) {
-            await ctx.authz.require(interaction.member, 'movie:manage');
+            await ctx.authz.require(
+              toActor(interaction.member),
+              'movie:manage',
+            );
           }
 
           await removeSuggestion(ctx.db, movie.id);

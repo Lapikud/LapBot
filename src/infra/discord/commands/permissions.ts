@@ -1,27 +1,14 @@
 import {
   InteractionContextType,
   SlashCommandBuilder,
-  type GuildMember,
-  type Role,
   type SlashCommandStringOption,
 } from 'discord.js';
-import {
-  respond,
-  bySubcommand,
-  deferred,
-  isAdministrator,
-} from '~/infra/discord';
-import type {
-  AppContext,
-  CommandInteraction,
-  Feature,
-  Permission,
-  PermissionDefinition,
-} from '~/infra/discord';
-import { grant, listGrants, revoke } from '~/infra/db';
-import { UserError } from '~/domain';
-
-const managePermission: Permission = 'permissions:manage';
+import type { PermissionService } from '~/core/services';
+import { managePermissions, roleMention, userMention } from '~/domain';
+import { toActor } from '../actor';
+import { bySubcommand, deferred } from '../define';
+import type { Feature } from '../module';
+import { respond } from '../router';
 
 const permissionOption = (o: SlashCommandStringOption) =>
   o
@@ -68,97 +55,48 @@ const data = new SlashCommandBuilder()
       .addStringOption(permissionOption),
   );
 
-export async function checkDelegation(
-  ctx: Pick<AppContext, 'authz'>,
-  actor: GuildMember,
-  role: Role,
-  permission: Permission,
-): Promise<void> {
-  if (isAdministrator(actor)) {
-    return;
-  }
-
-  if (permission === managePermission) {
-    throw new UserError(
-      'Only administrators can delegate permission management.',
-    );
-  }
-
-  if (actor.roles.highest.comparePositionTo(role) <= 0) {
-    throw new UserError(`${role.name} is not below your highest role.`);
-  }
-
-  if (!(await ctx.authz.can(actor, permission))) {
-    throw new UserError('You can only grant permissions you hold yourself.');
-  }
-}
-
-export function createPermissionsFeature(
-  known: () => ReadonlyMap<Permission, PermissionDefinition>,
-): Feature {
-  const readPermission = (interaction: CommandInteraction): Permission => {
-    const value = interaction.options.getString('permission', true);
-    const definition = [...known().values()].find((p) => p.id === value);
-
-    if (!definition) {
-      throw new UserError(`Unknown permission \`${value}\`.`);
-    }
-
-    return definition.id;
-  };
-
-  const change =
-    (action: 'grant' | 'revoke') =>
-    async (interaction: CommandInteraction, ctx: AppContext) => {
+export function permissionCommands(permissions: PermissionService): Feature {
+  const change = (action: 'grant' | 'revoke') =>
+    deferred(async (interaction) => {
       const role = interaction.options.getRole('role', true);
-      const permission = readPermission(interaction);
-
-      await checkDelegation(ctx, interaction.member, role, permission);
-      const input = {
-        guildId: interaction.guildId,
-        roleId: role.id,
+      const permission = interaction.options.getString('permission', true);
+      const changed = await permissions[action](
+        toActor(interaction.member),
+        role.id,
         permission,
-      };
-      const changed =
-        action === 'grant'
-          ? await grant(ctx.db, { ...input, grantedBy: interaction.user.id })
-          : await revoke(ctx.db, input);
-
-      ctx.log.info(
-        { ...input, actorId: interaction.user.id, action, changed },
-        'Permission change',
       );
       const verb = action === 'grant' ? 'Granted' : 'Revoked';
 
       await respond(
         interaction,
         changed
-          ? `${verb} \`${permission}\` for ${role.toString()}.`
+          ? `${verb} "${permission}" for ${roleMention(role.id)}.`
           : 'Nothing changed.',
       );
-    };
+    });
 
   return {
     name: 'permissions',
     permissions: [
-      { id: managePermission, description: 'Grant and revoke bot permissions' },
+      {
+        id: managePermissions,
+        description: 'Grant and revoke bot permissions',
+      },
     ],
     commands: [
       {
         data: data.toJSON(),
-        permissions: { '*': managePermission },
         execute: bySubcommand({
           grant: change('grant'),
           revoke: change('revoke'),
-          list: async (interaction, ctx) => {
+          list: async (interaction) => {
             const role = interaction.options.getRole('role');
-            const grants = await listGrants(
-              ctx.db,
-              interaction.guildId,
-              role?.id,
+            const grants = await permissions.list(
+              toActor(interaction.member),
+              ...(role ? [role.id] : []),
             );
             const lines = grants.map(
-              (g) => `<@&${g.roleId}> — \`${g.permission}\``,
+              (g) => `${roleMention(g.roleId)} — "${g.permission}"`,
             );
 
             await respond(
@@ -168,15 +106,21 @@ export function createPermissionsFeature(
                 : lines.join('\n').slice(0, 2000),
             );
           },
-          check: deferred(async (interaction, ctx) => {
+          check: deferred(async (interaction) => {
             const user = interaction.options.getUser('member', true);
-            const member = await interaction.guild.members.fetch(user.id);
-            const permission = readPermission(interaction);
-            const allowed = await ctx.authz.can(member, permission);
+            const permission = interaction.options.getString(
+              'permission',
+              true,
+            );
+            const holds = await permissions.check(
+              toActor(interaction.member),
+              user.id,
+              permission,
+            );
 
             await respond(
               interaction,
-              `${member.toString()} ${allowed ? 'holds' : 'does not hold'} \`${permission}\`.`,
+              `${userMention(user.id)} ${holds ? 'holds' : 'does not hold'} "${permission}".`,
             );
           }),
         }),
@@ -184,7 +128,8 @@ export function createPermissionsFeature(
           const query = interaction.options.getFocused().toLowerCase();
 
           await interaction.respond(
-            [...known().values()]
+            permissions
+              .catalogue()
               .filter(
                 (p) =>
                   p.id.includes(query) ||

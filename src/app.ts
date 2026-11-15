@@ -3,29 +3,56 @@ import type { Config } from '~/config';
 import {
   createClient,
   createInteractionHandler,
-  createAuthorizer,
   buildRegistry,
+  createDiscordDirectory,
+  permissionCommands,
+  settingsCommands,
 } from '~/infra/discord';
+import {
+  createAuthorizer,
+  createPermissionService,
+  createSettingsService,
+} from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
 import { createScheduler } from '~/infra/scheduler';
-import { connectDatabase, runMigrations } from '~/infra/db';
+import {
+  connectDatabase,
+  createGrantRepository,
+  createSettingsRepository,
+  runMigrations,
+} from '~/infra/db';
 import { announcementsFeature } from '~/features/announcements';
 import { birthdaysFeature } from '~/features/birthdays';
 import { eventsFeature } from '~/features/events';
 import { moviesFeature } from '~/features/movies';
-import { createPermissionsFeature } from '~/features/permissions';
 import { pollsFeature } from '~/features/polls';
 import { createRedmineFeature } from '~/features/redmine';
 import { remindersFeature } from '~/features/reminders';
 import { rolesFeature } from '~/features/roles';
-import { settingsFeature } from '~/features/settings';
 
-export function createRegistry(config: Config): Registry {
+export function compose(config: Config, log: Logger) {
+  const database = connectDatabase(config.DATABASE_URL);
+  const client = createClient();
+  const grants = createGrantRepository(database.db);
+  const authz = createAuthorizer(grants);
+  const directory = createDiscordDirectory(client);
+  const settings = createSettingsService({
+    settings: createSettingsRepository(database.db),
+    authz,
+    defaultTimezone: config.DEFAULT_TIMEZONE,
+  });
+  const permissions = createPermissionService({
+    grants,
+    directory,
+    authz,
+    log: log.child({ service: 'permissions' }),
+    known: () => registry.permissions,
+  });
   const features: Feature[] = [
     rolesFeature,
-    createPermissionsFeature(() => registry.permissions),
-    settingsFeature,
+    permissionCommands(permissions),
+    settingsCommands(settings),
     remindersFeature,
     announcementsFeature,
     eventsFeature,
@@ -41,7 +68,11 @@ export function createRegistry(config: Config): Registry {
 
   const registry = buildRegistry(features);
 
-  return registry;
+  return { database, client, authz, registry };
+}
+
+export function createRegistry(config: Config, log: Logger): Registry {
+  return compose(config, log).registry;
 }
 
 function waitForReady(client: Client, token: string): Promise<Client<true>> {
@@ -55,9 +86,7 @@ export async function startApp(
   config: Config,
   log: Logger,
 ): Promise<() => Promise<void>> {
-  const registry = createRegistry(config);
-  const database = connectDatabase(config.DATABASE_URL);
-  const client = createClient();
+  const { database, client, authz, registry } = compose(config, log);
 
   try {
     await runMigrations(database.db);
@@ -72,7 +101,7 @@ export async function startApp(
       db: database.db,
       log,
       config,
-      authz: createAuthorizer(database.db),
+      authz,
       scheduler,
     };
 

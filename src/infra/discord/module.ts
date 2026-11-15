@@ -5,25 +5,16 @@ import type {
   ChatInputCommandInteraction,
   Client,
   ClientEvents,
-  GuildMember,
   ModalSubmitInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
 import type { Db } from '~/infra/db';
 import type { Config } from '~/config';
 import type { Logger } from '~/infra/logging';
+import type { Authorizer } from '~/core/ports';
+import type { Permission, PermissionDefinition } from '~/domain';
 
-export type Permission = `${string}:${string}`;
-
-export type PermissionDefinition = {
-  id: Permission;
-  description: string;
-};
-
-export type Authorizer = {
-  can: (member: GuildMember, permission: Permission) => Promise<boolean>;
-  require: (member: GuildMember, permission: Permission) => Promise<void>;
-};
+export type { Permission, PermissionDefinition } from '~/domain';
 
 export type ScheduleOptions = {
   runAt: Date;

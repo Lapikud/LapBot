@@ -1,11 +1,17 @@
 import {
+  toActor,
+  respond,
+  bySubcommand,
+  defineJob,
+  asJobError,
+} from '~/infra/discord';
+import {
   ChannelType,
   InteractionContextType,
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond, bySubcommand, defineJob, asJobError } from '~/infra/discord';
 import type { AppContext, CommandInteraction, Feature } from '~/infra/discord';
 import { getGuildTimezone } from '~/infra/db';
 import {
@@ -210,7 +216,10 @@ export const remindersFeature: Feature = {
         ]);
 
         if (channel) {
-          await ctx.authz.require(interaction.member, 'reminder:channel');
+          await ctx.authz.require(
+            toActor(interaction.member),
+            'reminder:channel',
+          );
         }
 
         const timezone = await zoneFor(interaction, ctx);

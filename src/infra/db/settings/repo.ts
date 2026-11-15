@@ -1,3 +1,4 @@
+import type { SettingsRepository } from '~/core/ports';
 import { eq } from 'drizzle-orm';
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import type { Db } from '../client';
@@ -35,4 +36,18 @@ export async function setGuildTimezone(
       target: guildSettings.guildId,
       set: { timezone, updatedAt: new Date() },
     });
+}
+
+export function createSettingsRepository(db: Db): SettingsRepository {
+  return {
+    timezone: async (guildId) => {
+      const [row] = await db
+        .select({ timezone: guildSettings.timezone })
+        .from(guildSettings)
+        .where(eq(guildSettings.guildId, guildId));
+
+      return row?.timezone ?? undefined;
+    },
+    setTimezone: (guildId, timezone) => setGuildTimezone(db, guildId, timezone),
+  };
 }

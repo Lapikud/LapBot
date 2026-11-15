@@ -28,7 +28,12 @@ function commandInteraction(commandName: string, subcommand: string | null) {
     commandName,
     guildId: 'g',
     user: { id: 'u' },
-    member: { id: 'u' },
+    member: {
+      id: 'u',
+      guild: { id: 'g', ownerId: 'o' },
+      permissions: { has: () => false },
+      roles: { cache: new Map(), highest: { position: 1 } },
+    },
     options: {
       getSubcommandGroup: () => null,
       getSubcommand: () => subcommand,
@@ -92,7 +97,10 @@ describe('interaction router', () => {
     const interaction = commandInteraction('demo', 'manage');
 
     await createInteractionHandler(registry, ctx)(interaction as never);
-    expect(require).toHaveBeenCalledWith(interaction.member, 'demo:manage');
+    expect(require).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u', guildId: 'g' }),
+      'demo:manage',
+    );
     expect(execute).not.toHaveBeenCalled();
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'denied' }),
@@ -107,7 +115,7 @@ describe('interaction router', () => {
 
     await createInteractionHandler(registry, allowed.ctx)(interaction as never);
     expect(allowed.require).toHaveBeenCalledWith(
-      interaction.member,
+      expect.objectContaining({ userId: 'u' }),
       'demo:manage',
     );
     expect(execute).toHaveBeenCalledWith(interaction, ['42', 'x'], allowed.ctx);

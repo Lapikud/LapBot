@@ -1,4 +1,12 @@
 import {
+  toActor,
+  respond,
+  bySubcommand,
+  defineJob,
+  asJobError,
+  customId,
+} from '~/infra/discord';
+import {
   ChannelType,
   EmbedBuilder,
   InteractionContextType,
@@ -15,13 +23,6 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import {
-  respond,
-  bySubcommand,
-  defineJob,
-  asJobError,
-  customId,
-} from '~/infra/discord';
 import type {
   AppContext,
   CommandInteraction,
@@ -248,7 +249,10 @@ async function requireEditable(
   );
 
   if (announcement.authorId !== interaction.user.id) {
-    await ctx.authz.require(interaction.member, 'announcement:publish');
+    await ctx.authz.require(
+      toActor(interaction.member),
+      'announcement:publish',
+    );
   }
 
   return announcement;

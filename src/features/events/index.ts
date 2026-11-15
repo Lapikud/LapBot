@@ -1,4 +1,13 @@
 import {
+  toActor,
+  respond,
+  bySubcommand,
+  defineJob,
+  asJobError,
+  isUnknownObject,
+  customId,
+} from '~/infra/discord';
+import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -13,14 +22,6 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import {
-  respond,
-  bySubcommand,
-  defineJob,
-  asJobError,
-  isUnknownObject,
-  customId,
-} from '~/infra/discord';
 import type {
   AppContext,
   CommandInteraction,
@@ -326,7 +327,7 @@ async function requireManageable(
   );
 
   if (event.organizerId !== interaction.user.id) {
-    await ctx.authz.require(interaction.member, 'event:manage');
+    await ctx.authz.require(toActor(interaction.member), 'event:manage');
   }
 
   return event;

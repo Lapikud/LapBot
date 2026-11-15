@@ -1,4 +1,12 @@
 import {
+  toActor,
+  respond,
+  bySubcommand,
+  defineJob,
+  isUnknownObject,
+  customId,
+} from '~/infra/discord';
+import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -13,13 +21,6 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import {
-  respond,
-  bySubcommand,
-  defineJob,
-  isUnknownObject,
-  customId,
-} from '~/infra/discord';
 import type {
   AppContext,
   CommandInteraction,
@@ -286,7 +287,7 @@ async function requireManageable(
   );
 
   if (poll.creatorId !== interaction.user.id) {
-    await ctx.authz.require(interaction.member, 'poll:manage');
+    await ctx.authz.require(toActor(interaction.member), 'poll:manage');
   }
 
   return poll;
@@ -376,7 +377,7 @@ async function showResults(
   );
   const manager =
     poll.creatorId === interaction.user.id ||
-    (await ctx.authz.can(interaction.member, 'poll:manage'));
+    (await ctx.authz.can(toActor(interaction.member), 'poll:manage'));
 
   if (poll.showResults === 'closed' && isOpen(poll) && !manager) {
     throw new UserError('Results are shown when the poll closes.');

@@ -2,6 +2,7 @@ import type {
   APIApplicationCommandOption,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
+import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 import { createRegistry } from '~/app';
 import type { Config } from '~/config';
@@ -49,7 +50,7 @@ function problems(
 }
 
 describe('composition root', () => {
-  const registry = createRegistry(config);
+  const registry = createRegistry(config, pino({ level: 'silent' }));
 
   it('builds without duplicate handlers', () => {
     expect(registry.features.map((f) => f.name)).toContain('roles');

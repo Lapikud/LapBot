@@ -5,7 +5,7 @@ export * from './registration';
 export type * from './module';
 export * from './define';
 export * from './registry';
-export * from './authorizer';
 export * from './actor';
 export * from './adapters';
 export * from './render';
+export * from './commands';

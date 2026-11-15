@@ -11,6 +11,7 @@ import type {
   CommandInteraction,
   ComponentInteraction,
 } from './module';
+import { toActor } from './actor';
 import { parseCustomId, type Registry } from './registry';
 
 type Repliable = CommandInteraction | ComponentInteraction;
@@ -57,7 +58,7 @@ async function runCommand(
   const required = permissions['*'] ?? permissions[subcommandPath(interaction)];
 
   if (required !== undefined) {
-    await ctx.authz.require(interaction.member, required);
+    await ctx.authz.require(toActor(interaction.member), required);
   }
 
   await command.execute(interaction, ctx);
@@ -76,7 +77,7 @@ async function runComponent(
   }
 
   if (handler.permission !== undefined) {
-    await ctx.authz.require(interaction.member, handler.permission);
+    await ctx.authz.require(toActor(interaction.member), handler.permission);
   }
 
   await handler.execute(interaction, parsed.args, ctx);
