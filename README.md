@@ -171,51 +171,72 @@ published outside the Compose network. Back up the `pgdata` volume.
 
 ## Architecture
 
+Ports and adapters. Business logic never imports discord.js, drizzle or an
+HTTP client; it talks to ports, and adapters implement them.
+
 ```
 src/
-  index.ts             entry point: config, logging, signals
-  app.ts               composition root: the list of features
-  core/                no feature-specific logic
-    feature.ts         the Feature contract and shared types
-    registry.ts        collects features, rejects duplicates
-    discord/           client, interaction router, error boundary
-    permissions/       RBAC storage and the Authorizer
-    scheduler/         persistent job scheduler
-  features/<name>/     index.ts is the public API; service.ts and schema.ts
-                       hold persistence and logic and may not import discord.js
-  integrations/redmine typed HTTP client, no Discord code
-  shared/              time parsing, encryption, error types
-drizzle/               SQL migrations
+  index.ts            entry point: config, logging, signals
+  app.ts              composition root: builds adapters, services, commands
+  config/             validated environment
+  domain/             pure types and rules: actors, permissions, messages,
+                      time, polls, birthdays, issues
+  lib/                generic helpers
+  core/
+    ports/            contracts: Messenger, Directory, Calendar, Scheduler,
+                      IssueTracker, SecretBox and one repository per area
+    services/         use cases (roles, reminders, events, polls, ...), each
+                      created from its ports, with permission guards
+  infra/
+    db/<area>/        drizzle model and repository adapters
+    discord/          discord.js client, router, outbound adapters and the
+                      thin slash-command adapters in commands/
+    scheduler/        job queue (Scheduler port) and the job runner
+    redmine/          Redmine adapter for the IssueTracker port
+    crypto/           AES-256-GCM SecretBox
+    logging/          pino
+tests/                mirrors src/
+drizzle/              SQL migrations
 ```
 
-- **Features** declare commands, components (custom ID prefix
-  `feature:action`), event listeners, jobs and permissions. The router
-  dispatches by name and prefix, so it never changes when features are added.
-- **Cross-feature use** goes through public `index.ts` exports only (enforced
-  by ESLint): movies use `createPoll` and `createEvent`, Redmine uses
-  `createReminder`.
-- **Scheduler:** jobs live in `scheduled_jobs`. Workers claim due jobs with
-  `FOR UPDATE SKIP LOCKED` and a lease, so a crash mid-job leads to a retry
-  after the lease expires. Delivery is at-least-once, and handlers re-check
-  current state. Where a duplicate Discord message would be worse than a
+- **Boundaries are linted.** Modules import each other only through their
+  barrel (`~/core/services`, never `~/core/services/roles`). The domain
+  depends on nothing, core depends only on the domain, and only
+  `infra/discord` may import discord.js.
+- **Services take an `Actor`** (guild, user, roles, administrator), not a
+  Discord member, and enforce permissions themselves. Any adapter that can
+  produce an actor (Discord now, a web UI later) gets the same rules.
+- **Messages are transport-neutral** (`domain/message.ts`): content, embeds,
+  mentions and controls. `infra/discord/render.ts` turns them into discord.js
+  payloads.
+- **Cross-service use is explicit**: movies get the poll and event services,
+  Redmine gets the reminder service.
+- **Scheduler:** jobs live in `scheduled_jobs`. The runner claims due jobs
+  with `FOR UPDATE SKIP LOCKED` and a lease, so a crash mid-job leads to a
+  retry after the lease expires. Delivery is at-least-once, and handlers
+  re-check current state. Where a duplicate message would be worse than a
   missed one (announcements, birthdays, Redmine notifications), the handler
-  records the send in the database before posting. Each handler decides what
-  lateness means: late reminders are still delivered, overdue polls close, and
-  announcements more than an hour late are skipped and marked failed.
-  Transient failures retry with backoff; permanent Discord errors (closed
-  DMs, deleted channels) do not.
+  records the send before posting. Each handler decides what lateness means:
+  late reminders are still delivered, overdue polls close, and announcements
+  more than an hour late are skipped. Permanent delivery failures (closed DMs,
+  deleted channels) are not retried.
 
-### Adding a feature
+### Adding a feature or integration
 
-1. Create `src/features/<name>/`, with `schema.ts` for tables, `service.ts`
-   for database logic, and `index.ts` exporting a `Feature`.
-2. Add it to the list in `src/app.ts`.
-3. `pnpm db:generate` if you added tables, then `pnpm commands:register`.
-
-Declare permissions in the feature and attach them per subcommand with
-`permissions: { create: 'thing:create' }`. Prefix custom IDs with the feature
-name and keep any state the component needs in the database, so buttons keep
-working after restarts.
+1. Domain rules go in `src/domain/<area>.ts`.
+2. The contracts it needs go in `src/core/ports/<area>.ts`. Reuse `Messenger`,
+   `Directory` and `Scheduler` where they fit.
+3. The use cases go in `src/core/services/<area>.ts` as
+   `create<Area>Service(deps)`, guarded with `guard(authz, 'area:action', ...)`.
+   Background work is a `defineJob` in the service's `jobs`.
+4. Adapters: a drizzle repository in `src/infra/db/<area>/`, plus
+   `src/infra/discord/commands/<area>.ts` for slash commands. A new external
+   system (another tracker, a calendar, a chat platform) is a new adapter
+   implementing an existing port.
+5. Wire it in `src/app.ts`, then run `pnpm db:generate` and
+   `pnpm commands:register`.
+6. Tests: `tests/domain`, `tests/core/services` (real Postgres plus the fakes in
+   `tests/fakes.ts`) and `tests/infra`.
 
 ## Known limitations
 
@@ -229,7 +250,8 @@ working after restarts.
   issues changed within the same second could keep the checkpoint from moving.
 - Birthday announcements are not sent for days the bot was entirely offline.
 - User-facing text is English (the legacy panel and birthday wishes are
-  Estonian). Strings sit in the Discord layer of each feature, ready for
-  localisation.
+  Estonian).
+- The web UI and PSA composer are not built yet. The services already take an
+  `Actor`, so a web adapter can reuse them unchanged.
 - Native Discord polls are not used, because bot polls must persist and work
   with movie nights.
