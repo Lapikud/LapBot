@@ -1,0 +1,59 @@
+export type Mentions = {
+  users?: readonly string[];
+  roles?: readonly string[];
+  everyone?: boolean;
+};
+
+export type EmbedField = { name: string; value: string; inline?: boolean };
+
+export type Embed = {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number;
+  fields?: readonly EmbedField[];
+  footer?: string;
+};
+
+export type ButtonStyle = 'primary' | 'secondary' | 'success' | 'danger';
+
+export type Control =
+  | { kind: 'button'; id: string; label: string; style: ButtonStyle }
+  | {
+      kind: 'select';
+      id: string;
+      placeholder: string;
+      min: number;
+      max: number;
+      options: ReadonlyArray<{
+        label: string;
+        value: string;
+        default?: boolean;
+      }>;
+    };
+
+export type Message = {
+  content?: string;
+  embeds?: readonly Embed[];
+  mentions?: Mentions;
+  controls?: ReadonlyArray<readonly Control[]>;
+  suppressEmbeds?: boolean;
+};
+
+export const maxContentLength = 2000;
+
+export const userMention = (id: string) => `<@${id}>`;
+
+export const roleMention = (id: string) => `<@&${id}>`;
+
+export const channelMention = (id: string) => `<#${id}>`;
+
+export const controlId = (prefix: string, ...args: Array<string | number>) => {
+  const id = [prefix, ...args].join(':');
+
+  if (id.length > 100) {
+    throw new Error(`Control ID exceeds 100 characters: ${id}`);
+  }
+
+  return id;
+};
