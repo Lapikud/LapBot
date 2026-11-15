@@ -1,0 +1,21 @@
+{
+  "singleQuote": true,
+  "semi": true,
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "objectWrap": "preserve",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["*.scss", "*.sass"],
+      "options": {
+        "useTabs": true
+      }
+    }
+  ]
+}
