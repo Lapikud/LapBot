@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { ignore } from '~/shared/errors';
+import { ignore } from '~/domain';
 
 export type Db = PostgresJsDatabase;
 

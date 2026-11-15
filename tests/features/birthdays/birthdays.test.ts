@@ -1,8 +1,8 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
-import { calendarDay, nextDailyRun } from '~/shared/time';
+import type { AppContext } from '~/infra/discord';
+import { calendarDay, nextDailyRun } from '~/domain';
 import { dailyJob } from '~/features/birthdays';
 import {
   celebratedOn,

@@ -6,10 +6,18 @@ import {
   type GuildMember,
   type Role,
 } from 'discord.js';
-import { respond } from '~/core/discord/router';
-import { bySubcommand, deferred, defineListener } from '~/core/define';
-import type { CommandInteraction, Feature, SlashCommand } from '~/core/feature';
-import { UserError } from '~/shared/errors';
+import {
+  respond,
+  bySubcommand,
+  deferred,
+  defineListener,
+} from '~/infra/discord';
+import type {
+  CommandInteraction,
+  Feature,
+  SlashCommand,
+} from '~/infra/discord';
+import { UserError } from '~/domain';
 import { requireAbove, requireEditable, requireSelfAssignable } from './guards';
 import { handleReaction, syncLegacyPanel } from './legacy';
 import { panelComponents, publishPanel } from './panels';

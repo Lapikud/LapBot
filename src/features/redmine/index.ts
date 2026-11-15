@@ -10,26 +10,29 @@ import {
   TextInputStyle,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { respond } from '~/core/discord/router';
-import { bySubcommand, deferred } from '~/core/define';
-import type { Config } from '~/core/config';
+import { respond, bySubcommand, deferred } from '~/infra/discord';
+import type { Config } from '~/config';
 import type {
   AppContext,
   CommandInteraction,
   ComponentHandler,
   Feature,
   SlashCommand,
-} from '~/core/feature';
-import { getGuildTimezone } from '~/core/guild-settings';
+} from '~/infra/discord';
+import { getGuildTimezone } from '~/infra/db';
 import {
   RedmineClient,
   RedmineError,
   type RedmineIssue,
   type RedmineUser,
-} from '~/integrations/redmine/client';
-import { createSecretBox, type SecretBox } from '~/shared/crypto';
-import { UserError } from '~/shared/errors';
-import { addCalendarDays, parseCalendarDay, zonedTime } from '~/shared/time';
+} from '~/infra/redmine';
+import { createSecretBox, type SecretBox } from '~/infra/crypto';
+import {
+  UserError,
+  addCalendarDays,
+  parseCalendarDay,
+  zonedTime,
+} from '~/domain';
 import { createReminder } from '~/features/reminders';
 import { createNotificationJobs } from './notifications';
 import {

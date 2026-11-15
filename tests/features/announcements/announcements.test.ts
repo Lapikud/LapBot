@@ -1,7 +1,7 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
+import type { AppContext } from '~/infra/discord';
 import { render } from '~/features/announcements';
 import type { Announcement } from '~/features/announcements/schema';
 import {

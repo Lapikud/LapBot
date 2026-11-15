@@ -2,12 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { Config } from '~/core/config';
-import type { AppContext } from '~/core/feature';
-import type {
-  RedmineClient,
-  RedmineIssue,
-} from '~/integrations/redmine/client';
+import type { Config } from '~/config';
+import type { AppContext } from '~/infra/discord';
+import type { RedmineClient, RedmineIssue } from '~/infra/redmine';
 import { createRedmineFeature } from '~/features/redmine';
 import { createNotificationJobs } from '~/features/redmine/notifications';
 import {

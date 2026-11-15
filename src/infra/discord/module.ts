@@ -9,9 +9,9 @@ import type {
   ModalSubmitInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
-import type { Db } from '~/db/client';
-import type { Config } from './config';
-import type { Logger } from './logger';
+import type { Db } from '~/infra/db';
+import type { Config } from '~/config';
+import type { Logger } from '~/infra/logging';
 
 export type Permission = `${string}:${string}`;
 

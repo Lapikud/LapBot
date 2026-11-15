@@ -1,10 +1,9 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { Db } from '~/db/client';
-import { PermanentError } from '~/shared/errors';
-import type { AppContext, Job, Scheduler } from '~/core/feature';
-import type { Logger } from '~/core/logger';
-import type { JobRow } from './schema';
-import { cancelJob, claimDueJobs, finishJob, upsertJob } from './store';
+import type { Db, JobRow } from '~/infra/db';
+import { PermanentError } from '~/domain';
+import type { AppContext, Job, Scheduler } from '~/infra/discord';
+import type { Logger } from '~/infra/logging';
+import { cancelJob, claimDueJobs, finishJob, upsertJob } from '~/infra/db';
 
 export type SchedulerOptions = {
   pollIntervalMs?: number;

@@ -5,13 +5,13 @@ import {
   type BaseMessageOptions,
   type Interaction,
 } from 'discord.js';
-import { ignore, UserError } from '~/shared/errors';
+import { ignore, UserError } from '~/domain';
 import type {
   AppContext,
   CommandInteraction,
   ComponentInteraction,
-} from '~/core/feature';
-import { parseCustomId, type Registry } from '~/core/registry';
+} from './module';
+import { parseCustomId, type Registry } from './registry';
 
 type Repliable = CommandInteraction | ComponentInteraction;
 

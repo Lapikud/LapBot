@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Feature } from '~/core/feature';
-import { buildRegistry, customId, parseCustomId } from '~/core/registry';
+import type { Feature } from '~/infra/discord';
+import { buildRegistry, customId, parseCustomId } from '~/infra/discord';
 
 const noop = async () => undefined;
 const noopJob = async () => null;

@@ -1,18 +1,15 @@
 import { MessageFlags } from 'discord.js';
 import { z } from 'zod';
-import { defineJob } from '~/core/define';
-import { sequential } from '~/shared/async';
-import type { AppContext } from '~/core/feature';
-import type {
-  RedmineClient,
-  RedmineStatus,
-} from '~/integrations/redmine/client';
+import { defineJob } from '~/infra/discord';
+import { sequential } from '~/lib';
+import type { AppContext } from '~/infra/discord';
+import type { RedmineClient, RedmineStatus } from '~/infra/redmine';
 import {
   addCalendarDays,
   calendarDay,
   formatCalendarDay,
   nextDailyRun,
-} from '~/shared/time';
+} from '~/domain';
 import type { RedmineSubscription } from './schema';
 import {
   claimNotification,

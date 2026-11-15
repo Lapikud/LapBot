@@ -2,8 +2,8 @@ import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
-import { PermanentError, UserError } from '~/shared/errors';
+import type { AppContext } from '~/infra/discord';
+import { PermanentError, UserError } from '~/domain';
 import { createReminder, deliverJob } from '~/features/reminders';
 import {
   getReminder,

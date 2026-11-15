@@ -7,8 +7,8 @@ import {
   type TextChannel,
   type User,
 } from 'discord.js';
-import type { AppContext } from '~/core/feature';
-import { sequential } from '~/shared/async';
+import type { AppContext } from '~/infra/discord';
+import { sequential } from '~/lib';
 import {
   createPanel,
   findReactionPanel,

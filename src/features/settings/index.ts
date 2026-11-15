@@ -3,10 +3,10 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { bySubcommand } from '~/core/define';
-import type { Feature } from '~/core/feature';
-import { getGuildTimezone, setGuildTimezone } from '~/core/guild-settings';
-import { requireZone } from '~/shared/time';
+import { bySubcommand } from '~/infra/discord';
+import type { Feature } from '~/infra/discord';
+import { getGuildTimezone, setGuildTimezone } from '~/infra/db';
+import { requireZone } from '~/domain';
 
 const data = new SlashCommandBuilder()
   .setName('settings')

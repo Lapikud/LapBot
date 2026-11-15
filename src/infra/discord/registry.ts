@@ -5,7 +5,7 @@ import type {
   Permission,
   PermissionDefinition,
   SlashCommand,
-} from './feature';
+} from './module';
 
 export type Registry = {
   features: readonly Feature[];

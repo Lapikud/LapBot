@@ -79,27 +79,36 @@ const qualityRules: Linter.RulesRecord = {
 };
 
 const transportFreeFiles = [
-  'src/db/**/*.ts',
-  'src/integrations/**/*.ts',
-  'src/shared/**/*.ts',
-  'src/core/scheduler/store.ts',
-  'src/core/permissions/store.ts',
-];
-const transportFreeFeatureFiles = [
+  'src/config/**/*.ts',
+  'src/domain/**/*.ts',
+  'src/lib/**/*.ts',
+  'src/core/**/*.ts',
+  'src/infra/db/**/*.ts',
+  'src/infra/redmine/**/*.ts',
+  'src/infra/crypto/**/*.ts',
+  'src/infra/logging/**/*.ts',
+  'src/infra/scheduler/**/*.ts',
+  'src/infra/web/**/*.ts',
   'src/features/*/service.ts',
   'src/features/*/schema.ts',
 ];
 
 const noDiscordImport = {
   name: 'discord.js',
-  message:
-    'Keep Discord transport code out of services, stores and integrations.',
+  message: 'Only the Discord adapter may use discord.js.',
 };
 
-const featurePrivatePattern = {
-  group: ['../*/*', '!../*/index.js', '!../../**'],
-  message: "Import other features only through their public 'index.js'.",
-};
+const modulePatterns = [
+  {
+    regex:
+      '^~/(config|domain|lib|core/ports|core/services|infra/[a-z-]+|features/[a-z-]+)/',
+    message: 'Import from the module barrel, not a file inside it.',
+  },
+  {
+    regex: String.raw`^(\.\./)+(config|domain|lib|core|infra|features|app)(/|$)`,
+    message: 'Import other modules through their ~/ barrel.',
+  },
+];
 
 const unicornRules: Linter.RulesRecord = {
   'unicorn/prefer-set-has': 'error',
@@ -326,24 +335,43 @@ export default defineConfig(
           ],
         },
       ],
+      'import-x/no-duplicates': 'error',
       'import-x/no-restricted-paths': [
         'error',
         {
           zones: [
             {
+              target: './src/domain',
+              from: [
+                './src/core',
+                './src/infra',
+                './src/config',
+                './src/features',
+                './src/app.ts',
+              ],
+              message: 'The domain depends on nothing but itself and lib.',
+            },
+            {
               target: './src/core',
-              from: ['./src/features', './src/app.ts', './src/index.ts'],
-              message: 'Core must not depend on concrete features.',
+              from: ['./src/infra', './src/features', './src/app.ts'],
+              message: 'Ports and services must not know their adapters.',
             },
             {
-              target: './src/features',
+              target: './src/lib',
+              from: [
+                './src/domain',
+                './src/core',
+                './src/infra',
+                './src/config',
+                './src/features',
+                './src/app.ts',
+              ],
+              message: 'lib is generic and depends on nothing in the app.',
+            },
+            {
+              target: ['./src/infra', './src/features'],
               from: ['./src/app.ts', './src/index.ts'],
-              message: 'Features must not import the composition root.',
-            },
-            {
-              target: ['./src/db', './src/integrations', './src/shared'],
-              from: ['./src/features', './src/core', './src/app.ts'],
-              message: 'Infrastructure must not depend on application code.',
+              message: 'Adapters must not import the composition root.',
             },
           ],
         },
@@ -352,25 +380,18 @@ export default defineConfig(
   },
 
   {
-    files: ['src/features/**/*.ts'],
+    files: ['src/**/*.ts'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [featurePrivatePattern] }],
+      'no-restricted-imports': ['error', { patterns: modulePatterns }],
     },
   },
 
   {
     files: transportFreeFiles,
     rules: {
-      'no-restricted-imports': ['error', { paths: [noDiscordImport] }],
-    },
-  },
-
-  {
-    files: transportFreeFeatureFiles,
-    rules: {
       'no-restricted-imports': [
         'error',
-        { paths: [noDiscordImport], patterns: [featurePrivatePattern] },
+        { paths: [noDiscordImport], patterns: modulePatterns },
       ],
     },
   },
@@ -389,7 +410,7 @@ export default defineConfig(
   },
 
   {
-    files: ['src/shared/async.ts', 'src/core/scheduler/scheduler.ts'],
+    files: ['src/lib/async.ts', 'src/infra/scheduler/scheduler.ts'],
     rules: { 'no-await-in-loop': 'off' },
   },
 

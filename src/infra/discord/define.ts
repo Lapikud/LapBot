@@ -1,7 +1,7 @@
 import { MessageFlags, type ClientEvents } from 'discord.js';
 import type { z } from 'zod';
-import { PermanentError } from '~/shared/errors';
-import { subcommandPath } from '~/core/discord/router';
+import { PermanentError } from '~/domain';
+import { subcommandPath } from './router';
 import type {
   AppContext,
   CommandInteraction,
@@ -10,7 +10,7 @@ import type {
   JobInfo,
   JobOutcome,
   SlashCommand,
-} from './feature';
+} from './module';
 
 export function defineJob<S extends z.ZodType>(definition: {
   type: string;

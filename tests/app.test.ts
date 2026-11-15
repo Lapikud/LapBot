@@ -4,7 +4,7 @@ import type {
 } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import { createRegistry } from '~/app';
-import type { Config } from '~/core/config';
+import type { Config } from '~/config';
 
 const config = { DEFAULT_TIMEZONE: 'Europe/Tallinn' } as Config;
 

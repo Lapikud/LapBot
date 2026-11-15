@@ -13,24 +13,28 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond } from '~/core/discord/router';
-import { bySubcommand, defineJob } from '~/core/define';
-import { asJobError, isUnknownObject } from '~/core/discord/errors';
+import {
+  respond,
+  bySubcommand,
+  defineJob,
+  asJobError,
+  isUnknownObject,
+  customId,
+} from '~/infra/discord';
 import type {
   AppContext,
   CommandInteraction,
   ComponentHandler,
   Feature,
-} from '~/core/feature';
-import { getGuildTimezone } from '~/core/guild-settings';
-import { customId } from '~/core/registry';
-import { UserError } from '~/shared/errors';
+} from '~/infra/discord';
+import { getGuildTimezone } from '~/infra/db';
 import {
+  UserError,
   discordTime,
   parseFutureWhen,
   parseWhen,
   requireZone,
-} from '~/shared/time';
+} from '~/domain';
 import type { Event, RsvpStatus } from './schema';
 import {
   getEvent,

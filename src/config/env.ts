@@ -1,4 +1,4 @@
-import { isZone } from '~/shared/time';
+import { isZone } from '~/domain';
 import { z } from 'zod';
 
 const optional = <T extends z.ZodType>(schema: T) =>

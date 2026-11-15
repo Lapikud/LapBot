@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-import { connectDatabase, runMigrations } from '~/db/client';
+import { connectDatabase, runMigrations } from '~/infra/db';
 
 export default async function setup(): Promise<void> {
   const url = process.env.TEST_DATABASE_URL;

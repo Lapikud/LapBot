@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, lte, lt, or, sql } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import { scheduledJobs, type JobRow } from './schema';
+import type { Db } from '../client';
+import { scheduledJobs, type JobRow } from './model';
 
 export type NewJob = {
   type: string;

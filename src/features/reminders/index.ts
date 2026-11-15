@@ -5,19 +5,18 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { z } from 'zod';
-import { respond } from '~/core/discord/router';
-import { bySubcommand, defineJob } from '~/core/define';
-import { asJobError } from '~/core/discord/errors';
-import type { AppContext, CommandInteraction, Feature } from '~/core/feature';
-import { getGuildTimezone } from '~/core/guild-settings';
-import { PermanentError, UserError } from '~/shared/errors';
+import { respond, bySubcommand, defineJob, asJobError } from '~/infra/discord';
+import type { AppContext, CommandInteraction, Feature } from '~/infra/discord';
+import { getGuildTimezone } from '~/infra/db';
 import {
+  PermanentError,
+  UserError,
   discordTime,
   nextFutureOccurrence,
   parseFutureWhen,
   recurrences,
   requireZone,
-} from '~/shared/time';
+} from '~/domain';
 import type { Reminder } from './schema';
 import {
   getReminder,

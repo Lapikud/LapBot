@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import { rolePermissions } from './schema';
+import type { Db } from '../client';
+import { rolePermissions } from './model';
 
 export async function hasGrant(
   db: Db,

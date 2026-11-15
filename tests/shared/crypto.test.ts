@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { createSecretBox } from '~/shared/crypto';
+import { createSecretBox } from '~/infra/crypto';
 
 describe('createSecretBox', () => {
   const box = createSecretBox(randomBytes(32).toString('base64'));

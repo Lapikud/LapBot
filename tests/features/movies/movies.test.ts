@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
+import type { AppContext } from '~/infra/discord';
 import { castVote, finishPoll, insertPoll } from '~/features/polls/service';
 import { pickMovie } from '~/features/movies';
 import {

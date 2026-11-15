@@ -1,8 +1,8 @@
 import { PermissionFlagsBits, type GuildMember } from 'discord.js';
-import type { Db } from '~/db/client';
-import { UserError } from '~/shared/errors';
-import type { Authorizer, Permission } from '~/core/feature';
-import { hasGrant } from './store';
+import type { Db } from '~/infra/db';
+import { UserError } from '~/domain';
+import type { Authorizer, Permission } from './module';
+import { hasGrant } from '~/infra/db';
 
 export function isAdministrator(member: GuildMember): boolean {
   return member.permissions.has(PermissionFlagsBits.Administrator);

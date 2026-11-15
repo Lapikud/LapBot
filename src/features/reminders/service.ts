@@ -1,7 +1,7 @@
 import { and, asc, count, eq } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import { UserError } from '~/shared/errors';
-import type { Recurrence } from '~/shared/time';
+import type { Db } from '~/infra/db';
+import { UserError } from '~/domain';
+import type { Recurrence } from '~/domain';
 import { reminders, type Reminder } from './schema';
 
 export const maxActivePerUser = 25;

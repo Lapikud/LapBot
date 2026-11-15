@@ -1,8 +1,8 @@
 import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { isLeapYear } from 'date-fns';
-import type { CalendarDay } from '~/shared/time';
-import type { Db } from '~/db/client';
-import { UserError } from '~/shared/errors';
+import type { CalendarDay } from '~/domain';
+import type { Db } from '~/infra/db';
+import { UserError } from '~/domain';
 import {
   birthdays,
   birthdaySettings,

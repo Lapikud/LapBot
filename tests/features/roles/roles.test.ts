@@ -6,7 +6,7 @@ import {
 import { pino } from 'pino';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
+import type { AppContext } from '~/infra/discord';
 import { requireAbove, selfAssignProblem } from '~/features/roles/guards';
 import {
   handleReaction,

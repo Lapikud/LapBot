@@ -1,13 +1,15 @@
 import { Events, type Client } from 'discord.js';
-import type { Config } from '~/core/config';
-import { createClient } from '~/core/discord/client';
-import { createInteractionHandler } from '~/core/discord/router';
-import type { AppContext, Feature } from '~/core/feature';
-import type { Logger } from '~/core/logger';
-import { createAuthorizer } from '~/core/permissions/authorizer';
-import { buildRegistry, type Registry } from '~/core/registry';
-import { createScheduler } from '~/core/scheduler/scheduler';
-import { connectDatabase, runMigrations } from '~/db/client';
+import type { Config } from '~/config';
+import {
+  createClient,
+  createInteractionHandler,
+  createAuthorizer,
+  buildRegistry,
+} from '~/infra/discord';
+import type { AppContext, Feature, Registry } from '~/infra/discord';
+import type { Logger } from '~/infra/logging';
+import { createScheduler } from '~/infra/scheduler';
+import { connectDatabase, runMigrations } from '~/infra/db';
 import { announcementsFeature } from '~/features/announcements';
 import { birthdaysFeature } from '~/features/birthdays';
 import { eventsFeature } from '~/features/events';

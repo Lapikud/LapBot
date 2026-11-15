@@ -8,9 +8,9 @@ import {
   StringSelectMenuBuilder,
   type BaseMessageOptions,
 } from 'discord.js';
-import { customId } from '~/core/registry';
-import type { AppContext, ComponentHandler } from '~/core/feature';
-import { UserError } from '~/shared/errors';
+import { customId } from '~/infra/discord';
+import type { AppContext, ComponentHandler } from '~/infra/discord';
+import { UserError } from '~/domain';
 import { selfAssignProblem } from './guards';
 import { requirePanel, setPanelMessage, type Panel } from './service';
 

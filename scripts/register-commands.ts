@@ -1,6 +1,6 @@
 import { createRegistry } from '~/app';
-import { loadConfig } from '~/core/config';
-import { registerCommands } from '~/core/discord/registration';
+import { loadConfig } from '~/config';
+import { registerCommands } from '~/infra/discord';
 
 const config = loadConfig();
 

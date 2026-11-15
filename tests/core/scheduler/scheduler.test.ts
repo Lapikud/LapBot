@@ -3,12 +3,11 @@ import { pino } from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { noDatabase, testDb } from '../../db';
-import { PermanentError } from '~/shared/errors';
-import { defineJob } from '~/core/define';
-import type { AppContext } from '~/core/feature';
-import { createScheduler, retryDelayMs } from '~/core/scheduler/scheduler';
-import { scheduledJobs } from '~/core/scheduler/schema';
-import { claimDueJobs } from '~/core/scheduler/store';
+import { PermanentError } from '~/domain';
+import { defineJob } from '~/infra/discord';
+import type { AppContext } from '~/infra/discord';
+import { createScheduler, retryDelayMs } from '~/infra/scheduler';
+import { scheduledJobs, claimDueJobs } from '~/infra/db';
 
 const log = pino({ level: 'silent' });
 

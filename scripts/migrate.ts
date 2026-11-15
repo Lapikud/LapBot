@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { connectDatabase, runMigrations } from '~/db/client';
+import { connectDatabase, runMigrations } from '~/infra/db';
 
 const url = z.url().parse(process.env.DATABASE_URL);
 const database = connectDatabase(url);

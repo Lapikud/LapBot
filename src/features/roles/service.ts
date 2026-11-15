@@ -1,6 +1,6 @@
 import { and, asc, count, eq, max } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import { UserError } from '~/shared/errors';
+import type { Db } from '~/infra/db';
+import { UserError } from '~/domain';
 import { rolePanelRoles, rolePanels } from './schema';
 
 export const maxPanelRoles = 25;

@@ -1,5 +1,5 @@
 import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
-import { PermanentError } from '~/shared/errors';
+import { PermanentError } from '~/domain';
 
 const permanentCodes = new Set<number | string>([
   RESTJSONErrorCodes.UnknownChannel,

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { UserError } from '~/shared/errors';
 import {
+  UserError,
   nextFutureOccurrence,
   nextOccurrence,
   parseFutureWhen,
   parseWhen,
-} from '~/shared/time';
+} from '~/domain';
 
 const zone = 'Europe/Tallinn';
 const now = new Date('2026-03-10T10:00:00Z');

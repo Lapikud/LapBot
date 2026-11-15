@@ -5,18 +5,21 @@ import {
   type Role,
   type SlashCommandStringOption,
 } from 'discord.js';
-import { respond } from '~/core/discord/router';
-import { bySubcommand, deferred } from '~/core/define';
+import {
+  respond,
+  bySubcommand,
+  deferred,
+  isAdministrator,
+} from '~/infra/discord';
 import type {
   AppContext,
   CommandInteraction,
   Feature,
   Permission,
   PermissionDefinition,
-} from '~/core/feature';
-import { isAdministrator } from '~/core/permissions/authorizer';
-import { grant, listGrants, revoke } from '~/core/permissions/store';
-import { UserError } from '~/shared/errors';
+} from '~/infra/discord';
+import { grant, listGrants, revoke } from '~/infra/db';
+import { UserError } from '~/domain';
 
 const managePermission: Permission = 'permissions:manage';
 

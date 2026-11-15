@@ -1,9 +1,6 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import type {
-  RedmineIssue,
-  RedmineStatus,
-} from '~/integrations/redmine/client';
+import type { Db } from '~/infra/db';
+import type { RedmineIssue, RedmineStatus } from '~/infra/redmine';
 import {
   redmineLinks,
   redmineNotifications,

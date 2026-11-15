@@ -1,6 +1,6 @@
-import { startApp } from './app';
-import { loadConfig } from '~/core/config';
-import { createLogger } from '~/core/logger';
+import { startApp } from '~/app';
+import { loadConfig } from '~/config';
+import { createLogger } from '~/infra/logging';
 
 let config: ReturnType<typeof loadConfig>;
 

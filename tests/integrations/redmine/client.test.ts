@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RedmineClient, RedmineError } from '~/integrations/redmine/client';
+import { RedmineClient, RedmineError } from '~/infra/redmine';
 
 const issue = {
   id: 7,

@@ -1,5 +1,5 @@
 import { afterAll } from 'vitest';
-import { connectDatabase, type Db } from '~/db/client';
+import { connectDatabase, type Db } from '~/infra/db';
 
 const url = process.env.TEST_DATABASE_URL;
 

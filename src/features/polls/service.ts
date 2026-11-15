@@ -8,8 +8,8 @@ import {
   inArray,
   sql,
 } from 'drizzle-orm';
-import type { Db } from '~/db/client';
-import { UserError } from '~/shared/errors';
+import type { Db } from '~/infra/db';
+import { UserError } from '~/domain';
 import {
   pollOptions,
   polls,

@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import type { Registry } from '~/core/registry';
+import type { Registry } from './registry';
 
 export async function registerCommands(
   registry: Registry,

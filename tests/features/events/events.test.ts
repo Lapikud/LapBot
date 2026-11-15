@@ -1,8 +1,8 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import type { AppContext } from '~/core/feature';
-import { UserError } from '~/shared/errors';
+import type { AppContext } from '~/infra/discord';
+import { UserError } from '~/domain';
 import { createEvent, remindJob } from '~/features/events';
 import {
   insertEvent,

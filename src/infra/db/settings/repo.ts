@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import type { Db } from '~/db/client';
+import type { Db } from '../client';
 
 export const guildSettings = pgTable('guild_settings', {
   guildId: text('guild_id').primaryKey(),

@@ -1,9 +1,9 @@
 import type { GuildMember } from 'discord.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import { UserError } from '~/shared/errors';
-import { createAuthorizer } from '~/core/permissions/authorizer';
-import { grant, listGrants, revoke } from '~/core/permissions/store';
+import { UserError } from '~/domain';
+import { createAuthorizer } from '~/infra/discord';
+import { grant, listGrants, revoke } from '~/infra/db';
 
 function member(
   guildId: string,

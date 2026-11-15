@@ -1,6 +1,6 @@
 import type { GuildMember, Role } from 'discord.js';
 import { describe, expect, it } from 'vitest';
-import type { Authorizer } from '~/core/feature';
+import type { Authorizer } from '~/infra/discord';
 import { checkDelegation } from '~/features/permissions';
 
 const role = {} as Role;
