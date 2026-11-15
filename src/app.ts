@@ -35,7 +35,14 @@ import {
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
 import { createJobQueue, createJobRunner } from '~/infra/scheduler';
-import { systemClock, type Job } from '~/core/ports';
+import { systemClock, type Directory, type Job } from '~/core/ports';
+import type { Actor } from '~/domain';
+import {
+  createWebApp,
+  localOperator,
+  startWebServer,
+  type WebServices,
+} from '~/infra/web';
 import {
   connectDatabase,
   createAnnouncementRepository,
@@ -232,11 +239,59 @@ export function compose(config: Config, log: Logger) {
     runnerJobs.set(job.type, job);
   }
 
-  return { database, client, authz, registry, jobs: runnerJobs };
+  return {
+    database,
+    client,
+    authz,
+    registry,
+    directory,
+    jobs: runnerJobs,
+    web: { announcements, events, polls, permissions, settings },
+  };
 }
 
 export function createRegistry(config: Config, log: Logger): Registry {
   return compose(config, log).registry;
+}
+
+async function startWeb(
+  config: Config,
+  deps: {
+    directory: Directory;
+    services: WebServices;
+    botUserId: string;
+    log: Logger;
+  },
+): Promise<() => Promise<void>> {
+  const guildId = config.DISCORD_GUILD_ID;
+
+  if (config.WEB_PORT === undefined || guildId === undefined) {
+    return () => Promise.resolve();
+  }
+
+  const operator = async (): Promise<Actor> => {
+    const bot = await deps.directory.member(guildId, deps.botUserId);
+
+    if (!bot) {
+      throw new Error('The bot is not a member of DISCORD_GUILD_ID');
+    }
+
+    return { ...bot, administrator: true };
+  };
+
+  const app = createWebApp({
+    guildId,
+    auth: localOperator(operator),
+    directory: deps.directory,
+    services: deps.services,
+    log: deps.log,
+  });
+
+  return startWebServer(app, {
+    port: config.WEB_PORT,
+    host: config.WEB_HOST,
+    log: deps.log,
+  });
 }
 
 function waitForReady(client: Client, token: string): Promise<Client<true>> {
@@ -250,7 +305,10 @@ export async function startApp(
   config: Config,
   log: Logger,
 ): Promise<() => Promise<void>> {
-  const { database, client, authz, registry, jobs } = compose(config, log);
+  const { database, client, authz, registry, directory, jobs, web } = compose(
+    config,
+    log,
+  );
 
   try {
     await runMigrations(database.db);
@@ -295,6 +353,14 @@ export async function startApp(
       }),
     );
     runner.start();
+
+    const stopWeb = await startWeb(config, {
+      directory,
+      services: web,
+      botUserId: ready.user.id,
+      log: log.child({ component: 'web' }),
+    });
+
     log.info(
       { user: ready.user.tag, features: registry.features.map((f) => f.name) },
       'Ready',
@@ -302,6 +368,7 @@ export async function startApp(
 
     return async () => {
       client.removeAllListeners(Events.InteractionCreate);
+      await stopWeb();
       await runner.stop();
       await client.destroy();
       await database.close();
