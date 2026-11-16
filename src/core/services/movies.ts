@@ -178,7 +178,7 @@ export function createMovieService(deps: Deps) {
             movie.note,
             movie.overview?.slice(0, 900),
             movieLinks(movie)
-              .map(({ label, url }) => `[${label}](<${url}>)`)
+              .map(({ label, url }) => `[${label}](${url})`)
               .join(' · '),
           ]
             .filter(Boolean)

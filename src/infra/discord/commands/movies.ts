@@ -19,7 +19,7 @@ import type { Feature } from '../module';
 import { respond } from '../router';
 
 const linkLine = (links: readonly MovieLink[]) =>
-  links.map(({ label, url }) => `[${label}](<${url}>)`).join(' · ');
+  links.map(({ label, url }) => `[${label}](${url})`).join(' · ');
 
 const movieOption = (o: SlashCommandIntegerOption) =>
   o.setName('movie').setDescription('Movie').setAutocomplete(true);
