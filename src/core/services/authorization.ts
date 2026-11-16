@@ -12,6 +12,7 @@ import type {
   GrantRepository,
   Logger,
 } from '~/core/ports';
+import { sequential } from '~/lib';
 import { guard } from './guard';
 
 export function createAuthorizer(grants: GrantRepository): Authorizer {
@@ -86,12 +87,33 @@ export function createPermissionService(deps: Deps) {
       },
     );
 
+  const grant = change('grant');
+  const revoke = change('revoke');
+
   return {
     catalogue: () => [...known().values()],
-    grant: change('grant'),
-    revoke: change('revoke'),
+    grant,
+    revoke,
     list: guard(authz, managePermissions, (actor, roleId?: string) =>
       grants.list(actor.guildId, roleId),
+    ),
+    setRole: guard(
+      authz,
+      managePermissions,
+      async (actor, roleId: string, wanted: readonly string[]) => {
+        const target = new Set(wanted.map((value) => definition(value).id));
+        const granted = await grants.list(actor.guildId, roleId);
+        const current = new Set(granted.map((g) => g.permission));
+        const toGrant = [...target].filter((p) => !current.has(p));
+        const toRevoke = [...known().keys()].filter(
+          (p) => current.has(p) && !target.has(p),
+        );
+
+        await sequential(toGrant, (p) => grant(actor, roleId, p));
+        await sequential(toRevoke, (p) => revoke(actor, roleId, p));
+
+        return { granted: toGrant.length, revoked: toRevoke.length };
+      },
     ),
   };
 }

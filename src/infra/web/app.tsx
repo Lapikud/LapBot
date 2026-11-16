@@ -5,7 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
-import { UserError } from '~/domain';
+import { UserError, webAccess } from '~/domain';
 import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
@@ -28,7 +28,7 @@ function Message({ title, text }: Readonly<{ title: string; text: string }>) {
 }
 
 export function createWebApp(deps: WebDeps) {
-  const { guildId, signIn, directory, services, log } = deps;
+  const { guildId, signIn, directory, authz, services, log } = deps;
   const app = new Hono<Env>();
 
   app.use(
@@ -70,6 +70,16 @@ export function createWebApp(deps: WebDeps) {
         <Message
           title="Not a member"
           text="Your Discord account is not a member of the server."
+        />,
+        403,
+      );
+    }
+
+    if (!(await authz.can(actor, webAccess))) {
+      return c.html(
+        <Message
+          title="No access yet"
+          text="Ask a server administrator to give one of your roles access to the dashboard."
         />,
         403,
       );

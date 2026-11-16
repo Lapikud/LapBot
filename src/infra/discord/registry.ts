@@ -60,7 +60,7 @@ export function buildRegistry(features: readonly Feature[]): Registry {
         throw new Error(`Duplicate permission "${permission.id}"`);
       }
 
-      permissions.set(permission.id, permission);
+      permissions.set(permission.id, { ...permission, group: feature.name });
     }
   }
 

@@ -1,7 +1,7 @@
 import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
-import type { ChannelInfo, Directory, Logger } from '~/core/ports';
+import type { Authorizer, ChannelInfo, Directory, Logger } from '~/core/ports';
 import type {
   AnnouncementService,
   BirthdayService,
@@ -27,6 +27,7 @@ export type WebDeps = {
   timezone: string;
   signIn: SignIn;
   directory: Directory;
+  authz: Authorizer;
   services: WebServices;
   log: Logger;
 };

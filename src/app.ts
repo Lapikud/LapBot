@@ -35,7 +35,13 @@ import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
 import { PgBoss } from 'pg-boss';
 import { createJobQueue, startJobs } from '~/infra/scheduler';
-import { systemClock, type Directory, type Job } from '~/core/ports';
+import {
+  systemClock,
+  type Authorizer,
+  type Directory,
+  type Job,
+} from '~/core/ports';
+import { webAccess } from '~/domain';
 import { createWebApp, startWebServer, type WebServices } from '~/infra/web';
 import {
   connectDatabase,
@@ -168,6 +174,10 @@ export function compose(config: Config, log: Logger) {
     birthdayCommands(birthdays),
     pollCommands(polls),
     movieCommands(movies),
+    {
+      name: 'web',
+      permissions: [{ id: webAccess, description: 'Open the web dashboard' }],
+    },
   ];
 
   if (
@@ -222,7 +232,12 @@ export function createRegistry(config: Config, log: Logger): Registry {
 
 async function startWeb(
   config: Config,
-  deps: { directory: Directory; services: WebServices; log: Logger },
+  deps: {
+    directory: Directory;
+    authz: Authorizer;
+    services: WebServices;
+    log: Logger;
+  },
 ): Promise<() => Promise<void>> {
   const port = config.WEB_PORT;
   const guildId = config.DISCORD_GUILD_ID;
@@ -243,6 +258,7 @@ async function startWeb(
 
   const app = createWebApp({
     guildId,
+    authz: deps.authz,
     timezone: config.DEFAULT_TIMEZONE,
     signIn: {
       clientId,
@@ -321,6 +337,7 @@ export async function startApp(
 
     const stopWeb = await startWeb(config, {
       directory,
+      authz,
       services: web,
       log: log.child({ component: 'web' }),
     });

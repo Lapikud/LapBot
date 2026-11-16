@@ -97,6 +97,7 @@ describe.skipIf(noDatabase)('web UI', () => {
 
     app = createWebApp({
       guildId,
+      authz,
       timezone: 'Europe/Tallinn',
       signIn: {
         clientId: 'client',
@@ -337,6 +338,14 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect(added.status).toBe(303);
     expect(page).toContain('Paprika (2006)');
     expect(page).toContain('letterboxd.com');
+  });
+
+  it('keeps members without dashboard access out', async () => {
+    directory.member.mockResolvedValueOnce(
+      actor({ guildId, userId: '42', administrator: false }),
+    );
+
+    expect((await get('/')).status).toBe(403);
   });
 
   it('returns 404 for unknown pages', async () => {
