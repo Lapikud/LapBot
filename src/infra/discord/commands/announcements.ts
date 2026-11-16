@@ -4,6 +4,7 @@ import {
   LabelBuilder,
   ModalBuilder,
   RoleSelectMenuBuilder,
+  StringSelectMenuBuilder,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -81,9 +82,6 @@ const data = new SlashCommandBuilder()
       )
       .addBooleanOption((o) =>
         o.setName('embed').setDescription('Post as an embed (default yes)'),
-      )
-      .addBooleanOption((o) =>
-        o.setName('everyone').setDescription('Mention @everyone'),
       ),
   )
   .addSubcommand((sub) =>
@@ -142,7 +140,7 @@ export function announcementCommands(
         return;
       }
 
-      const [channelId = '', embed, everyone] = args;
+      const [channelId = '', embed] = args;
       const roles = interaction.fields.getSelectedRoles('mentions');
       const announcement = await announcements.draft(
         toActor(interaction.member),
@@ -152,7 +150,9 @@ export function announcementCommands(
           content: interaction.fields.getTextInputValue('content'),
           embed: embed === '1',
           mentionRoleIds: roles ? [...roles.keys()] : [],
-          mentionEveryone: everyone === '1',
+          mentionEveryone: interaction.fields
+            .getStringSelectValues('everyone')
+            .includes('everyone'),
         },
       );
 
@@ -205,17 +205,10 @@ export function announcementCommands(
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);
             const embed = interaction.options.getBoolean('embed') ?? true;
-            const everyone =
-              interaction.options.getBoolean('everyone') ?? false;
 
             await interaction.showModal(
               contentModal(
-                controlId(
-                  'announcements:create',
-                  channel.id,
-                  embed ? 1 : 0,
-                  everyone ? 1 : 0,
-                ),
+                controlId('announcements:create', channel.id, embed ? 1 : 0),
                 'New announcement',
               ).addLabelComponents(
                 new LabelBuilder()
@@ -225,6 +218,14 @@ export function announcementCommands(
                       .setCustomId('mentions')
                       .setRequired(false)
                       .setMaxValues(25),
+                  ),
+                new LabelBuilder()
+                  .setLabel('Mention everyone')
+                  .setStringSelectMenuComponent(
+                    new StringSelectMenuBuilder()
+                      .setCustomId('everyone')
+                      .setRequired(false)
+                      .addOptions({ label: '@everyone', value: 'everyone' }),
                   ),
               ),
             );
