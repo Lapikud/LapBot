@@ -57,6 +57,16 @@ describe.skipIf(noDatabase)('reminder service', () => {
     );
   });
 
+  it('reminds a day later when no time is given', async () => {
+    const { service, member } = setup();
+    const before = Date.now();
+    const reminder = await service.create(member, { message: 'read this' });
+    const offset = reminder.runAt.getTime() - before;
+
+    expect(offset).toBeGreaterThanOrEqual(86_400_000 - 1000);
+    expect(offset).toBeLessThanOrEqual(86_400_000 + 5000);
+  });
+
   it('delivers one-off reminders by DM and completes them', async () => {
     const { service, messenger, repository, deliver, member } = setup();
     const reminder = await service.create(member, {

@@ -24,7 +24,7 @@ import { defineJob } from './jobs';
 const jobKey = (id: number) => `reminder:${id}`;
 
 export type ReminderRequest = {
-  when: string;
+  when?: string;
   message: string;
   channelId?: string;
   repeat?: string;
@@ -149,7 +149,7 @@ export function createReminderService(deps: Deps) {
         userId: actor.userId,
         channelId: request.channelId ?? null,
         message: request.message,
-        runAt: parseFutureWhen(request.when, timezone),
+        runAt: parseFutureWhen(request.when ?? '1d', timezone),
         recurrence,
         timezone,
       });

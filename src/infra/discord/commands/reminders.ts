@@ -1,5 +1,7 @@
 import {
+  ApplicationCommandType,
   ChannelType,
+  ContextMenuCommandBuilder,
   InteractionContextType,
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
@@ -26,16 +28,17 @@ const remindme = new SlashCommandBuilder()
   .setContexts(InteractionContextType.Guild)
   .addStringOption((o) =>
     o
-      .setName('when')
-      .setDescription('e.g. 30m, 2h, tomorrow 9:00, fri 18:00, 20.11 9:00')
-      .setRequired(true),
-  )
-  .addStringOption((o) =>
-    o
       .setName('message')
       .setDescription('What to remind about')
       .setRequired(true)
       .setMaxLength(1000),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('when')
+      .setDescription(
+        'Default tomorrow. e.g. 30m, 2h, tomorrow 9:00, fri 18:00',
+      ),
   )
   .addChannelOption((o) =>
     o
@@ -89,6 +92,27 @@ export function reminderCommands(reminders: ReminderService): Feature {
     permissions: [
       { id: 'reminder:channel', description: 'Post reminders in channels' },
     ],
+    messageCommands: [
+      {
+        data: new ContextMenuCommandBuilder()
+          .setName('Remind me tomorrow')
+          .setType(ApplicationCommandType.Message)
+          .setContexts(InteractionContextType.Guild)
+          .toJSON(),
+        execute: async (interaction) => {
+          const target = interaction.targetMessage;
+          const excerpt = target.content.slice(0, 200);
+          const reminder = await reminders.create(toActor(interaction.member), {
+            message: [excerpt, target.url].filter(Boolean).join('\n'),
+          });
+
+          await respond(
+            interaction,
+            `I will DM you about ${target.url} ${discordTime(reminder.runAt, 'R')}.`,
+          );
+        },
+      },
+    ],
     commands: [
       {
         data: remindme.toJSON(),
@@ -97,8 +121,9 @@ export function reminderCommands(reminders: ReminderService): Feature {
             ChannelType.GuildText,
           ]);
           const repeat = interaction.options.getString('repeat');
+          const when = interaction.options.getString('when');
           const reminder = await reminders.create(toActor(interaction.member), {
-            when: interaction.options.getString('when', true),
+            ...(when !== null && { when }),
             message: interaction.options.getString('message', true),
             ...(channel && { channelId: channel.id }),
             ...(repeat !== null && { repeat }),

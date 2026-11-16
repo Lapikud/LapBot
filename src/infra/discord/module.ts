@@ -5,8 +5,10 @@ import type {
   ChatInputCommandInteraction,
   Client,
   ClientEvents,
+  MessageContextMenuCommandInteraction,
   ModalSubmitInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
+  RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from 'discord.js';
 import type { Logger, Authorizer } from '~/core/ports';
 import type { Permission, PermissionDefinition } from '~/domain';
@@ -26,6 +28,17 @@ export type SlashCommand = {
   execute: (interaction: CommandInteraction, ctx: AppContext) => Promise<void>;
   autocomplete?: (
     interaction: AutocompleteInteraction<'cached'>,
+    ctx: AppContext,
+  ) => Promise<void>;
+};
+
+export type MessageCommandInteraction =
+  MessageContextMenuCommandInteraction<'cached'>;
+
+export type MessageCommand = {
+  data: RESTPostAPIContextMenuApplicationCommandsJSONBody;
+  execute: (
+    interaction: MessageCommandInteraction,
     ctx: AppContext,
   ) => Promise<void>;
 };
@@ -54,6 +67,7 @@ export type Feature = {
   name: string;
   permissions?: readonly PermissionDefinition[];
   commands?: readonly SlashCommand[];
+  messageCommands?: readonly MessageCommand[];
   components?: readonly ComponentHandler[];
   events?: readonly EventListener[];
   start?: () => Promise<void>;

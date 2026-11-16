@@ -9,7 +9,10 @@ export async function registerCommands(
     guildId?: string | undefined;
   },
 ): Promise<number> {
-  const body = [...registry.commands.values()].map((command) => command.data);
+  const body = [
+    ...[...registry.commands.values()].map((command) => command.data),
+    ...[...registry.messageCommands.values()].map((command) => command.data),
+  ];
   const rest = new REST().setToken(options.token);
   const route =
     options.guildId === undefined

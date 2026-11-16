@@ -10,13 +10,15 @@ import type {
   AppContext,
   CommandInteraction,
   ComponentInteraction,
+  MessageCommandInteraction,
 } from './module';
 import type { Message as DomainMessage } from '~/domain';
 import { toActor } from './actor';
 import { render } from './render';
 import { parseCustomId, type Registry } from './registry';
 
-type Repliable = CommandInteraction | ComponentInteraction;
+type Repliable =
+  CommandInteraction | ComponentInteraction | MessageCommandInteraction;
 
 export async function respond(
   interaction: Repliable,
@@ -87,6 +89,20 @@ async function runCommand(
   await command.execute(interaction, ctx);
 }
 
+async function runMessageCommand(
+  registry: Registry,
+  interaction: MessageCommandInteraction,
+  ctx: AppContext,
+): Promise<void> {
+  const command = registry.messageCommands.get(interaction.commandName);
+
+  if (!command) {
+    throw new UserError('This command is no longer available.');
+  }
+
+  await command.execute(interaction, ctx);
+}
+
 async function runComponent(
   registry: Registry,
   interaction: ComponentInteraction,
@@ -131,13 +147,33 @@ function describe(interaction: Repliable): Record<string, string> {
   return {
     guildId: interaction.guildId,
     userId: interaction.user.id,
-    ...(interaction.isChatInputCommand()
-      ? {
-          command:
-            `${interaction.commandName} ${subcommandPath(interaction)}`.trim(),
-        }
-      : { customId: interaction.customId }),
+    ...(interaction.isChatInputCommand() && {
+      command:
+        `${interaction.commandName} ${subcommandPath(interaction)}`.trim(),
+    }),
+    ...(interaction.isMessageContextMenuCommand() && {
+      command: interaction.commandName,
+    }),
+    ...((interaction.isMessageComponent() || interaction.isModalSubmit()) && {
+      customId: interaction.customId,
+    }),
   };
+}
+
+function dispatch(
+  registry: Registry,
+  interaction: Repliable,
+  ctx: AppContext,
+): Promise<void> {
+  if (interaction.isChatInputCommand()) {
+    return runCommand(registry, interaction, ctx);
+  }
+
+  if (interaction.isMessageContextMenuCommand()) {
+    return runMessageCommand(registry, interaction, ctx);
+  }
+
+  return runComponent(registry, interaction, ctx);
 }
 
 export function createInteractionHandler(
@@ -169,6 +205,7 @@ export function createInteractionHandler(
 
     if (
       !interaction.isChatInputCommand() &&
+      !interaction.isMessageContextMenuCommand() &&
       !interaction.isMessageComponent() &&
       !interaction.isModalSubmit()
     ) {
@@ -176,9 +213,7 @@ export function createInteractionHandler(
     }
 
     try {
-      await (interaction.isChatInputCommand()
-        ? runCommand(registry, interaction, ctx)
-        : runComponent(registry, interaction, ctx));
+      await dispatch(registry, interaction, ctx);
     } catch (error) {
       let message: string;
 

@@ -78,6 +78,9 @@ describe('composition root', () => {
   it('builds without duplicate handlers', () => {
     expect(registry.features.map((f) => f.name)).toContain('roles');
     expect(registry.commands.size).toBeGreaterThan(5);
+    expect([...registry.messageCommands.keys()]).toContain(
+      'Remind me tomorrow',
+    );
   });
 
   it('declares commands Discord will accept', () => {

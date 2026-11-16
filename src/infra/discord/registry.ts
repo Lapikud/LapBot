@@ -1,6 +1,7 @@
 import type {
   ComponentHandler,
   Feature,
+  MessageCommand,
   Permission,
   PermissionDefinition,
   SlashCommand,
@@ -9,6 +10,7 @@ import type {
 export type Registry = {
   features: readonly Feature[];
   commands: ReadonlyMap<string, SlashCommand>;
+  messageCommands: ReadonlyMap<string, MessageCommand>;
   components: ReadonlyMap<string, ComponentHandler>;
   permissions: ReadonlyMap<Permission, PermissionDefinition>;
 };
@@ -31,6 +33,7 @@ function addUnique<V>(
 export function buildRegistry(features: readonly Feature[]): Registry {
   const names = new Map<string, Feature>();
   const commands = new Map<string, SlashCommand>();
+  const messageCommands = new Map<string, MessageCommand>();
   const components = new Map<string, ComponentHandler>();
   const permissions = new Map<Permission, PermissionDefinition>();
 
@@ -38,6 +41,10 @@ export function buildRegistry(features: readonly Feature[]): Registry {
     addUnique(names, feature.name, feature, 'feature');
     for (const command of feature.commands ?? []) {
       addUnique(commands, command.data.name, command, 'command');
+    }
+
+    for (const command of feature.messageCommands ?? []) {
+      addUnique(messageCommands, command.data.name, command, 'message command');
     }
 
     for (const component of feature.components ?? []) {
@@ -57,7 +64,7 @@ export function buildRegistry(features: readonly Feature[]): Registry {
     }
   }
 
-  return { features, commands, components, permissions };
+  return { features, commands, messageCommands, components, permissions };
 }
 
 export function parseCustomId(

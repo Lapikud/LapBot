@@ -22,6 +22,7 @@ function commandInteraction(commandName: string, subcommand: string | null) {
   return {
     inCachedGuild: () => true,
     isAutocomplete: () => false,
+    isMessageContextMenuCommand: () => false,
     isChatInputCommand: () => true,
     isMessageComponent: () => false,
     isModalSubmit: () => false,
