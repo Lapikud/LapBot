@@ -77,7 +77,10 @@ unless the bot may mention everyone.
 
 **Sign-in is with Discord.** Members sign in with their Discord account and
 act as themselves, with their own bot permissions, so an event created here
-is organized by whoever created it. To set it up:
+is organized by whoever created it. Only server administrators can open the
+dashboard at first; they give other roles access with the `web:access`
+permission on the Permissions page, where each role's permissions are a list
+of checkboxes. To set it up:
 
 1. In the Discord developer portal, open the application → **OAuth2**, copy
    the **Client Secret** into `DISCORD_CLIENT_SECRET`, and add the redirect
