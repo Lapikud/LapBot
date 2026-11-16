@@ -203,7 +203,9 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('renders the PSA composer with channels and mentionable roles', async () => {
-    const response = await get('/psa');
+    expect(await (await get('/psa')).text()).toContain('href="/psa/new"');
+
+    const response = await get('/psa/new');
     const page = await response.text();
 
     expect(response.status).toBe(200);

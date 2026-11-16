@@ -206,9 +206,17 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
       const list = await services.announcements.list(guildId);
 
       return c.html(
-        <Layout can={c.var.can} title={title} path="/psa" flash={flashOf(c)}>
-          <Composer server={c.var.server} can={c.var.can} />
-          <h2>Recent</h2>
+        <Layout
+          can={c.var.can}
+          title={title}
+          path="/psa"
+          flash={flashOf(c)}
+          actions={
+            <a href="/psa/new" role="button">
+              New PSA
+            </a>
+          }
+        >
           <Recent
             list={list}
             server={c.var.server}
@@ -219,6 +227,13 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         </Layout>,
       );
     })
+    .get('/new', (c) =>
+      c.html(
+        <Layout can={c.var.can} title="New PSA" path="/psa" flash={flashOf(c)}>
+          <Composer server={c.var.server} can={c.var.can} />
+        </Layout>,
+      ),
+    )
     .post('/', async (c) => {
       const form = await c.req.formData();
       const action = form.get('action');
@@ -241,7 +256,7 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         });
 
         return c.html(
-          <Layout can={c.var.can} title={title} path="/psa">
+          <Layout can={c.var.can} title="New PSA" path="/psa">
             <Composer
               can={c.var.can}
               server={server}

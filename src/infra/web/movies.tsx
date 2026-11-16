@@ -81,8 +81,15 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
           title="Movies"
           path="/movies"
           flash={flashOf(c)}
+          actions={
+            <a href="/movies/new" role="button">
+              Suggest a movie
+            </a>
+          }
         >
-          {list.length === 0 ? <p>No suggestions yet.</p> : null}
+          {list.length === 0 ? (
+            <p>No suggestions yet. Be the first to suggest one.</p>
+          ) : null}
           {list.map((movie, index) => (
             <MovieCard
               key={movie.id}
@@ -91,7 +98,17 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
               editable={owns(c, movie.suggestedBy, 'movie:manage')}
             />
           ))}
-          <h2>Suggest a movie</h2>
+        </Layout>,
+      );
+    })
+    .get('/new', (c) =>
+      c.html(
+        <Layout
+          can={c.var.can}
+          title="Suggest a movie"
+          path="/movies"
+          flash={flashOf(c)}
+        >
           <form method="post" action="/movies">
             <div class="grid">
               <label>
@@ -118,8 +135,8 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
             <button type="submit">Suggest</button>
           </form>
         </Layout>,
-      );
-    })
+      ),
+    )
     .post('/', async (c) => {
       const form = await c.req.formData();
       const year = field(form, 'year');
