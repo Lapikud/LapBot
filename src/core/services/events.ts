@@ -361,6 +361,7 @@ export function createEventService(deps: Deps) {
 
   return {
     jobs: [remindJob],
+    get: requireEvent,
     view: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
 

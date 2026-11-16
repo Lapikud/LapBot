@@ -1,3 +1,5 @@
+import { tz } from '@date-fns/tz';
+import { format } from 'date-fns';
 import type { Context } from 'hono';
 import type {
   Authenticator,
@@ -88,12 +90,15 @@ export const withFlash = (path: string, flash: Flash) => {
 export const back = (c: Context<Env>, path: string, flash: Flash) =>
   c.redirect(withFlash(path, flash), 303);
 
+export const inputTime = (timezone: string) => (date: Date | null) =>
+  date === null ? '' : format(date, 'yyyy-MM-dd HH:mm', { in: tz(timezone) });
+
 export const formatter = (timezone: string) => {
-  const format = new Intl.DateTimeFormat('en-GB', {
+  const display = new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: timezone,
   });
 
-  return (date: Date | null) => (date === null ? '' : format.format(date));
+  return (date: Date | null) => (date === null ? '' : display.format(date));
 };

@@ -219,6 +219,30 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect(page).toContain('Announced in #general at 8:00');
   });
 
+  it('creates an event and edits it', async () => {
+    const created = await post('/events', {
+      title: 'Board games',
+      start: '2030-05-10 18:00',
+      channelId: 'general',
+      icons: '1',
+    });
+    const notice = new URL(
+      created.headers.get('location') ?? '',
+      'http://localhost',
+    ).searchParams.get('notice');
+    const id = /Event #(\d+)/.exec(notice ?? '')?.[1];
+    const form = await (await get(`/events/${id}`)).text();
+    const edited = await post(`/events/${id}`, {
+      title: 'Board games night',
+      start: '2030-05-10 18:00',
+      location: 'Room 101',
+    });
+
+    expect(form).toContain('value="2030-05-10 18:00"');
+    expect(edited.status).toBe(303);
+    expect(await (await get('/events')).text()).toContain('Board games night');
+  });
+
   it('returns 404 for unknown pages', async () => {
     expect((await get('/nope')).status).toBe(404);
   });
