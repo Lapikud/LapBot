@@ -85,34 +85,45 @@ export function createRedmineService(deps: Deps) {
     subscription: Subscription,
     statuses: ReadonlyMap<number, IssueStatus>,
   ) => {
-    const { issues } = await client.listIssues({
-      projectId: subscription.projectId,
-      status: '*',
-      updatedSince: subscription.checkpoint,
-      sort: 'updated_on:asc',
-      limit: issuesPerPoll,
-    });
     let checkpoint = subscription.checkpoint;
+    const pollPage = async (offset = 0): Promise<void> => {
+      const { issues, total } = await client.listIssues({
+        projectId: subscription.projectId,
+        status: '*',
+        updatedSince: subscription.checkpoint,
+        sort: 'updated_on:asc,id:asc',
+        limit: issuesPerPoll,
+        offset,
+      });
 
-    await sequential(issues, async (summary) => {
-      const issue = await client.getIssue(summary.id, true);
-      const notifications = issueNotifications(
-        issue,
-        subscription.checkpoint,
-        statuses,
-        issueUrl(issue.id),
-      );
+      await sequential(issues, async (summary) => {
+        const issue = await client.getIssue(summary.id, true);
+        const notifications = issueNotifications(
+          issue,
+          subscription.checkpoint,
+          statuses,
+          issueUrl(issue.id),
+        );
 
-      await sequential(notifications, (notification) =>
-        sendOnce(subscription, notification),
-      );
+        await sequential(notifications, (notification) =>
+          sendOnce(subscription, notification),
+        );
 
-      const updated = new Date(issue.updated_on);
+        const updated = new Date(summary.updated_on);
 
-      if (updated > checkpoint) {
-        checkpoint = updated;
+        if (updated > checkpoint) {
+          checkpoint = updated;
+        }
+      });
+
+      const nextOffset = offset + issues.length;
+
+      if (issues.length > 0 && nextOffset < total) {
+        await pollPage(nextOffset);
       }
-    });
+    };
+
+    await pollPage();
 
     if (checkpoint > subscription.checkpoint) {
       await tracker.setCheckpoint(subscription.id, checkpoint);
