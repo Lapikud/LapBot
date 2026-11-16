@@ -130,7 +130,7 @@ describe.skipIf(noDatabase)('poll service', () => {
       [poll.options[0]?.id ?? 0],
     );
 
-    expect(view.content).not.toContain('█');
+    expect(view.content).not.toContain('▰');
   });
 
   it('closes on schedule, shows the winner and removes controls', async () => {

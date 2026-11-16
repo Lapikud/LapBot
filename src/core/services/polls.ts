@@ -4,6 +4,7 @@ import {
   controlId,
   discordTime,
   isPollOpen,
+  maxContentLength,
   parseFutureWhen,
   UserError,
   type Actor,
@@ -36,9 +37,12 @@ export type PollRequest = {
 };
 
 function bar(votes: number, total: number): string {
-  const filled = total === 0 ? 0 : Math.round((votes / total) * 10);
+  const filled =
+    total <= 0
+      ? 0
+      : Math.max(0, Math.min(10, Math.round((votes / total) * 10)));
 
-  return '█'.repeat(filled) + '░'.repeat(10 - filled);
+  return '▰'.repeat(filled) + '▱'.repeat(10 - filled);
 }
 
 export function describeOutcome(results: PollResults, leader: string): string {
@@ -60,13 +64,13 @@ function statusLine(poll: Poll, open: boolean): string {
 export function pollView(poll: PollWithOptions, results: PollResults): Message {
   const open = isPollOpen(poll);
   const showCounts = poll.showResults === 'live' || !open;
-  const name = (option: { label: string; url: string | null }) =>
-    option.url === null ? option.label : `[${option.label}](<${option.url}>)`;
-  const lines = results.options.map((option) =>
-    showCounts
-      ? `${bar(option.votes, results.voters)} ${option.votes} · **${name(option)}**`
-      : `• ${name(option)}`,
-  );
+  const lines = results.options.map((option, index) => {
+    const heading = `**${index + 1}. ${option.label}**`;
+
+    return showCounts
+      ? `${heading}\n${bar(option.votes, results.voters)} ${option.votes}`
+      : heading;
+  });
   const outcome =
     !open && results.winners.length > 0
       ? [describeOutcome(results, 'Winner')]
@@ -80,9 +84,12 @@ export function pollView(poll: PollWithOptions, results: PollResults): Message {
   ].join(' · ');
 
   return {
-    content: [`# ${poll.question}`, ...lines, ...outcome, `-# ${footer}`].join(
-      '\n',
-    ),
+    content: [
+      `# ${poll.question}`,
+      lines.join('\n\n'),
+      ...outcome,
+      `-# ${footer}`,
+    ].join('\n\n'),
     controls: open
       ? [
           [
@@ -93,7 +100,7 @@ export function pollView(poll: PollWithOptions, results: PollResults): Message {
               min: 1,
               max: poll.multiple ? poll.options.length : 1,
               options: poll.options.map((option) => ({
-                label: option.label,
+                label: `${option.position + 1}. ${option.label}`,
                 value: String(option.id),
               })),
             },
@@ -109,6 +116,44 @@ export function pollView(poll: PollWithOptions, results: PollResults): Message {
         ]
       : [],
   };
+}
+
+// Option details are static; only the final message owns voting controls and counts.
+function pollDetails(input: Pick<NewPoll, 'question' | 'options'>): Message[] {
+  if (
+    !input.options.some(
+      (option) => option.url !== undefined && option.url !== null,
+    )
+  ) {
+    return [];
+  }
+
+  const heading = `## ${input.question} · options`;
+  const pages: string[] = [];
+  let page = heading;
+
+  for (const [index, option] of input.options.entries()) {
+    const label = `${index + 1}. ${option.label}`;
+    const line =
+      option.url !== undefined && option.url !== null
+        ? `[${label}](<${option.url}>)`
+        : label;
+
+    if (heading.length + line.length + 1 > maxContentLength) {
+      throw new UserError('An option link is too long to post on Discord.');
+    }
+
+    if (page.length + line.length + 1 > maxContentLength) {
+      pages.push(page);
+      page = heading;
+    }
+
+    page += `\n${line}`;
+  }
+
+  pages.push(page);
+
+  return pages.map((content) => ({ content, suppressEmbeds: true }));
 }
 
 type Deps = {
@@ -159,7 +204,19 @@ export function createPollService(deps: Deps) {
       );
     }
 
+    if (input.question.trim() === '' || input.question.length > 256) {
+      throw new UserError('Poll questions must be 1–256 characters.');
+    }
+
+    const details = pollDetails(input);
     const poll = await polls.insert(input);
+
+    for (const message of details) {
+      // Preserve option order and keep the voting controls after every detail post.
+      // eslint-disable-next-line no-await-in-loop
+      await messenger.send(poll.channelId, message);
+    }
+
     const sent = await messenger.send(
       poll.channelId,
       pollView(poll, await polls.results(poll)),

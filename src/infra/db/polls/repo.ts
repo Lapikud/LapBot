@@ -1,13 +1,4 @@
-import {
-  and,
-  asc,
-  count,
-  countDistinct,
-  desc,
-  eq,
-  inArray,
-  sql,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
   NewPoll,
   PollRepository,
@@ -124,22 +115,25 @@ export async function getResults(
   db: Db,
   poll: PollWithOptions,
 ): Promise<PollResults> {
-  const [counts, [voters]] = await Promise.all([
-    db
-      .select({ optionId: pollVotes.optionId, votes: count() })
-      .from(pollVotes)
-      .where(eq(pollVotes.pollId, poll.id))
-      .groupBy(pollVotes.optionId),
-    db
-      .select({ total: countDistinct(pollVotes.userId) })
-      .from(pollVotes)
-      .where(eq(pollVotes.pollId, poll.id)),
-  ]);
+  // The scalar aggregate and grouped counts share one PostgreSQL snapshot.
+  const counts = await db
+    .select({
+      optionId: pollVotes.optionId,
+      votes: count(),
+      voters: sql<number>`(
+        select count(distinct ${pollVotes.userId})
+        from ${pollVotes}
+        where ${pollVotes.pollId} = ${poll.id}
+      )`.mapWith(Number),
+    })
+    .from(pollVotes)
+    .where(eq(pollVotes.pollId, poll.id))
+    .groupBy(pollVotes.optionId);
 
   return tally(
     poll.options,
     new Map(counts.map((row) => [row.optionId, row.votes])),
-    voters?.total ?? 0,
+    counts[0]?.voters ?? 0,
   );
 }
 
