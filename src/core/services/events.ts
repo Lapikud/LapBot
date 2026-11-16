@@ -7,7 +7,6 @@ import {
   parseFutureWhen,
   parseWhen,
   requireMentionable,
-  requireZone,
   roleMention,
   sameCalendarDay,
   UserError,
@@ -52,7 +51,6 @@ export type EventRequest = {
   capacity?: number;
   mentionRoleId?: string;
   reminders?: string;
-  timezone?: string;
   native?: boolean;
   icons?: boolean;
 };
@@ -127,12 +125,20 @@ export function eventView(event: Event, counts: RsvpCounts): Message {
   };
 }
 
+export const reminderChoices = [
+  { label: '1 hour before', value: '60' },
+  { label: '15 minutes before', value: '15' },
+  { label: '1 day before', value: '1440' },
+  { label: '1 day and 1 hour before', value: '1440,60' },
+  { label: 'No reminders', value: 'none' },
+] as const;
+
 export function parseReminderMinutes(value: string | undefined): number[] {
   if (value === undefined) {
     return [60];
   }
 
-  if (value.trim() === '') {
+  if (value.trim() === '' || value === 'none') {
     return [];
   }
 
@@ -379,18 +385,24 @@ export function createEventService(deps: Deps) {
         requireMentionable(actor, role);
       }
 
-      const timezone =
-        request.timezone === undefined
-          ? deps.timezone
-          : requireZone(request.timezone);
+      const { timezone } = deps;
+      const startsAt = parseFutureWhen(request.start, timezone);
+      const endsAt =
+        request.end === undefined
+          ? null
+          : parseWhen(request.end, timezone, startsAt);
+
+      if (endsAt && endsAt <= startsAt) {
+        throw new UserError('The end must be after the start.');
+      }
+
       const event = await publish(
         {
           guildId: actor.guildId,
           title: request.title,
           description: request.description ?? null,
-          startsAt: parseFutureWhen(request.start, timezone),
-          endsAt:
-            request.end === undefined ? null : parseWhen(request.end, timezone),
+          startsAt,
+          endsAt,
           timezone,
           location: request.location ?? null,
           organizerId: actor.userId,
@@ -421,7 +433,7 @@ export function createEventService(deps: Deps) {
       const endsAt =
         changes.end === undefined
           ? event.endsAt
-          : parseWhen(changes.end, event.timezone);
+          : parseWhen(changes.end, event.timezone, startsAt);
 
       if (endsAt && endsAt <= startsAt) {
         throw new UserError('The end must be after the start.');

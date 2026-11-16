@@ -6,11 +6,12 @@ import type {
   Directory,
   Logger,
 } from '~/core/ports';
-import type {
-  AnnouncementService,
-  EventService,
-  PermissionService,
-  PollService,
+import {
+  reminderChoices,
+  type AnnouncementService,
+  type EventService,
+  type PermissionService,
+  type PollService,
 } from '~/core/services';
 import { UserError, type Actor, type RoleInfo } from '~/domain';
 import { html, raw, type Html } from '~/lib';
@@ -370,9 +371,11 @@ export function createWebApp(deps: Deps) {
                 /></label>
                 <label
                   >Start
-                  <input name="start" required placeholder="2026-11-20 18:00"
+                  <input name="start" required placeholder="e.g. fri 18:00"
                 /></label>
-                <label>End <input name="end" placeholder="optional" /></label>
+                <label
+                  >End <input name="end" placeholder="e.g. 21:00 or 3h"
+                /></label>
                 <label
                   >Description
                   <textarea
@@ -389,9 +392,16 @@ export function createWebApp(deps: Deps) {
                   >Capacity <input name="capacity" type="number" min="1"
                 /></label>
                 <label
-                  >Reminders (minutes before)
-                  <input name="reminders" value="60"
-                /></label>
+                  >Reminders
+                  <select name="reminders">
+                    ${reminderChoices.map(
+                      (choice) =>
+                        html`<option value="${choice.value}">
+                          ${choice.label}
+                        </option>`,
+                    )}
+                  </select>
+                </label>
                 <label
                   ><input type="checkbox" name="native" value="1" /> Also create
                   a Discord event</label

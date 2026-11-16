@@ -5,7 +5,11 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { rsvpStatuses, type RsvpStatus } from '~/core/ports';
-import { rsvpLabels, type EventService } from '~/core/services';
+import {
+  reminderChoices,
+  rsvpLabels,
+  type EventService,
+} from '~/core/services';
 import { channelMention, discordTime, userMention, UserError } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';
@@ -47,7 +51,9 @@ const data = new SlashCommandBuilder()
           .setDescription('Description')
           .setMaxLength(2000),
       )
-      .addStringOption((o) => o.setName('end').setDescription('End time'))
+      .addStringOption((o) =>
+        o.setName('end').setDescription('e.g. 21:00 or 3h after the start'),
+      )
       .addStringOption((o) =>
         o.setName('location').setDescription('Place or link').setMaxLength(200),
       )
@@ -73,10 +79,12 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName('reminders')
-          .setDescription('Minutes before start, e.g. "60,15" (default 60)'),
-      )
-      .addStringOption((o) =>
-        o.setName('timezone').setDescription('IANA timezone for the times'),
+          .setDescription(
+            'When to remind people who are going (default 1 hour before)',
+          )
+          .addChoices(
+            reminderChoices.map(({ label, value }) => ({ name: label, value })),
+          ),
       )
       .addBooleanOption((o) =>
         o
@@ -188,7 +196,6 @@ export function eventCommands(events: EventService): Feature {
               'end',
               'location',
               'reminders',
-              'timezone',
             ] as const;
             const extras = Object.fromEntries(
               fields.flatMap((name) => {
