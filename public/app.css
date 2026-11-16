@@ -1,9 +1,24 @@
+:root {
+  --pico-font-size: 93.75%;
+  --pico-spacing: 0.75rem;
+  --pico-form-element-spacing-vertical: 0.5rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+}
+
+form > [type='submit'] {
+  width: auto;
+}
+
+td {
+  vertical-align: middle;
+}
+
 td form {
   display: inline-block;
   margin: 0 0.25rem 0 0;
 }
 
-td button {
+td [type='submit'] {
   --pico-form-element-spacing-vertical: 0.25rem;
   --pico-form-element-spacing-horizontal: 0.75rem;
 

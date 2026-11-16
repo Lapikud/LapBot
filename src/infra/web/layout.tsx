@@ -3,9 +3,10 @@ import type { Flash, Server } from './context';
 
 const sections = [
   ['/', 'Overview'],
-  ['/psa', 'PSAs'],
   ['/events', 'Events'],
   ['/polls', 'Polls'],
+  ['/birthdays', 'Birthdays'],
+  ['/psa', 'PSAs'],
   ['/permissions', 'Permissions'],
 ] as const;
 
