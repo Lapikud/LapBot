@@ -20,6 +20,11 @@ export const movieSuggestions = pgTable(
     year: smallint('year'),
     note: text('note'),
     suggestedBy: text('suggested_by').notNull(),
+    tmdbId: integer('tmdb_id'),
+    overview: text('overview'),
+    posterUrl: text('poster_url'),
+    trailerUrl: text('trailer_url'),
+    links: text('links').array().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

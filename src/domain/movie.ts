@@ -1,3 +1,5 @@
+import { UserError } from './errors';
+
 export function normalizeTitle(title: string): string {
   return title
     .normalize('NFKD')
@@ -8,3 +10,26 @@ export function normalizeTitle(title: string): string {
 
 export const movieLabel = (movie: { title: string; year: number | null }) =>
   movie.year === null ? movie.title : `${movie.title} (${movie.year})`;
+
+export const maxMovieLinks = 5;
+
+export const tmdbPage = (id: number) =>
+  `https://www.themoviedb.org/movie/${id}`;
+
+export function validateLinks(links: readonly string[]): string[] {
+  const trimmed = links
+    .map((link) => link.trim())
+    .filter((link) => link !== '');
+
+  if (trimmed.length > maxMovieLinks) {
+    throw new UserError(`Add at most ${maxMovieLinks} links.`);
+  }
+
+  for (const link of trimmed) {
+    if (!URL.canParse(link) || !/^https?:$/.test(new URL(link).protocol)) {
+      throw new UserError(`"${link.slice(0, 80)}" is not a web link.`);
+    }
+  }
+
+  return [...new Set(trimmed)];
+}

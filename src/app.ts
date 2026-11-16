@@ -51,6 +51,7 @@ import {
   runMigrations,
 } from '~/infra/db';
 import { RedmineClient } from '~/infra/redmine';
+import { createTmdbCatalog } from '~/infra/tmdb';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
   const channelId = config.ROLE_SELECTION_CHANNEL_ID;
@@ -125,6 +126,10 @@ export function compose(config: Config, log: Logger) {
     timezone,
   });
   const movies = createMovieService({
+    catalog:
+      config.TMDB_ACCESS_TOKEN === undefined
+        ? undefined
+        : createTmdbCatalog(config.TMDB_ACCESS_TOKEN),
     movies: createMovieRepository(database.db),
     polls,
     events,

@@ -86,6 +86,7 @@ const transportFreeFiles = [
   'src/core/**/*.ts',
   'src/infra/db/**/*.ts',
   'src/infra/redmine/**/*.ts',
+  'src/infra/tmdb/**/*.ts',
   'src/infra/crypto/**/*.ts',
   'src/infra/logging/**/*.ts',
   'src/infra/scheduler/**/*.ts',

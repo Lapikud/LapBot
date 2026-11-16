@@ -4,9 +4,15 @@ import {
   parseFutureWhen,
   parseWhen,
   UserError,
+  validateLinks,
   type Actor,
 } from '~/domain';
-import type { Authorizer, MovieRepository } from '~/core/ports';
+import type {
+  Authorizer,
+  MovieCatalog,
+  MovieDetails,
+  MovieRepository,
+} from '~/core/ports';
 import type { EventService } from './events';
 import { guard } from './guard';
 import type { PollService } from './polls';
@@ -21,8 +27,16 @@ export type MovieNight = {
   channelId: string;
 };
 
+export type MovieSuggestionRequest = {
+  title: string;
+  year: number | null;
+  note: string | null;
+  links?: readonly string[];
+};
+
 type Deps = {
   movies: MovieRepository;
+  catalog: MovieCatalog | undefined;
   polls: PollService;
   events: EventService;
   authz: Authorizer;
@@ -30,7 +44,23 @@ type Deps = {
 };
 
 export function createMovieService(deps: Deps) {
-  const { movies, polls, events, authz, timezone } = deps;
+  const { movies, polls, events, authz, timezone, catalog } = deps;
+
+  const lookup = async (
+    title: string,
+    year: number | null,
+  ): Promise<MovieDetails | null> =>
+    catalog ? catalog.lookup(title, year).catch(() => null) : null;
+
+  const requireOwned = async (actor: Actor, id: number) => {
+    const movie = await movies.find(actor.guildId, id);
+
+    if (movie.suggestedBy !== actor.userId) {
+      await authz.require(actor, 'movie:manage');
+    }
+
+    return movie;
+  };
 
   const pick = async (actor: Actor, movieId: number | undefined) => {
     if (movieId !== undefined) {
@@ -66,24 +96,36 @@ export function createMovieService(deps: Deps) {
 
   return {
     pick,
-    suggest: (
-      actor: Actor,
-      suggestion: { title: string; year: number | null; note: string | null },
-    ) =>
-      movies.suggest({
-        ...suggestion,
+    suggest: async (actor: Actor, request: MovieSuggestionRequest) => {
+      const links = validateLinks(request.links ?? []);
+      const details = await lookup(request.title, request.year);
+
+      return movies.suggest({
         guildId: actor.guildId,
         suggestedBy: actor.userId,
-      }),
+        title: details?.title ?? request.title,
+        year: details?.year ?? request.year,
+        note: request.note,
+        tmdbId: details?.tmdbId ?? null,
+        overview: details?.overview ?? null,
+        posterUrl: details?.posterUrl ?? null,
+        trailerUrl: details?.trailerUrl ?? null,
+        links,
+      });
+    },
+    addLinks: async (actor: Actor, id: number, links: readonly string[]) => {
+      const movie = await requireOwned(actor, id);
+      const merged = validateLinks([...movie.links, ...links]);
+
+      await movies.setLinks(movie.id, merged);
+
+      return { ...movie, links: merged };
+    },
     unwatched: (guildId: string, limit?: number) =>
       movies.unwatched(guildId, limit),
     history: (guildId: string) => movies.history(guildId),
     remove: async (actor: Actor, id: number) => {
-      const movie = await movies.find(actor.guildId, id);
-
-      if (movie.suggestedBy !== actor.userId) {
-        await authz.require(actor, 'movie:manage');
-      }
+      const movie = await requireOwned(actor, id);
 
       await movies.remove(movie.id);
 
@@ -129,7 +171,10 @@ export function createMovieService(deps: Deps) {
       const event = await events.publish(actor, {
         guildId: actor.guildId,
         title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
-        description: movie.note,
+        description:
+          [movie.note, movie.overview?.slice(0, 900), movie.trailerUrl]
+            .filter(Boolean)
+            .join('\n\n') || null,
         startsAt,
         endsAt: null,
         timezone,

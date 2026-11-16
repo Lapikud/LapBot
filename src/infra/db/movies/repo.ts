@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
-import type { MovieRepository } from '~/core/ports';
+import type { MovieRepository, NewSuggestion } from '~/core/ports';
 import type { Db } from '../client';
 import { normalizeTitle, UserError } from '~/domain';
 import {
@@ -21,13 +21,7 @@ const watched = (db: Db) =>
 
 export async function suggestMovie(
   db: Db,
-  input: {
-    guildId: string;
-    title: string;
-    year: number | null;
-    note: string | null;
-    suggestedBy: string;
-  },
+  input: NewSuggestion,
 ): Promise<MovieSuggestion> {
   const normalizedTitle = normalizeTitle(input.title);
 
@@ -138,6 +132,17 @@ export async function removeSuggestion(db: Db, id: number): Promise<void> {
     .where(eq(movieSuggestions.id, id));
 }
 
+export async function setMovieLinks(
+  db: Db,
+  id: number,
+  links: readonly string[],
+): Promise<void> {
+  await db
+    .update(movieSuggestions)
+    .set({ links: [...links] })
+    .where(eq(movieSuggestions.id, id));
+}
+
 export async function recordScreening(
   db: Db,
   input: {
@@ -214,6 +219,7 @@ export function createMovieRepository(db: Db): MovieRepository {
     find: (guildId, id) => requireSuggestion(db, guildId, id),
     unwatched: (guildId, limit) => listUnwatched(db, guildId, limit),
     remove: (id) => removeSuggestion(db, id),
+    setLinks: (id, links) => setMovieLinks(db, id, links),
     recordScreening: (screening) => recordScreening(db, screening),
     markWatched: (guildId, suggestionId, at) =>
       markWatched(db, guildId, suggestionId, at),

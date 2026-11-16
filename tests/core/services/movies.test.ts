@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Calendar, Scheduler } from '~/core/ports';
+import type { Calendar, MovieCatalog, Scheduler } from '~/core/ports';
 import {
   createEventService,
   createMovieService,
@@ -20,7 +20,7 @@ import {
 } from '../../fakes';
 
 describe.skipIf(noDatabase)('movie service', () => {
-  const setup = () => {
+  const setup = (catalog?: MovieCatalog) => {
     const { messenger } = fakeMessenger();
     const scheduler = {
       schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
@@ -46,6 +46,7 @@ describe.skipIf(noDatabase)('movie service', () => {
       calendar,
     });
     const movies = createMovieService({
+      catalog,
       movies: createMovieRepository(testDb()),
       polls,
       events,
@@ -74,6 +75,58 @@ describe.skipIf(noDatabase)('movie service', () => {
     await expect(movies.suggest(member, suggestion('Paprika'))).rejects.toThrow(
       'already watched (2026-01-',
     );
+  });
+
+  it('fills in details and the trailer from the catalog', async () => {
+    const { movies, member } = setup({
+      lookup: async () => ({
+        tmdbId: 949,
+        title: 'Heat',
+        year: 1995,
+        overview: 'A heist.',
+        posterUrl: 'https://image.tmdb.org/t/p/w342/heat.jpg',
+        trailerUrl: 'https://www.youtube.com/watch?v=abc',
+      }),
+    });
+    const movie = await movies.suggest(member, suggestion('heat'));
+
+    expect(movie).toMatchObject({
+      title: 'Heat',
+      year: 1995,
+      tmdbId: 949,
+      trailerUrl: 'https://www.youtube.com/watch?v=abc',
+    });
+  });
+
+  it('still saves the suggestion when the catalog is down', async () => {
+    const { movies, member } = setup({
+      lookup: () => Promise.reject(new Error('timeout')),
+    });
+
+    expect((await movies.suggest(member, suggestion('Stalker'))).title).toBe(
+      'Stalker',
+    );
+  });
+
+  it('keeps only web links and lets the suggester add more', async () => {
+    const { movies, member } = setup();
+
+    await expect(
+      movies.suggest(member, {
+        ...suggestion('Solaris'),
+        links: ['javascript:alert(1)'],
+      }),
+    ).rejects.toThrow('not a web link');
+
+    const movie = await movies.suggest(member, {
+      ...suggestion('Solaris'),
+      links: ['https://letterboxd.com/film/solaris/'],
+    });
+    const updated = await movies.addLinks(member, movie.id, [
+      'https://www.imdb.com/title/tt0069293/',
+    ]);
+
+    expect(updated.links).toHaveLength(2);
   });
 
   it('votes through the poll service and refuses ties', async () => {

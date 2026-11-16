@@ -57,6 +57,13 @@
       "when": 1794825575233,
       "tag": "0007_event_icons",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794832230724,
+      "tag": "0008_movie_details",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,8 @@ const envSchema = z.object({
   HELPDESK_ROLE_ID: optional(snowflake),
   KULTUUR_ROLE_ID: optional(snowflake),
 
+  TMDB_ACCESS_TOKEN: optional(z.string().min(1)),
+
   REDMINE_BASE_URL: optional(z.url()),
   REDMINE_API_KEY: optional(z.string().min(1)),
 
