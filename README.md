@@ -209,7 +209,7 @@ drizzle/              SQL migrations
   barrel (`~/core/services`, never `~/core/services/roles`). The domain
   depends on nothing, core depends only on the domain, and only
   `infra/discord` may import discord.js.
-- **Services take an `Actor`** (guild, user, roles, administrator), not a
+- **Services take an `Actor`** (server, user, roles, administrator), not a
   Discord member, and enforce permissions themselves. Any adapter that can
   produce an actor (Discord now, a web UI later) gets the same rules.
 - **Messages are transport-neutral** (`domain/message.ts`): content, embeds,

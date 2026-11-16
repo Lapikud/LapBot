@@ -9,7 +9,7 @@ import {
   formatter,
   type Env,
   type Form,
-  type Guild,
+  type Server,
   type WebDeps,
 } from './context';
 import { ActionButton, ChannelSelect, Checkbox, Layout } from './layout';
@@ -32,10 +32,10 @@ function draftOf(form: Form) {
 type Draft = ReturnType<typeof draftOf>;
 
 function MentionPicker({
-  guild,
+  server,
   draft,
-}: Readonly<{ guild: Guild; draft: Draft | undefined }>) {
-  const roles = guild.roles.filter((role) => !role.everyone && !role.managed);
+}: Readonly<{ server: Server; draft: Draft | undefined }>) {
+  const roles = server.roles.filter((role) => !role.everyone && !role.managed);
 
   return (
     <fieldset>
@@ -66,13 +66,13 @@ const actions = [
 ] as const;
 
 function Composer({
-  guild,
+  server,
   draft,
   preview,
-}: Readonly<{ guild: Guild; draft?: Draft; preview?: Child }>) {
+}: Readonly<{ server: Server; draft?: Draft; preview?: Child }>) {
   return (
     <form method="post" action="/psa">
-      <ChannelSelect guild={guild} />
+      <ChannelSelect server={server} />
       <label>
         Title
         <input name="title" maxlength={256} value={draft?.title} />
@@ -83,7 +83,7 @@ function Composer({
           {draft?.content}
         </textarea>
       </label>
-      <MentionPicker guild={guild} draft={draft} />
+      <MentionPicker server={server} draft={draft} />
       <label>
         Publish later
         <input name="when" placeholder="e.g. 2h, tomorrow 9:00, fri 18:00" />
@@ -102,11 +102,11 @@ function Composer({
 
 function Recent({
   list,
-  guild,
+  server,
   date,
 }: Readonly<{
   list: Announcement[];
-  guild: Guild;
+  server: Server;
   date: (value: Date | null) => string;
 }>) {
   return (
@@ -134,7 +134,7 @@ function Recent({
                 </>
               )}
             </td>
-            <td>{guild.channelName(a.channelId)}</td>
+            <td>{server.channelName(a.channelId)}</td>
             <td>{a.title ?? a.content.slice(0, 60)}</td>
             <td>{date(a.publishedAt ?? a.scheduledAt)}</td>
             <td>
@@ -164,9 +164,9 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
 
       return c.html(
         <Layout title={title} path="/psa" flash={flashOf(c)}>
-          <Composer guild={c.var.guild} />
+          <Composer server={c.var.server} />
           <h2>Recent</h2>
-          <Recent list={list} guild={c.var.guild} date={date} />
+          <Recent list={list} server={c.var.server} date={date} />
         </Layout>,
       );
     })
@@ -174,7 +174,7 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
       const form = await c.req.formData();
       const action = form.get('action');
       const draft = draftOf(form);
-      const { actor, guild } = c.var;
+      const { actor, server } = c.var;
 
       if (action === 'preview') {
         const view = services.announcements.view({
@@ -194,12 +194,12 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         return c.html(
           <Layout title={title} path="/psa">
             <Composer
-              guild={guild}
+              server={server}
               draft={draft}
               preview={
                 <>
                   <h2>Preview</h2>
-                  <MessagePreview message={view} guild={guild} />
+                  <MessagePreview message={view} server={server} />
                 </>
               }
             />

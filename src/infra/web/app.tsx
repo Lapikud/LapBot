@@ -6,7 +6,7 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/domain';
-import { back, guildOf, type Env, type WebDeps } from './context';
+import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
 import { Layout } from './layout';
 import { permissionPages } from './permissions';
@@ -69,7 +69,7 @@ export function createWebApp(deps: WebDeps) {
     ]);
 
     c.set('actor', actor);
-    c.set('guild', guildOf(channels, roles));
+    c.set('server', serverOf(channels, roles));
 
     return next();
   });

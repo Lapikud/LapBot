@@ -28,7 +28,7 @@ export function pollPages({ guildId, services, timezone }: WebDeps) {
               Options (one per line, up to 10)
               <textarea name="options" rows={5} required />
             </label>
-            <ChannelSelect guild={c.var.guild} />
+            <ChannelSelect server={c.var.server} />
             <Checkbox name="multiple" label="Allow several choices" />
             <Checkbox name="anonymous" label="Anonymous" />
             <div class="grid">

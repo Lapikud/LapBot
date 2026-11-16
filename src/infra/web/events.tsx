@@ -19,7 +19,7 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
       const upcoming = await services.events.upcoming(guildId);
-      const { guild } = c.var;
+      const { server } = c.var;
 
       return c.html(
         <Layout title="Events" path="/events" flash={flashOf(c)}>
@@ -46,7 +46,7 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
               Location
               <input name="location" maxlength={200} />
             </label>
-            <ChannelSelect guild={guild} />
+            <ChannelSelect server={server} />
             <div class="grid">
               <label>
                 Capacity
@@ -83,7 +83,7 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
                   <td>{e.id}</td>
                   <td>{e.title}</td>
                   <td>{date(e.startsAt)}</td>
-                  <td>{guild.channelName(e.channelId)}</td>
+                  <td>{server.channelName(e.channelId)}</td>
                   <td>
                     <ActionButton
                       action={`/events/${e.id}/cancel`}

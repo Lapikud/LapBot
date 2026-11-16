@@ -1,5 +1,5 @@
 import type { Message } from '~/domain';
-import type { Guild } from './context';
+import type { Server } from './context';
 
 const token = /(<@&\d+>|<@\d+>|<#\d+>|@everyone|\*\*[^*]+\*\*)/;
 
@@ -15,12 +15,12 @@ function withOffsets(parts: readonly string[], separator = 0) {
   });
 }
 
-function Piece({ part, guild }: Readonly<{ part: string; guild: Guild }>) {
+function Piece({ part, server }: Readonly<{ part: string; server: Server }>) {
   const role = /^<@&(\d+)>$/.exec(part)?.[1];
   const channel = /^<#(\d+)>$/.exec(part)?.[1];
 
   if (role !== undefined) {
-    return <span class="mention">@{guild.roleName(role)}</span>;
+    return <span class="mention">@{server.roleName(role)}</span>;
   }
 
   if (/^<@\d+>$/.test(part)) {
@@ -28,7 +28,7 @@ function Piece({ part, guild }: Readonly<{ part: string; guild: Guild }>) {
   }
 
   if (channel !== undefined) {
-    return <span class="mention">#{guild.channelName(channel)}</span>;
+    return <span class="mention">#{server.channelName(channel)}</span>;
   }
 
   if (part === '@everyone') {
@@ -42,26 +42,26 @@ function Piece({ part, guild }: Readonly<{ part: string; guild: Guild }>) {
   return <span>{part}</span>;
 }
 
-function Line({ text, guild }: Readonly<{ text: string; guild: Guild }>) {
+function Line({ text, server }: Readonly<{ text: string; server: Server }>) {
   const heading = text.startsWith('# ');
   const body = heading ? text.slice(2) : text;
   const pieces = withOffsets(
     body.split(token).filter((part) => part !== ''),
-  ).map(({ part, start }) => <Piece key={start} part={part} guild={guild} />);
+  ).map(({ part, start }) => <Piece key={start} part={part} server={server} />);
 
   return heading ? <div class="h1">{pieces}</div> : <div>{pieces}</div>;
 }
 
 export function MessagePreview({
   message,
-  guild,
-}: Readonly<{ message: Message; guild: Guild }>) {
+  server,
+}: Readonly<{ message: Message; server: Server }>) {
   const lines = withOffsets((message.content ?? '').split('\n'), 1);
 
   return (
     <div class="discord">
       {lines.map(({ part, start }) => (
-        <Line key={start} text={part} guild={guild} />
+        <Line key={start} text={part} server={server} />
       ))}
     </div>
   );

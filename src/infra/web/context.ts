@@ -29,14 +29,14 @@ export type WebDeps = {
   log: Logger;
 };
 
-export type Guild = {
+export type Server = {
   channels: ChannelInfo[];
   roles: RoleInfo[];
   roleName: (id: string) => string;
   channelName: (id: string) => string;
 };
 
-export function guildOf(channels: ChannelInfo[], roles: RoleInfo[]): Guild {
+export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
   const roleNames = new Map<string, string>(
     roles.map((role) => [role.id, role.name]),
   );
@@ -52,7 +52,7 @@ export function guildOf(channels: ChannelInfo[], roles: RoleInfo[]): Guild {
   };
 }
 
-export type Env = { Variables: { actor: Actor; guild: Guild } };
+export type Env = { Variables: { actor: Actor; server: Server } };
 
 export type Flash = { notice?: string; error?: string };
 

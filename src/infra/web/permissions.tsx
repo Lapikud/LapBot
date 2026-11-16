@@ -5,7 +5,7 @@ import { Layout } from './layout';
 export function permissionPages({ services }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
-      const { actor, guild } = c.var;
+      const { actor, server } = c.var;
       const grants = await services.permissions.list(actor);
 
       return c.html(
@@ -16,7 +16,7 @@ export function permissionPages({ services }: WebDeps) {
               <label>
                 Role
                 <select name="roleId">
-                  {guild.roles
+                  {server.roles
                     .filter((role) => !role.managed)
                     .map((role) => (
                       <option key={role.id} value={role.id}>
@@ -51,7 +51,7 @@ export function permissionPages({ services }: WebDeps) {
             <tbody>
               {grants.map((grant) => (
                 <tr key={`${grant.roleId}:${grant.permission}`}>
-                  <td>@{guild.roleName(grant.roleId)}</td>
+                  <td>@{server.roleName(grant.roleId)}</td>
                   <td>{grant.permission}</td>
                   <td>
                     <form method="post" action="/permissions">

@@ -1,5 +1,5 @@
 import type { Child } from 'hono/jsx';
-import type { Flash, Guild } from './context';
+import type { Flash, Server } from './context';
 
 const sections = [
   ['/', 'Overview'],
@@ -69,14 +69,14 @@ export function Layout({
 }
 
 export function ChannelSelect({
-  guild,
+  server,
   name = 'channelId',
-}: Readonly<{ guild: Guild; name?: string }>) {
+}: Readonly<{ server: Server; name?: string }>) {
   return (
     <label>
       Channel
       <select name={name} required>
-        {guild.channels.map(({ id, name: channel }) => (
+        {server.channels.map(({ id, name: channel }) => (
           <option key={id} value={id}>
             #{channel}
           </option>
