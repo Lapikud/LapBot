@@ -123,3 +123,24 @@ details.dropdown > summary {
 fieldset > details.dropdown {
   width: 100%;
 }
+
+.page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.page-title [role='button'] {
+  margin-bottom: var(--pico-typography-spacing-vertical);
+}
+
+td:last-child:has([type='submit'], [role='button']) {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+td form:last-child {
+  margin-right: 0;
+}

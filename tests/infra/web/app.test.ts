@@ -397,6 +397,29 @@ describe.skipIf(noDatabase)('web UI', () => {
     await post(`/permissions/${teamId}`, {});
   });
 
+  it('opens the event form on its own page and returns to it on errors', async () => {
+    const list = await (await get('/events')).text();
+    const form = await (await get('/events/new')).text();
+    const failed = await app.request('http://localhost/events', {
+      method: 'POST',
+      body: new URLSearchParams({
+        title: 'x',
+        start: 'nonsense',
+        channelId: 'general',
+      }),
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: cookie,
+        Referer: 'http://localhost/events/new',
+      },
+    });
+
+    expect(list).toContain('href="/events/new"');
+    expect(list).not.toContain('Create event');
+    expect(form).toContain('Create event');
+    expect(failed.headers.get('location')).toMatch(/^\/events\/new\?error=/);
+  });
+
   it('returns 404 for unknown pages', async () => {
     expect((await get('/nope')).status).toBe(404);
   });

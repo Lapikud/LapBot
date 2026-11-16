@@ -114,6 +114,13 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
           title="Events"
           path="/events"
           flash={flashOf(c)}
+          actions={
+            allows(c, 'event:create') ? (
+              <a href="/events/new" role="button">
+                New event
+              </a>
+            ) : null
+          }
         >
           <table>
             <thead>
@@ -153,32 +160,44 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
               ))}
             </tbody>
           </table>
-          {allows(c, 'event:create') ? (
-            <>
-              <h2>New event</h2>
-              <form method="post" action="/events">
-                <EventFields time={time} />
-                <div class="grid">
-                  <ChannelSelect server={server} />
-                  <label>
-                    Reminders
-                    <select name="reminders">
-                      {reminderChoices.map((choice) => (
-                        <option key={choice.value} value={choice.value}>
-                          {choice.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <fieldset>
-                  <Checkbox name="native" label="Also create a Discord event" />
-                  <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
-                </fieldset>
-                <button type="submit">Create event</button>
-              </form>
-            </>
-          ) : null}
+        </Layout>,
+      );
+    })
+    .get('/new', (c) => {
+      if (!allows(c, 'event:create')) {
+        throw new UserError('You need the "event:create" permission.');
+      }
+
+      const { server } = c.var;
+
+      return c.html(
+        <Layout
+          can={c.var.can}
+          title="New event"
+          path="/events"
+          flash={flashOf(c)}
+        >
+          <form method="post" action="/events">
+            <EventFields time={time} />
+            <div class="grid">
+              <ChannelSelect server={server} />
+              <label>
+                Reminders
+                <select name="reminders">
+                  {reminderChoices.map((choice) => (
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <fieldset>
+              <Checkbox name="native" label="Also create a Discord event" />
+              <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
+            </fieldset>
+            <button type="submit">Create event</button>
+          </form>
         </Layout>,
       );
     })

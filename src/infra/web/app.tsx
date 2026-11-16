@@ -31,6 +31,20 @@ function Message({
   );
 }
 
+function returnPath(referer: string | undefined, path: string): string {
+  const section = `/${path.split('/')[1] ?? ''}`;
+  const from = referer === undefined ? null : URL.parse(referer);
+
+  if (from?.pathname.startsWith(section) !== true) {
+    return section;
+  }
+
+  from.searchParams.delete('notice');
+  from.searchParams.delete('error');
+
+  return `${from.pathname}${from.search}`;
+}
+
 export function createWebApp(deps: WebDeps) {
   const { guildId, signIn, directory, authz, services, log } = deps;
   const app = new Hono<Env>();
@@ -154,9 +168,9 @@ export function createWebApp(deps: WebDeps) {
     }
 
     if (error instanceof UserError) {
-      const section = `/${c.req.path.split('/')[1] ?? ''}`;
-
-      return back(c, section, { error: error.message });
+      return back(c, returnPath(c.req.header('referer'), c.req.path), {
+        error: error.message,
+      });
     }
 
     if (error instanceof HTTPException && c.req.path === '/login') {

@@ -22,12 +22,14 @@ export function Layout({
   path,
   can,
   flash = {},
+  actions,
   children,
 }: Readonly<{
   title: string;
   path: string;
   can?: ReadonlySet<Permission>;
   flash?: Flash;
+  actions?: Child;
   children?: Child;
 }>) {
   const visible = sections.filter(
@@ -76,7 +78,10 @@ export function Layout({
           </nav>
         </header>
         <main class="container">
-          <h1>{title}</h1>
+          <div class="page-title">
+            <h1>{title}</h1>
+            {actions}
+          </div>
           {flash.notice === undefined ? null : (
             <p class="notice" role="status">
               {flash.notice}
