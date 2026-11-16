@@ -48,7 +48,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
     });
 
     expect(scheduler.schedule).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'reminders:deliver' }),
+      expect.objectContaining({ type: 'reminders.deliver' }),
       { reminderId: reminder.id },
       {
         runAt: reminder.runAt,

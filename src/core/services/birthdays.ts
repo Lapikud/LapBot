@@ -58,7 +58,7 @@ export function createBirthdayService(deps: Deps) {
     deps;
 
   const removeRoleJob = defineJob({
-    type: 'birthdays:remove-role',
+    type: 'birthdays.remove-role',
     payload: z.object({
       guildId: z.string(),
       userId: z.string(),
@@ -132,7 +132,7 @@ export function createBirthdayService(deps: Deps) {
   };
 
   const dailyJob = defineJob({
-    type: 'birthdays:daily',
+    type: 'birthdays.daily',
     payload: z.object({ guildId: z.string() }),
     handle: async ({ guildId }) => {
       const settings = await birthdays.settings(guildId);

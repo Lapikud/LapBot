@@ -204,7 +204,7 @@ export function createEventService(deps: Deps) {
     deps;
 
   const remindJob = defineJob({
-    type: 'events:remind',
+    type: 'events.remind',
     payload: z.object({ eventId: z.number().int(), minutes: z.number().int() }),
     handle: async ({ eventId, minutes }) => {
       const event = await events.find(eventId);

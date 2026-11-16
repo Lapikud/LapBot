@@ -141,7 +141,7 @@ export function createPollService(deps: Deps) {
   };
 
   const closeJob = defineJob({
-    type: 'polls:close',
+    type: 'polls.close',
     payload: z.object({ pollId: z.number().int() }),
     handle: async ({ pollId }) => {
       if (await polls.finish(pollId, 'closed')) {

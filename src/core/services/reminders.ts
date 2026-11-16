@@ -58,7 +58,7 @@ export function createReminderService(deps: Deps) {
   };
 
   const deliverJob = defineJob({
-    type: 'reminders:deliver',
+    type: 'reminders.deliver',
     payload: z.object({ reminderId: z.number().int() }),
     handle: async ({ reminderId }) => {
       const reminder = await reminders.find(reminderId);

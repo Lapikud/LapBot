@@ -4,7 +4,7 @@ import type {
 } from 'discord.js';
 import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
-import { createRegistry } from '~/app';
+import { compose, createRegistry } from '~/app';
 import type { Config } from '~/config';
 
 const config = {
@@ -97,6 +97,14 @@ describe('composition root', () => {
     }));
 
     expect(sizes.filter(({ size }) => size > 4000)).toEqual([]);
+  });
+
+  it('names every job so pg-boss accepts it as a queue', () => {
+    const { jobs } = compose(config, pino({ level: 'silent' }));
+
+    expect(
+      [...jobs.keys()].filter((type) => !/^[\w.\-/]+$/.test(type)),
+    ).toEqual([]);
   });
 
   it('only requires permissions that some feature declares', () => {

@@ -174,7 +174,7 @@ export function createAnnouncementService(deps: Deps) {
   };
 
   const publishJob = defineJob({
-    type: 'announcements:publish',
+    type: 'announcements.publish',
     payload: z.object({ announcementId: z.number().int() }),
     handle: async ({ announcementId }) => {
       const announcement = await announcements.find(announcementId);

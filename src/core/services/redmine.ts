@@ -120,7 +120,7 @@ export function createRedmineService(deps: Deps) {
   };
 
   const pollJob = defineJob({
-    type: 'redmine:poll',
+    type: 'redmine.poll',
     payload: z.object({}),
     handle: async () => {
       const known = await client.listStatuses().catch(() => []);
@@ -135,7 +135,7 @@ export function createRedmineService(deps: Deps) {
   });
 
   const deadlineJob = defineJob({
-    type: 'redmine:deadlines',
+    type: 'redmine.deadlines',
     payload: z.object({}),
     handle: async () => {
       const tomorrow = formatCalendarDay(
