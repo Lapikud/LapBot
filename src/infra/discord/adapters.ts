@@ -151,7 +151,9 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     member: async (guildId, userId) => {
       const found = await guild(guildId);
-      const member = await found.members.fetch(userId).catch(() => null);
+      const member = await found.members
+        .fetch({ user: userId, force: true })
+        .catch(() => null);
 
       return member ? toActor(member) : undefined;
     },
