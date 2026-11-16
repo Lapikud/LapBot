@@ -1,15 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createAnnouncementService,
   createAuthorizer,
   createBirthdayService,
+  createRedmineService,
 } from '~/core/services';
 import {
   createAnnouncementRepository,
   createBirthdayRepository,
   createGrantRepository,
+  createTrackerRepository,
 } from '~/infra/db';
-import type { Permission } from '~/domain';
+import type { Issue, Permission } from '~/domain';
+import type { IssueTracker, Scheduler } from '~/core/ports';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -204,4 +207,136 @@ describe.skipIf(noDatabase)('audit security regressions', () => {
       expect((await announcements.find(draft.id))?.status).toBe('draft');
     },
   );
+});
+
+const dueIssue: Issue = {
+  id: 1,
+  project: { id: 1, name: 'Project' },
+  tracker: { id: 1, name: 'Task' },
+  status: { id: 1, name: 'Open' },
+  priority: { id: 1, name: 'Normal' },
+  author: { id: 1, name: 'Author' },
+  subject: 'Due tomorrow',
+  created_on: '2026-11-01T00:00:00Z',
+  updated_on: '2026-11-01T00:00:00Z',
+};
+
+describe.skipIf(noDatabase)('audit Redmine regressions', () => {
+  async function redmineSetup(issues: Issue[]) {
+    const repository = createTrackerRepository(testDb());
+    const channelId = snowflake();
+    const tracker = {
+      ...repository,
+      subscriptions: async (afterId?: number) =>
+        (await repository.subscriptions(afterId, 1000)).filter(
+          (subscription) => subscription.channelId === channelId,
+        ),
+    };
+    const queue = {
+      schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
+      cancel: async () => undefined,
+    };
+    const { messenger, messages } = fakeMessenger();
+    const client: IssueTracker = {
+      listProjects: async () => ({ projects: [], total: 0 }),
+      listStatuses: async () => [],
+      getIssue: async () => dueIssue,
+      listIssues: vi.fn<IssueTracker['listIssues']>(async (query) => ({
+        issues: issues.slice(
+          query?.offset ?? 0,
+          (query?.offset ?? 0) + (query?.limit ?? 25),
+        ),
+        total: issues.length,
+      })),
+    };
+
+    await tracker.subscribe({
+      guildId: snowflake(),
+      channelId,
+      projectId: 1,
+      projectName: 'Project',
+      createdBy: 'u',
+    });
+    const service = createRedmineService({
+      baseUrl: 'https://example.test',
+      client,
+      tracker,
+      messenger,
+      scheduler: queue,
+      authz: createAuthorizer(createGrantRepository(testDb())),
+      log: silentLog,
+      timezone: 'UTC',
+    });
+
+    return { service, messenger, messages, channelId, tracker, queue, client };
+  }
+
+  it('retries a failed notification and deduplicates the successful delivery', async () => {
+    const { service, messenger, messages, channelId, tracker } =
+      await redmineSetup([dueIssue]);
+    const subscription = (await tracker.subscriptions(0)).find(
+      (row) => row.channelId === channelId,
+    );
+
+    await tracker.setCheckpoint(
+      subscription?.id ?? 0,
+      new Date('2026-10-01T00:00:00Z'),
+    );
+    messenger.send.mockRejectedValueOnce(new Error('Temporary outage'));
+    await service.jobs[0]?.run({});
+    await service.jobs[0]?.run({});
+    await service.jobs[0]?.run({});
+    expect(
+      [...messages.values()].filter(
+        (message) => message.channelId === channelId,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('sends deadline notifications from every page', async () => {
+    const issues = Array.from({ length: 51 }, (_, index) => ({
+      ...dueIssue,
+      id: index + 1,
+    }));
+    const { service, messages, channelId } = await redmineSetup(issues);
+
+    await service.jobs[1]?.run({});
+    expect(
+      [...messages.values()].filter(
+        (message) => message.channelId === channelId,
+      ),
+    ).toHaveLength(51);
+  });
+
+  it('retries failed deadlines for their original date after midnight', async () => {
+    const { service, messenger, messages, channelId, queue, client } =
+      await redmineSetup([dueIssue]);
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-16T23:59:00Z'));
+      messenger.send.mockRejectedValueOnce(new Error('Temporary outage'));
+      await service.jobs[1]?.run({});
+      const retry = queue.schedule.mock.calls[0];
+
+      expect(retry).toBeDefined();
+      expect(retry?.[1]).toMatchObject({ dueDate: '2026-11-17' });
+      expect(retry?.[2].runAt.getTime()).toBeLessThanOrEqual(
+        Date.now() + 120_000,
+      );
+      vi.setSystemTime(new Date('2026-11-17T00:01:00Z'));
+      await service.jobs[1]?.run(retry?.[1]);
+      await service.jobs[1]?.run(retry?.[1]);
+      expect(client.listIssues).toHaveBeenLastCalledWith(
+        expect.objectContaining({ dueDate: '2026-11-17' }),
+      );
+      expect(
+        [...messages.values()].filter(
+          (message) => message.channelId === channelId,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

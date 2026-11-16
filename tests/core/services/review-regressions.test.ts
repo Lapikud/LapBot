@@ -82,6 +82,7 @@ it('processes all pages at an inclusive checkpoint before advancing it', async (
             },
           ],
     claimNotification: async () => true,
+    releaseNotification: async () => undefined,
     setCheckpoint: vi.fn(async () => undefined),
   };
   const service = createRedmineService({

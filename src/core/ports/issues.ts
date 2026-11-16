@@ -34,4 +34,5 @@ export type TrackerRepository = {
   subscriptions: (afterId?: number, limit?: number) => Promise<Subscription[]>;
   setCheckpoint: (id: number, checkpoint: Date) => Promise<void>;
   claimNotification: (subscriptionId: number, key: string) => Promise<boolean>;
+  releaseNotification: (subscriptionId: number, key: string) => Promise<void>;
 };

@@ -13,6 +13,7 @@ import {
 import type {
   Authorizer,
   IssueTracker,
+  Job,
   Logger,
   Messenger,
   Scheduler,
@@ -51,10 +52,15 @@ export function createRedmineService(deps: Deps) {
       return;
     }
 
-    await messenger.send(subscription.channelId, {
-      content: notification.text.slice(0, 2000),
-      suppressEmbeds: true,
-    });
+    try {
+      await messenger.send(subscription.channelId, {
+        content: notification.text.slice(0, 2000),
+        suppressEmbeds: true,
+      });
+    } catch (error) {
+      await tracker.releaseNotification(subscription.id, notification.key);
+      throw error;
+    }
   };
 
   const forEachSubscription = async (
@@ -145,38 +151,76 @@ export function createRedmineService(deps: Deps) {
     },
   });
 
-  const deadlineJob = defineJob({
-    type: 'redmine.deadlines',
-    payload: z.object({}),
-    handle: async () => {
-      const tomorrow = formatCalendarDay(
-        addCalendarDays(calendarDay(new Date(), deps.timezone), 1),
-      );
+  const deadlineJob: Job<{ dueDate?: string; subscriptionId?: number }> =
+    defineJob({
+      type: 'redmine.deadlines',
+      payload: z.object({
+        dueDate: z.iso.date().exactOptional(),
+        subscriptionId: z.number().int().positive().exactOptional(),
+      }),
+      handle: async ({ dueDate, subscriptionId }) => {
+        const tomorrow =
+          dueDate ??
+          formatCalendarDay(
+            addCalendarDays(calendarDay(new Date(), deps.timezone), 1),
+          );
 
-      await forEachSubscription(async (subscription) => {
-        const { issues } = await client.listIssues({
-          projectId: subscription.projectId,
-          dueDate: tomorrow,
-          limit: 50,
+        await forEachSubscription(async (subscription) => {
+          if (
+            subscriptionId !== undefined &&
+            subscription.id !== subscriptionId
+          ) {
+            return;
+          }
+
+          const pollPage = async (offset = 0): Promise<void> => {
+            const { issues, total } = await client.listIssues({
+              projectId: subscription.projectId,
+              dueDate: tomorrow,
+              limit: 50,
+              sort: 'id:asc',
+              offset,
+            });
+            const visible = issues.filter((issue) => issue.is_private !== true);
+
+            await sequential(visible, (issue) =>
+              sendOnce(subscription, {
+                key: `due:${issue.id}:${tomorrow}`,
+                text: [
+                  `⏳ Due tomorrow: [#${issue.id}](${issueUrl(issue.id)}) ${issue.subject}`,
+                  issue.assigned_to?.name,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }),
+            );
+            const nextOffset = offset + issues.length;
+
+            if (issues.length > 0 && nextOffset < total) {
+              await pollPage(nextOffset);
+            }
+          };
+
+          try {
+            await pollPage();
+          } catch (error) {
+            await deps.scheduler.schedule(
+              deadlineJob,
+              { dueDate: tomorrow, subscriptionId: subscription.id },
+              {
+                runAt: new Date(Date.now() + pollIntervalMs),
+                key: `redmine:deadlines:${subscription.id}:${tomorrow}`,
+              },
+            );
+            throw error;
+          }
         });
-        const visible = issues.filter((issue) => issue.is_private !== true);
 
-        await sequential(visible, (issue) =>
-          sendOnce(subscription, {
-            key: `due:${issue.id}:${tomorrow}`,
-            text: [
-              `⏳ Due tomorrow: [#${issue.id}](${issueUrl(issue.id)}) ${issue.subject}`,
-              issue.assigned_to?.name,
-            ]
-              .filter(Boolean)
-              .join(' · '),
-          }),
-        );
-      });
-
-      return { rescheduleAt: nextDailyRun(deps.timezone, deadlineHour) };
-    },
-  });
+        return dueDate === undefined
+          ? { rescheduleAt: nextDailyRun(deps.timezone, deadlineHour) }
+          : null;
+      },
+    });
 
   const project = async (identifier: string) => {
     try {

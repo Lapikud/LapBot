@@ -79,5 +79,15 @@ export function createTrackerRepository(db: Db): TrackerRepository {
     setCheckpoint: (id, checkpoint) => setCheckpoint(db, id, checkpoint),
     claimNotification: (subscriptionId, key) =>
       claimNotification(db, subscriptionId, key),
+    releaseNotification: async (subscriptionId, key) => {
+      await db
+        .delete(redmineNotifications)
+        .where(
+          and(
+            eq(redmineNotifications.subscriptionId, subscriptionId),
+            eq(redmineNotifications.key, key),
+          ),
+        );
+    },
   };
 }
