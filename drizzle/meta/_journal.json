@@ -15,6 +15,13 @@
       "when": 1794764495086,
       "tag": "0001_announcement_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794821716333,
+      "tag": "0002_drop_guild_settings",
+      "breakpoints": true
     }
   ]
 }

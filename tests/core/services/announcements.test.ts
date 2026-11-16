@@ -76,7 +76,7 @@ describe.skipIf(noDatabase)('announcement service', () => {
       authz: allowAll,
       log: silentLog,
       clock: { now: () => options.now ?? new Date() },
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
 
     return {

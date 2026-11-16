@@ -11,7 +11,6 @@ import type {
   EventService,
   PermissionService,
   PollService,
-  SettingsService,
 } from '~/core/services';
 import { UserError, type Actor, type RoleInfo } from '~/domain';
 import { html, raw, type Html } from '~/lib';
@@ -23,7 +22,6 @@ export type WebServices = {
   events: EventService;
   polls: PollService;
   permissions: PermissionService;
-  settings: SettingsService;
 };
 
 type Deps = {
@@ -652,46 +650,6 @@ export function createWebApp(deps: Deps) {
         return redirect('/permissions', {
           notice: changed ? `${verb} ${permission}.` : 'Nothing changed.',
         });
-      },
-    },
-    {
-      method: 'GET',
-      pattern: /^\/settings$/,
-      handle: async (context) => {
-        const zone = await services.settings.timezone(deps.guildId);
-        const now = new Date().toLocaleString('en-GB', { timeZone: zone });
-
-        return {
-          body: page(
-            'Settings',
-            context.path,
-            context.flash,
-            html` <form method="post" action="/settings">
-                ${context.csrf}
-                <label
-                  >Server timezone
-                  <input name="timezone" value="${zone}" required
-                /></label>
-                <div><button class="primary">Save</button></div>
-              </form>
-              <p>
-                Times you type in this UI and in Discord use this timezone. It
-                is now ${now} there.
-              </p>`,
-          ),
-        };
-      },
-    },
-    {
-      method: 'POST',
-      pattern: /^\/settings$/,
-      handle: async (context) => {
-        await services.settings.setTimezone(
-          context.actor,
-          field(context.form, 'timezone') ?? '',
-        );
-
-        return redirect('/settings', { notice: 'Saved.' });
       },
     },
   ];

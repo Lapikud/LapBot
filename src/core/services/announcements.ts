@@ -87,7 +87,7 @@ type Deps = {
   authz: Authorizer;
   log: Logger;
   clock: Clock;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createAnnouncementService(deps: Deps) {
@@ -299,11 +299,7 @@ export function createAnnouncementService(deps: Deps) {
       'announcement:schedule',
       async (actor, id: number, when: string) => {
         const announcement = await requireOwnGuild(actor, id);
-        const runAt = parseFutureWhen(
-          when,
-          await deps.timezone(actor.guildId),
-          clock.now(),
-        );
+        const runAt = parseFutureWhen(when, deps.timezone, clock.now());
 
         await checkTargets(actor, announcement);
 

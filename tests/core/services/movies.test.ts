@@ -36,7 +36,7 @@ describe.skipIf(noDatabase)('movie service', () => {
       directory: fakeDirectory(),
       authz: allowAll,
       log: silentLog,
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     };
     const pollRepository = createPollRepository(testDb());
     const polls = createPollService({ ...shared, polls: pollRepository });

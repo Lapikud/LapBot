@@ -151,7 +151,7 @@ describe.skipIf(noDatabase)('birthdays', () => {
       directory: fakeDirectory(),
       authz: allowAll,
       log: silentLog,
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
     const admin = actor({ guildId: snowflake(), userId: snowflake() });
     const now = calendarDay(new Date(), 'Europe/Tallinn');
@@ -183,7 +183,7 @@ describe.skipIf(noDatabase)('birthdays', () => {
       directory: fakeDirectory(),
       authz: allowAll,
       log: silentLog,
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
     const owner = actor({ guildId: snowflake(), userId: snowflake() });
 

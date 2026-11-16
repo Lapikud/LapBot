@@ -120,7 +120,7 @@ type Deps = {
   directory: Directory;
   authz: Authorizer;
   log: Logger;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createPollService(deps: Deps) {
@@ -229,8 +229,6 @@ export function createPollService(deps: Deps) {
     create: async (actor: Actor, request: PollRequest) => {
       await authz.require(actor, 'poll:create');
 
-      const zone = await deps.timezone(actor.guildId);
-
       return publish(actor, {
         guildId: actor.guildId,
         channelId: request.channelId,
@@ -243,7 +241,7 @@ export function createPollService(deps: Deps) {
         closesAt:
           request.closes === undefined
             ? null
-            : parseFutureWhen(request.closes, zone),
+            : parseFutureWhen(request.closes, deps.timezone),
       });
     },
     vote,

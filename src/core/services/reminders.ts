@@ -38,7 +38,7 @@ type Deps = {
   messenger: Messenger;
   directory: Directory;
   authz: Authorizer;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createReminderService(deps: Deps) {
@@ -145,7 +145,7 @@ export function createReminderService(deps: Deps) {
 
       const zone =
         request.timezone === undefined
-          ? await timezone(actor.guildId)
+          ? timezone
           : requireZone(request.timezone);
       const recurrence: Recurrence | null =
         recurrences.find((r) => r === request.repeat) ?? null;

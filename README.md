@@ -44,9 +44,9 @@ All settings come from environment variables (see `.env.example`), validated
 at startup. Only `DISCORD_TOKEN` and `DATABASE_URL` are required; each optional
 feature asks only for what it needs.
 
-Precedence: settings changed at runtime with bot commands (server timezone,
-birthday channel) live in the database and win over environment defaults
-(`DEFAULT_TIMEZONE`). Everything else is environment-only.
+Times are read and shown in `DEFAULT_TIMEZONE`. The birthday channel is set
+with `/birthday settings` and lives in the database; everything else is
+environment-only.
 
 ## Commands
 
@@ -62,7 +62,6 @@ birthday channel) live in the database and win over environment defaults
 | `/movie suggest/suggestions/remove/vote/night/watched/history`             | vote, night, watched need `movie:manage`                       |
 | `/redmine …`                                                               | see [Redmine](#redmine)                                        |
 | `/permissions grant/revoke/list/check`                                     | `permissions:manage`                                           |
-| `/settings timezone`                                                       | viewing is open; changing needs `settings:manage`              |
 
 ## Web UI
 
@@ -72,7 +71,7 @@ Set `WEB_PORT` (and `DISCORD_GUILD_ID`) to start a small web UI next to the bot:
 - **PSAs:** write an announcement, choose one channel and exactly which roles
   (or @everyone) it mentions, preview it as Discord will show it, then publish
   now, schedule it, or save a draft.
-- **Events, polls, permissions and the server timezone.**
+- **Events, polls and permissions.**
 
 The UI uses the same services as the slash commands, so the same rules apply:
 it only posts where the bot can post, and only mentionable roles can be pinged

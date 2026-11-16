@@ -50,7 +50,7 @@ type Deps = {
   directory: Directory;
   authz: Authorizer;
   log: Logger;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createBirthdayService(deps: Deps) {
@@ -84,8 +84,7 @@ export function createBirthdayService(deps: Deps) {
     roleId: string,
     userIds: string[],
   ) => {
-    const zone = await timezone(settings.guildId);
-    const midnight = nextDailyRun(zone, 0);
+    const midnight = nextDailyRun(timezone, 0);
 
     await sequential(userIds, async (userId) => {
       try {
@@ -142,8 +141,7 @@ export function createBirthdayService(deps: Deps) {
         return null;
       }
 
-      const zone = await timezone(guildId);
-      const today = calendarDay(new Date(), zone);
+      const today = calendarDay(new Date(), timezone);
       const userIds = await birthdays.claim(guildId, today);
 
       if (userIds.length > 0) {
@@ -154,7 +152,7 @@ export function createBirthdayService(deps: Deps) {
         }
       }
 
-      return { rescheduleAt: nextDailyRun(zone, settings.hour) };
+      return { rescheduleAt: nextDailyRun(timezone, settings.hour) };
     },
   });
 
@@ -214,10 +212,7 @@ export function createBirthdayService(deps: Deps) {
         : undefined;
     },
     upcoming: async (guildId: string) =>
-      birthdays.upcoming(
-        guildId,
-        calendarDay(new Date(), await timezone(guildId)),
-      ),
+      birthdays.upcoming(guildId, calendarDay(new Date(), timezone)),
     configure: guard(
       authz,
       'birthday:manage',
@@ -230,14 +225,13 @@ export function createBirthdayService(deps: Deps) {
         }
 
         const settings = await resolveSettings(actor, change);
-        const zone = await timezone(actor.guildId);
 
         await birthdays.saveSettings(settings);
         await scheduler.schedule(
           dailyJob,
           { guildId: actor.guildId },
           {
-            runAt: nextDailyRun(zone, settings.hour),
+            runAt: nextDailyRun(timezone, settings.hour),
             key: dailyKey(actor.guildId),
           },
         );
@@ -248,7 +242,7 @@ export function createBirthdayService(deps: Deps) {
 
         const role = settings.roleId === null ? '' : ' with a role for the day';
 
-        return `Birthdays are announced in ${channelMention(settings.channelId)} at ${settings.hour}:00 (${zone})${role}.`;
+        return `Birthdays are announced in ${channelMention(settings.channelId)} at ${settings.hour}:00 (${timezone})${role}.`;
       },
     ),
   };

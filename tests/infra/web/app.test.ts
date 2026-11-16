@@ -8,14 +8,12 @@ import {
   createEventService,
   createPermissionService,
   createPollService,
-  createSettingsService,
 } from '~/core/services';
 import {
   createAnnouncementRepository,
   createEventRepository,
   createGrantRepository,
   createPollRepository,
-  createSettingsRepository,
 } from '~/infra/db';
 import type { Permission, PermissionDefinition } from '~/domain';
 import { createWebApp, localOperator } from '~/infra/web';
@@ -48,19 +46,13 @@ describe.skipIf(noDatabase)('web UI', () => {
       cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
     };
     const authz = createAuthorizer(createGrantRepository(db));
-    const settings = createSettingsService({
-      settings: createSettingsRepository(db),
-      authz,
-      defaultTimezone: 'Europe/Tallinn',
-    });
-    const timezone = (id: string) => settings.timezone(id);
     const shared = {
       scheduler,
       messenger,
       directory,
       authz,
       log: silentLog,
-      timezone,
+      timezone: 'Europe/Tallinn',
     };
     const app = createWebApp({
       guildId,
@@ -95,7 +87,6 @@ describe.skipIf(noDatabase)('web UI', () => {
               ],
             ]),
         }),
-        settings,
       },
     });
 
@@ -215,23 +206,15 @@ describe.skipIf(noDatabase)('web UI', () => {
     ).toContain('error=');
   });
 
-  it('creates polls and changes settings', async () => {
+  it('creates polls', async () => {
     const poll = await post('/polls', {
       csrf: await csrf('/polls'),
       question: 'Lunch?',
       options: 'Pizza\nSushi',
       channelId: 'general',
     });
-    const timezone = await post('/settings', {
-      csrf: await csrf('/settings'),
-      timezone: 'Europe/Helsinki',
-    });
 
     expect(poll.status).toBe(303);
-    expect(timezone.status).toBe(303);
-    expect(await (await fetch(`${base}/settings`)).text()).toContain(
-      'Europe/Helsinki',
-    );
   });
 
   it('returns 404 for unknown pages', async () => {

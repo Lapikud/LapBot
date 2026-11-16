@@ -58,8 +58,7 @@ describe.skipIf(noDatabase)('redmine service', () => {
       messenger,
       authz: allowAll,
       log: silentLog,
-      defaultTimezone: 'Europe/Tallinn',
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
 
     return { service, messenger, connect, client };

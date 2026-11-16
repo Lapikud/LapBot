@@ -100,7 +100,7 @@ describe.skipIf(noDatabase)('poll service', () => {
       directory: fakeDirectory(),
       authz: allowAll,
       log: silentLog,
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
 
     return {

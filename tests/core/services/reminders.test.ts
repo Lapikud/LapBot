@@ -28,7 +28,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
       messenger,
       directory: fakeDirectory(),
       authz,
-      timezone: async () => 'Europe/Tallinn',
+      timezone: 'Europe/Tallinn',
     });
     const [deliver] = service.jobs;
 

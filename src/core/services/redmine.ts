@@ -52,8 +52,7 @@ type Deps = {
   messenger: Messenger;
   authz: Authorizer;
   log: Logger;
-  defaultTimezone: string;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createRedmineService(deps: Deps) {
@@ -209,9 +208,8 @@ export function createRedmineService(deps: Deps) {
     payload: z.object({}),
     handle: async () => {
       const client = requireService();
-      const zone = deps.defaultTimezone;
       const tomorrow = formatCalendarDay(
-        addCalendarDays(calendarDay(new Date(), zone), 1),
+        addCalendarDays(calendarDay(new Date(), deps.timezone), 1),
       );
 
       await forEachSubscription(async (subscription) => {
@@ -235,7 +233,7 @@ export function createRedmineService(deps: Deps) {
         );
       });
 
-      return { rescheduleAt: nextDailyRun(zone, deadlineHour) };
+      return { rescheduleAt: nextDailyRun(deps.timezone, deadlineHour) };
     },
   });
 
@@ -272,7 +270,7 @@ export function createRedmineService(deps: Deps) {
         deadlineJob,
         {},
         {
-          runAt: nextDailyRun(deps.defaultTimezone, deadlineHour),
+          runAt: nextDailyRun(deps.timezone, deadlineHour),
           key: 'redmine:deadlines',
         },
       );
@@ -389,8 +387,11 @@ export function createRedmineService(deps: Deps) {
         throw new UserError(`#${issue.id} has no due date.`);
       }
 
-      const timezone = await deps.timezone(actor.guildId);
-      const runAt = zonedTime(addCalendarDays(due, -daysBefore), 9, timezone);
+      const runAt = zonedTime(
+        addCalendarDays(due, -daysBefore),
+        9,
+        deps.timezone,
+      );
 
       if (runAt.getTime() <= Date.now()) {
         throw new UserError('That reminder time has already passed.');
@@ -403,7 +404,7 @@ export function createRedmineService(deps: Deps) {
         message: `Redmine #${issue.id} "${issue.subject}" is due ${issue.due_date ?? ''}: ${issueUrl(issue.id)}`,
         runAt,
         recurrence: null,
-        timezone,
+        timezone: deps.timezone,
       });
     },
     subscribe: guard(

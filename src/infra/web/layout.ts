@@ -28,7 +28,6 @@ const sections = [
   ['/events', 'Events'],
   ['/polls', 'Polls'],
   ['/permissions', 'Permissions'],
-  ['/settings', 'Settings'],
 ] as const;
 
 export type Flash = { notice?: string; error?: string };

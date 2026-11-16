@@ -174,7 +174,7 @@ type Deps = {
   directory: Directory;
   authz: Authorizer;
   log: Logger;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createEventService(deps: Deps) {
@@ -365,7 +365,7 @@ export function createEventService(deps: Deps) {
 
       const timezone =
         request.timezone === undefined
-          ? await deps.timezone(actor.guildId)
+          ? deps.timezone
           : requireZone(request.timezone);
       const event = await publish(
         {

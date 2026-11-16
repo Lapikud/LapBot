@@ -25,7 +25,7 @@ type Deps = {
   polls: PollService;
   events: EventService;
   authz: Authorizer;
-  timezone: (guildId: string) => Promise<string>;
+  timezone: string;
 };
 
 export function createMovieService(deps: Deps) {
@@ -106,10 +106,7 @@ export function createMovieService(deps: Deps) {
           );
         }
 
-        const closesAt = parseFutureWhen(
-          request.closes ?? '2d',
-          await timezone(actor.guildId),
-        );
+        const closesAt = parseFutureWhen(request.closes ?? '2d', timezone);
 
         return polls.publish(actor, {
           guildId: actor.guildId,
@@ -127,15 +124,14 @@ export function createMovieService(deps: Deps) {
     ),
     night: guard(authz, 'movie:manage', async (actor, night: MovieNight) => {
       const { movie, pollId } = await pick(actor, night.movieId);
-      const zone = await timezone(actor.guildId);
-      const startsAt = parseFutureWhen(night.start, zone);
+      const startsAt = parseFutureWhen(night.start, timezone);
       const event = await events.publish(actor, {
         guildId: actor.guildId,
         title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
         description: movie.note,
         startsAt,
         endsAt: null,
-        timezone: zone,
+        timezone,
         location: night.location ?? null,
         organizerId: actor.userId,
         channelId: night.channelId,
@@ -159,10 +155,7 @@ export function createMovieService(deps: Deps) {
       'movie:manage',
       async (actor, id: number, date?: string) => {
         const movie = await movies.find(actor.guildId, id);
-        const at =
-          date === undefined
-            ? new Date()
-            : parseWhen(date, await timezone(actor.guildId));
+        const at = date === undefined ? new Date() : parseWhen(date, timezone);
 
         await movies.markWatched(actor.guildId, movie.id, at);
 

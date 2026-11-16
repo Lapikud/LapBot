@@ -16,7 +16,6 @@ import {
   reminderCommands,
   roleCommands,
   permissionCommands,
-  settingsCommands,
 } from '~/infra/discord';
 import {
   createAnnouncementService,
@@ -29,7 +28,6 @@ import {
   createPermissionService,
   createReminderService,
   createRoleService,
-  createSettingsService,
   type LegacyPanel,
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
@@ -55,7 +53,6 @@ import {
   createPollRepository,
   createReminderRepository,
   createRolePanelRepository,
-  createSettingsRepository,
   runMigrations,
 } from '~/infra/db';
 import { createSecretBox } from '~/infra/crypto';
@@ -81,7 +78,7 @@ function legacyPanel(config: Config): LegacyPanel | undefined {
 
 type RedmineDeps = Omit<
   Parameters<typeof createRedmineService>[0],
-  'baseUrl' | 'connect' | 'service' | 'tracker' | 'secrets' | 'defaultTimezone'
+  'baseUrl' | 'connect' | 'service' | 'tracker' | 'secrets'
 > & { db: Db };
 
 function createRedmine(config: Config, { db, ...deps }: RedmineDeps) {
@@ -109,7 +106,6 @@ function createRedmine(config: Config, { db, ...deps }: RedmineDeps) {
         : connect(config.REDMINE_API_KEY),
     tracker: createTrackerRepository(db),
     secrets: createSecretBox(config.CREDENTIAL_ENCRYPTION_KEY),
-    defaultTimezone: config.DEFAULT_TIMEZONE,
   });
 }
 
@@ -128,11 +124,7 @@ export function compose(config: Config, log: Logger) {
     log: log.child({ service: 'roles' }),
     legacy: legacyPanel(config),
   });
-  const settings = createSettingsService({
-    settings: createSettingsRepository(database.db),
-    authz,
-    defaultTimezone: config.DEFAULT_TIMEZONE,
-  });
+  const timezone = config.DEFAULT_TIMEZONE;
   const scheduler = createJobQueue(database.db);
   const reminders = createReminderService({
     reminders: createReminderRepository(database.db),
@@ -140,7 +132,7 @@ export function compose(config: Config, log: Logger) {
     messenger,
     directory,
     authz,
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const announcements = createAnnouncementService({
     announcements: createAnnouncementRepository(database.db),
@@ -150,7 +142,7 @@ export function compose(config: Config, log: Logger) {
     authz,
     log: log.child({ service: 'announcements' }),
     clock: systemClock,
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const events = createEventService({
     events: createEventRepository(database.db),
@@ -160,7 +152,7 @@ export function compose(config: Config, log: Logger) {
     directory,
     authz,
     log: log.child({ service: 'events' }),
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const polls = createPollService({
     polls: createPollRepository(database.db),
@@ -169,14 +161,14 @@ export function compose(config: Config, log: Logger) {
     directory,
     authz,
     log: log.child({ service: 'polls' }),
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const movies = createMovieService({
     movies: createMovieRepository(database.db),
     polls,
     events,
     authz,
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const birthdays = createBirthdayService({
     birthdays: createBirthdayRepository(database.db),
@@ -185,7 +177,7 @@ export function compose(config: Config, log: Logger) {
     directory,
     authz,
     log: log.child({ service: 'birthdays' }),
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
   const jobs: Array<Job<unknown>> = [
     ...birthdays.jobs,
@@ -204,7 +196,6 @@ export function compose(config: Config, log: Logger) {
   const features: Feature[] = [
     roleCommands(roles),
     permissionCommands(permissions),
-    settingsCommands(settings),
     reminderCommands(reminders),
     announcementCommands(announcements),
     eventCommands(events),
@@ -219,7 +210,7 @@ export function compose(config: Config, log: Logger) {
     messenger,
     authz,
     log,
-    timezone: (guildId) => settings.timezone(guildId),
+    timezone,
   });
 
   if (redmine) {
@@ -246,7 +237,7 @@ export function compose(config: Config, log: Logger) {
     registry,
     directory,
     jobs: runnerJobs,
-    web: { announcements, events, polls, permissions, settings },
+    web: { announcements, events, polls, permissions },
   };
 }
 
