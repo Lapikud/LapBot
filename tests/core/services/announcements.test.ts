@@ -197,3 +197,31 @@ describe.skipIf(noDatabase)('announcement service', () => {
     expect(claims.filter(Boolean)).toHaveLength(1);
   });
 });
+
+it('reschedules an old retry when the stored announcement is due later', async () => {
+  const now = new Date('2026-11-16T12:00:00Z');
+  const scheduledAt = new Date('2026-11-16T14:00:00Z');
+  const { messenger } = fakeMessenger();
+  const update = vi.fn();
+  const service = createAnnouncementService({
+    announcements: {
+      find: async () => sample({ status: 'scheduled', scheduledAt }),
+      update,
+      insert: vi.fn(),
+      list: vi.fn(),
+    },
+    scheduler: { schedule: vi.fn(), cancel: vi.fn() },
+    messenger,
+    directory: fakeDirectory(),
+    authz: allowAll,
+    log: silentLog,
+    clock: { now: () => now },
+    timezone: 'Europe/Tallinn',
+  });
+
+  await expect(service.jobs[0]?.run({ announcementId: 1 })).resolves.toEqual({
+    rescheduleAt: scheduledAt,
+  });
+  expect(messenger.send).not.toHaveBeenCalled();
+  expect(update).not.toHaveBeenCalled();
+});

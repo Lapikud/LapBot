@@ -186,12 +186,18 @@ export function createAnnouncementService(deps: Deps) {
       const announcement = await announcements.find(announcementId);
 
       if (announcement?.status !== 'scheduled') {
-        return;
+        return null;
       }
 
       const due = announcement.scheduledAt ?? announcement.createdAt;
 
-      if (clock.now().getTime() - due.getTime() > maxLatenessMs) {
+      const now = clock.now();
+
+      if (due > now) {
+        return { rescheduleAt: due };
+      }
+
+      if (now.getTime() - due.getTime() > maxLatenessMs) {
         await announcements.update(
           announcementId,
           {
@@ -202,10 +208,12 @@ export function createAnnouncementService(deps: Deps) {
         );
         log.warn({ announcementId }, 'Skipped stale scheduled announcement');
 
-        return;
+        return null;
       }
 
       await publish(announcementId, ['scheduled']);
+
+      return null;
     },
   });
 
