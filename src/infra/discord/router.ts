@@ -149,7 +149,10 @@ export function createInteractionHandler(
       if (interaction.isRepliable()) {
         await interaction
           .reply({
-            content: 'Please use me inside the server.',
+            content:
+              interaction.guildId === null
+                ? 'Please use me inside the server.'
+                : 'I am not a member of this server yet. Ask an admin to invite me with the "bot" scope.',
             flags: MessageFlags.Ephemeral,
           })
           .catch(ignore);
