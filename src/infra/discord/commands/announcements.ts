@@ -81,7 +81,7 @@ const data = new SlashCommandBuilder()
           ),
       )
       .addBooleanOption((o) =>
-        o.setName('embed').setDescription('Post as an embed (default yes)'),
+        o.setName('embed').setDescription('Post as an embed (default no)'),
       ),
   )
   .addSubcommand((sub) =>
@@ -204,7 +204,7 @@ export function announcementCommands(
         execute: bySubcommand({
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);
-            const embed = interaction.options.getBoolean('embed') ?? true;
+            const embed = interaction.options.getBoolean('embed') ?? false;
 
             await interaction.showModal(
               contentModal(
