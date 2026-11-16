@@ -80,6 +80,12 @@ administrator, which is why it listens on `127.0.0.1` only (Compose publishes
 it on the host's loopback). Reach it from elsewhere through an SSH tunnel, not
 a public proxy. Sign-in plugs in through the `Authenticator` port.
 
+The pages are server-rendered [Hono](https://hono.dev) JSX styled by
+[Pico.css](https://picocss.com) (classless, so plain form markup looks right).
+Each section is one file in `src/infra/web/` that returns a small Hono app;
+to add a page, write one and mount it with `app.route()` in `app.tsx`. Forms
+post back to the same path, so there is no client-side JavaScript.
+
 ## Permissions
 
 The bot has its own action-based permissions (`event:create`, `poll:manage`,
@@ -192,7 +198,7 @@ src/
     scheduler/        pg-boss adapter for the Scheduler port
     redmine/          Redmine adapter for the IssueTracker port
     logging/          pino
-    web/              server-rendered web UI and its Authenticator adapter
+    web/              Hono + Pico web UI and its Authenticator adapter
 tests/                mirrors src/
 drizzle/              SQL migrations
 ```

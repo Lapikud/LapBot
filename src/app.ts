@@ -247,6 +247,7 @@ async function startWeb(
 
   const app = createWebApp({
     guildId,
+    timezone: config.DEFAULT_TIMEZONE,
     auth: localOperator(operator),
     directory: deps.directory,
     services: deps.services,

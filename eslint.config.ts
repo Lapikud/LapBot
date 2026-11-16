@@ -88,7 +88,7 @@ const transportFreeFiles = [
   'src/infra/crypto/**/*.ts',
   'src/infra/logging/**/*.ts',
   'src/infra/scheduler/**/*.ts',
-  'src/infra/web/**/*.ts',
+  'src/infra/web/**/*.{ts,tsx}',
   'src/features/*/service.ts',
   'src/features/*/schema.ts',
 ];

@@ -1,6 +1,4 @@
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Scheduler } from '~/core/ports';
 import {
   createAnnouncementService,
@@ -16,7 +14,7 @@ import {
   createPollRepository,
 } from '~/infra/db';
 import type { Permission, PermissionDefinition } from '~/domain';
-import { createWebApp, localOperator } from '~/infra/web';
+import { createWebApp, localOperator, type WebApp } from '~/infra/web';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -32,8 +30,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   const guildId = snowflake();
   const { messenger } = fakeMessenger();
   const directory = fakeDirectory([role({ id: teamId, name: 'Team' })]);
-  let server: Server;
-  let base = '';
+  let app: WebApp;
 
   directory.channels.mockResolvedValue([
     { id: 'general', name: 'general', kind: 'text' },
@@ -54,8 +51,10 @@ describe.skipIf(noDatabase)('web UI', () => {
       log: silentLog,
       timezone: 'Europe/Tallinn',
     };
-    const app = createWebApp({
+
+    app = createWebApp({
       guildId,
+      timezone: 'Europe/Tallinn',
       auth: localOperator(async () => actor({ guildId, administrator: true })),
       directory,
       log: silentLog,
@@ -89,32 +88,15 @@ describe.skipIf(noDatabase)('web UI', () => {
         }),
       },
     });
-
-    server = createServer(
-      (request, response) => void app.handle(request, response),
-    );
-    await new Promise<void>((resolve) => {
-      server.listen(0, '127.0.0.1', resolve);
-    });
-    base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
 
-  afterAll(
-    () =>
-      new Promise<void>((resolve) => {
-        server.close(() => {
-          resolve();
-        });
-      }),
-  );
+  const get = (path: string) => app.request(`http://localhost${path}`);
 
-  const csrf = async (path: string) => {
-    const page = await (await fetch(`${base}${path}`)).text();
-
-    return /name="csrf" value="([0-9a-f]+)"/.exec(page)?.[1] ?? '';
-  };
-
-  const post = (path: string, fields: Record<string, string | string[]>) => {
+  const post = (
+    path: string,
+    fields: Record<string, string | string[]>,
+    origin = 'http://localhost',
+  ) => {
     const body = new URLSearchParams();
 
     for (const [name, value] of Object.entries(fields)) {
@@ -123,15 +105,15 @@ describe.skipIf(noDatabase)('web UI', () => {
       }
     }
 
-    return fetch(`${base}${path}`, {
+    return app.request(`http://localhost${path}`, {
       method: 'POST',
       body,
-      redirect: 'manual',
+      headers: { Origin: origin },
     });
   };
 
   it('renders the PSA composer with channels and mentionable roles', async () => {
-    const response = await fetch(`${base}/psa`);
+    const response = await get('/psa');
     const page = await response.text();
 
     expect(response.status).toBe(200);
@@ -142,12 +124,19 @@ describe.skipIf(noDatabase)('web UI', () => {
     );
   });
 
-  it('rejects forms without the CSRF token', async () => {
-    const response = await post('/psa', {
-      channelId: 'general',
-      content: 'x',
-      action: 'publish',
-    });
+  it('serves the stylesheet the pages link to', async () => {
+    const response = await get('/style.css');
+
+    expect(response.headers.get('content-type')).toContain('text/css');
+    expect(await response.text()).toContain('.discord');
+  });
+
+  it('rejects forms posted from another site', async () => {
+    const response = await post(
+      '/psa',
+      { channelId: 'general', content: 'x', action: 'publish' },
+      'https://evil.example',
+    );
 
     expect(response.status).toBe(403);
     expect(messenger.send).not.toHaveBeenCalled();
@@ -155,7 +144,6 @@ describe.skipIf(noDatabase)('web UI', () => {
 
   it('previews without posting, escaping user text', async () => {
     const response = await post('/psa', {
-      csrf: await csrf('/psa'),
       channelId: 'general',
       title: '<b>Hi</b>',
       content: `Meeting <@&${teamId}> **now**`,
@@ -171,7 +159,6 @@ describe.skipIf(noDatabase)('web UI', () => {
 
   it('publishes a PSA with the chosen role mentions', async () => {
     const response = await post('/psa', {
-      csrf: await csrf('/psa'),
       channelId: 'general',
       title: 'Hackathon',
       content: 'Sign up today',
@@ -192,7 +179,6 @@ describe.skipIf(noDatabase)('web UI', () => {
 
   it('shows service errors as a message instead of failing', async () => {
     const response = await post('/psa', {
-      csrf: await csrf('/psa'),
       channelId: 'general',
       content: ' ',
       action: 'draft',
@@ -206,7 +192,6 @@ describe.skipIf(noDatabase)('web UI', () => {
 
   it('creates polls', async () => {
     const poll = await post('/polls', {
-      csrf: await csrf('/polls'),
       question: 'Lunch?',
       options: 'Pizza\nSushi',
       channelId: 'general',
@@ -216,6 +201,6 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('returns 404 for unknown pages', async () => {
-    expect((await fetch(`${base}/nope`)).status).toBe(404);
+    expect((await get('/nope')).status).toBe(404);
   });
 });
