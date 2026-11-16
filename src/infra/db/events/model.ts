@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   pgEnum,
@@ -33,6 +34,7 @@ export const events = pgTable(
     capacity: integer('capacity'),
     mentionRoleId: text('mention_role_id'),
     reminderMinutes: integer('reminder_minutes').array().notNull().default([]),
+    icons: boolean('icons').notNull().default(true),
     discordEventId: text('discord_event_id'),
     status: eventStatus('status').notNull().default('scheduled'),
     createdAt: timestamp('created_at', { withTimezone: true })

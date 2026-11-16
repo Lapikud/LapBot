@@ -180,6 +180,13 @@ export function calendarDay(date: Date, zone: string): CalendarDay {
   };
 }
 
+export function sameCalendarDay(a: Date, b: Date, zone: string): boolean {
+  return (
+    formatCalendarDay(calendarDay(a, zone)) ===
+    formatCalendarDay(calendarDay(b, zone))
+  );
+}
+
 export function zonedTime(day: CalendarDay, hour: number, zone: string): Date {
   return new Date(
     new TZDate(day.year, day.month - 1, day.day, hour, 0, 0, zone).getTime(),
@@ -188,7 +195,7 @@ export function zonedTime(day: CalendarDay, hour: number, zone: string): Date {
 
 export function discordTime(
   date: Date,
-  style: 'F' | 'R' | 'f' | 'D' = 'F',
+  style: 'F' | 'R' | 'f' | 'D' | 't' = 'F',
 ): string {
   return `<t:${Math.floor(date.getTime() / 1000)}:${style}>`;
 }

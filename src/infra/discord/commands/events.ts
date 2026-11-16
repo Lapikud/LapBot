@@ -82,6 +82,9 @@ const data = new SlashCommandBuilder()
         o
           .setName('native')
           .setDescription('Also create a Discord scheduled event'),
+      )
+      .addBooleanOption((o) =>
+        o.setName('icons').setDescription('Show 🗓️ 🕐 📍 icons (default yes)'),
       ),
   )
   .addSubcommand((sub) =>
@@ -108,6 +111,9 @@ const data = new SlashCommandBuilder()
           .setName('capacity')
           .setDescription('Maximum attendees')
           .setMinValue(1),
+      )
+      .addBooleanOption((o) =>
+        o.setName('icons').setDescription('Show 🗓️ 🕐 📍 icons'),
       ),
   )
   .addSubcommand((sub) =>
@@ -175,6 +181,7 @@ export function eventCommands(events: EventService): Feature {
         execute: bySubcommand({
           create: deferred(async (interaction) => {
             const capacity = interaction.options.getInteger('capacity');
+            const icons = interaction.options.getBoolean('icons');
             const mention = interaction.options.getRole('mention');
             const fields = [
               'description',
@@ -199,6 +206,7 @@ export function eventCommands(events: EventService): Feature {
                 interaction.channelId,
               native: interaction.options.getBoolean('native') ?? false,
               ...(capacity !== null && { capacity }),
+              ...(icons !== null && { icons }),
               ...(mention && { mentionRoleId: mention.id }),
             });
 
@@ -209,6 +217,7 @@ export function eventCommands(events: EventService): Feature {
           }),
           edit: deferred(async (interaction) => {
             const capacity = interaction.options.getInteger('capacity');
+            const icons = interaction.options.getBoolean('icons');
             const fields = [
               'title',
               'start',
@@ -229,6 +238,7 @@ export function eventCommands(events: EventService): Feature {
               {
                 ...changes,
                 ...(capacity !== null && { capacity }),
+                ...(icons !== null && { icons }),
               },
             );
 

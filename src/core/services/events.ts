@@ -9,6 +9,7 @@ import {
   requireMentionable,
   requireZone,
   roleMention,
+  sameCalendarDay,
   UserError,
   userMention,
   type Actor,
@@ -53,37 +54,52 @@ export type EventRequest = {
   reminders?: string;
   timezone?: string;
   native?: boolean;
+  icons?: boolean;
 };
 
 export type EventChanges = Partial<
   Pick<
     EventRequest,
-    'title' | 'start' | 'end' | 'description' | 'location' | 'capacity'
+    | 'title'
+    | 'start'
+    | 'end'
+    | 'description'
+    | 'location'
+    | 'capacity'
+    | 'icons'
   >
 >;
 
 export function eventView(event: Event, counts: RsvpCounts): Message {
   const cancelled = event.status === 'cancelled';
-  const until = event.endsAt ? ` – ${discordTime(event.endsAt, 'f')}` : '';
+  const icon = (emoji: string) => (event.icons ? `${emoji} ` : '');
+  const endStyle =
+    event.endsAt !== null &&
+    sameCalendarDay(event.startsAt, event.endsAt, event.timezone)
+      ? 't'
+      : 'f';
+  const end =
+    event.endsAt === null ? '' : ` – ${discordTime(event.endsAt, endStyle)}`;
   const going =
     event.capacity === null
       ? String(counts.going)
       : `${counts.going} / ${event.capacity}`;
+  const details = [
+    `${icon('🗓️')}${discordTime(event.startsAt, 'D')} (${discordTime(event.startsAt, 'R')})`,
+    `${icon('🕐')}${discordTime(event.startsAt, 't')}${end}`,
+    ...(event.location === null ? [] : [`${icon('📍')}${event.location}`]),
+  ];
 
   return {
     embeds: [
       {
         title: cancelled ? `[Cancelled] ${event.title}` : event.title,
         color: cancelled ? 0x80_80_80 : 0x2b_8a_3e,
-        ...(event.description !== null && { description: event.description }),
+        description: [
+          ...(event.description === null ? [] : [event.description, '']),
+          ...details,
+        ].join('\n'),
         fields: [
-          {
-            name: 'When',
-            value: `${discordTime(event.startsAt)} (${discordTime(event.startsAt, 'R')})${until}`,
-          },
-          ...(event.location === null
-            ? []
-            : [{ name: 'Where', value: event.location }]),
           {
             name: 'Organizer',
             value: userMention(event.organizerId),
@@ -382,6 +398,7 @@ export function createEventService(deps: Deps) {
           capacity: request.capacity ?? null,
           mentionRoleId: request.mentionRoleId ?? null,
           reminderMinutes: parseReminderMinutes(request.reminders),
+          icons: request.icons ?? true,
         },
         request.native ?? false,
       );
@@ -415,6 +432,7 @@ export function createEventService(deps: Deps) {
         description: changes.description ?? event.description,
         location: changes.location ?? event.location,
         capacity: changes.capacity ?? event.capacity,
+        icons: changes.icons ?? event.icons,
         startsAt,
         endsAt,
       });

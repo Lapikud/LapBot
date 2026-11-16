@@ -396,6 +396,10 @@ export function createWebApp(deps: Deps) {
                   ><input type="checkbox" name="native" value="1" /> Also create
                   a Discord event</label
                 >
+                <label
+                  ><input type="checkbox" name="icons" value="1" checked /> Show
+                  🗓️ 🕐 📍 icons</label
+                >
                 <div><button class="primary">Create event</button></div>
               </form>
               <table>
@@ -443,6 +447,7 @@ export function createWebApp(deps: Deps) {
           start: field(context.form, 'start') ?? '',
           channelId: field(context.form, 'channelId') ?? '',
           native: context.form.get('native') === '1',
+          icons: context.form.get('icons') === '1',
           ...(capacity !== undefined && { capacity: Number(capacity) }),
           ...Object.fromEntries(
             optional.flatMap((name) => {

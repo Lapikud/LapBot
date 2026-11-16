@@ -139,6 +139,7 @@ export function createMovieService(deps: Deps) {
         capacity: night.capacity ?? null,
         mentionRoleId: null,
         reminderMinutes: [60],
+        icons: true,
       });
 
       await movies.recordScreening({

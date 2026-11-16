@@ -19,6 +19,7 @@ export type Event = {
   capacity: number | null;
   mentionRoleId: string | null;
   reminderMinutes: number[];
+  icons: boolean;
   discordEventId: string | null;
   status: 'scheduled' | 'cancelled';
   createdAt: Date;

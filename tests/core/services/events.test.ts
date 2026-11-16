@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Calendar, Scheduler } from '~/core/ports';
 import {
   createEventService,
+  eventView,
   parseReminderMinutes,
   reminderText,
 } from '~/core/services';
@@ -29,6 +30,7 @@ const base = () => ({
   capacity: null,
   mentionRoleId: null,
   reminderMinutes: [],
+  icons: true,
 });
 
 describe('event helpers', () => {
@@ -36,6 +38,28 @@ describe('event helpers', () => {
     expect(parseReminderMinutes(undefined)).toEqual([60]);
     expect(parseReminderMinutes('60, 15,15')).toEqual([60, 15]);
     expect(() => parseReminderMinutes('1,2,3,4')).toThrow(UserError);
+  });
+
+  it('shows date, time and place with icons unless they are turned off', () => {
+    const event = {
+      ...base(),
+      id: 1,
+      messageId: null,
+      discordEventId: null,
+      status: 'scheduled' as const,
+      createdAt: new Date(),
+      startsAt: new Date('2026-11-20T16:00:00Z'),
+      endsAt: new Date('2026-11-20T19:00:00Z'),
+      location: 'Room 101',
+    };
+    const counts = { going: 0, maybe: 0, not_going: 0 };
+    const text = (icons: boolean) =>
+      eventView({ ...event, icons }, counts).embeds?.[0]?.description ?? '';
+
+    expect(text(true)).toContain('🗓️ <t:');
+    expect(text(true)).toContain('🕐 <t:1795190400:t> – <t:1795201200:t>');
+    expect(text(true)).toContain('📍 Room 101');
+    expect(text(false)).not.toMatch(/🗓️|🕐|📍/u);
   });
 
   it('keeps reminder pings under the Discord message limit', () => {
