@@ -20,13 +20,14 @@ import type {
   Logger,
   Messenger,
   Scheduler,
+  Sent,
 } from '~/core/ports';
 import { guard } from './guard';
 import { defineJob } from './jobs';
 
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
-const reopenable: AnnouncementStatus[] = ['draft', 'scheduled', 'failed'];
+const open: AnnouncementStatus[] = ['draft', 'scheduled'];
 
 export const maxAnnouncementLength = 1900;
 
@@ -131,46 +132,45 @@ export function createAnnouncementService(deps: Deps) {
   };
 
   const publish = async (id: number, from: readonly AnnouncementStatus[]) => {
-    const claimed = await announcements.transition(id, from, {
-      status: 'publishing',
-    });
+    const claimed = await announcements.update(
+      id,
+      {
+        status: 'published',
+        publishedAt: clock.now(),
+        failure: null,
+      },
+      from,
+    );
 
     if (!claimed) {
       throw new UserError(
-        `Announcement #${id} cannot be published in its current state.`,
+        `Announcement #${id} is already published or cancelled.`,
       );
     }
 
+    let sent: Sent;
+
     try {
-      const sent = await messenger.send(
-        claimed.channelId,
-        announcementView(claimed),
-      );
-      const published = await announcements.transition(id, ['publishing'], {
-        status: 'published',
-        publishedAt: clock.now(),
-        messageId: sent.messageId,
-        failure: null,
-      });
-
-      log.info(
-        { announcementId: id, messageId: sent.messageId },
-        'Announcement published',
-      );
-
-      return published ?? claimed;
+      sent = await messenger.send(claimed.channelId, announcementView(claimed));
     } catch (error) {
       const permanent =
         error instanceof PermanentError || error instanceof UserError;
-      const message = error instanceof Error ? error.message : String(error);
 
-      await announcements.transition(id, ['publishing'], {
-        status: permanent ? 'failed' : (from[0] ?? 'draft'),
-        failure: message,
+      await announcements.update(id, {
+        status: permanent ? 'draft' : (from[0] ?? 'draft'),
+        publishedAt: null,
+        failure: error instanceof Error ? error.message : String(error),
       });
 
       throw error;
     }
+
+    const { messageId } = sent;
+
+    await announcements.update(id, { messageId });
+    log.info({ announcementId: id, messageId }, 'Announcement published');
+
+    return { ...claimed, messageId };
   };
 
   const publishJob = defineJob({
@@ -186,11 +186,14 @@ export function createAnnouncementService(deps: Deps) {
       const due = announcement.scheduledAt ?? announcement.createdAt;
 
       if (clock.now().getTime() - due.getTime() > maxLatenessMs) {
-        await announcements.transition(announcementId, ['scheduled'], {
-          status: 'failed',
-          failure:
-            'Skipped: the scheduled time passed while the bot was offline',
-        });
+        await announcements.update(
+          announcementId,
+          {
+            status: 'draft',
+            failure: 'Not posted: the bot was offline at the scheduled time.',
+          },
+          ['scheduled'],
+        );
         log.warn({ announcementId }, 'Skipped stale scheduled announcement');
 
         return;
@@ -275,7 +278,7 @@ export function createAnnouncementService(deps: Deps) {
       await requireOwnGuild(actor, id);
       await scheduler.cancel(publishJob, jobKey(id));
 
-      return publish(id, reopenable);
+      return publish(id, open);
     }),
     schedule: guard(
       authz,
@@ -286,15 +289,19 @@ export function createAnnouncementService(deps: Deps) {
 
         await checkTargets(actor, announcement);
 
-        const scheduled = await announcements.transition(id, reopenable, {
-          status: 'scheduled',
-          scheduledAt: runAt,
-          failure: null,
-        });
+        const scheduled = await announcements.update(
+          id,
+          {
+            status: 'scheduled',
+            scheduledAt: runAt,
+            failure: null,
+          },
+          open,
+        );
 
         if (!scheduled) {
           throw new UserError(
-            `Announcement #${id} cannot be scheduled in its current state.`,
+            `Announcement #${id} is already published or cancelled.`,
           );
         }
 
@@ -309,9 +316,13 @@ export function createAnnouncementService(deps: Deps) {
     ),
     cancel: async (actor: Actor, id: number) => {
       const announcement = await requireEditable(actor, id);
-      const cancelled = await announcements.transition(id, reopenable, {
-        status: 'cancelled',
-      });
+      const cancelled = await announcements.update(
+        id,
+        {
+          status: 'cancelled',
+        },
+        open,
+      );
 
       if (!cancelled) {
         throw new UserError(

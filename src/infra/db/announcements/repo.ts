@@ -47,29 +47,24 @@ export async function listAnnouncements(
     .limit(limit);
 }
 
-export async function transition(
+export async function updateAnnouncement(
   db: Db,
   id: number,
-  from: readonly Status[],
   changes: AnnouncementChanges,
+  onlyIf?: readonly Status[],
 ): Promise<Announcement | undefined> {
   const [row] = await db
     .update(announcements)
     .set(changes)
     .where(
-      and(eq(announcements.id, id), inArray(announcements.status, [...from])),
+      and(
+        eq(announcements.id, id),
+        onlyIf && inArray(announcements.status, [...onlyIf]),
+      ),
     )
     .returning();
 
   return row;
-}
-
-export async function updateContent(
-  db: Db,
-  id: number,
-  changes: Parameters<AnnouncementRepository['update']>[1],
-): Promise<void> {
-  await db.update(announcements).set(changes).where(eq(announcements.id, id));
 }
 
 export function createAnnouncementRepository(db: Db): AnnouncementRepository {
@@ -77,7 +72,7 @@ export function createAnnouncementRepository(db: Db): AnnouncementRepository {
     insert: (announcement) => insertAnnouncement(db, announcement),
     find: (id) => getAnnouncement(db, id),
     list: (guildId, limit) => listAnnouncements(db, guildId, limit),
-    transition: (id, from, changes) => transition(db, id, from, changes),
-    update: (id, changes) => updateContent(db, id, changes),
+    update: (id, changes, onlyIf) =>
+      updateAnnouncement(db, id, changes, onlyIf),
   };
 }

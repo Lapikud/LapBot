@@ -293,9 +293,7 @@ export function announcementCommands(
 
           await interaction.respond(
             rows
-              .filter((row) =>
-                ['draft', 'scheduled', 'failed'].includes(row.status),
-              )
+              .filter((row) => ['draft', 'scheduled'].includes(row.status))
               .slice(0, 25)
               .map((row) => ({
                 name: `#${row.id} [${row.status}] ${row.title ?? row.content}`.slice(

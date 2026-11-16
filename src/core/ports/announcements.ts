@@ -1,5 +1,5 @@
 export type AnnouncementStatus =
-  'draft' | 'scheduled' | 'publishing' | 'published' | 'cancelled' | 'failed';
+  'draft' | 'scheduled' | 'published' | 'cancelled';
 
 export type Announcement = {
   id: number;
@@ -30,25 +30,16 @@ export type NewAnnouncement = Pick<
 >;
 
 export type AnnouncementChanges = Partial<
-  Omit<Announcement, 'id' | 'guildId' | 'status'>
-> & { status: AnnouncementStatus };
+  Omit<Announcement, 'id' | 'guildId' | 'authorId' | 'createdAt'>
+>;
 
 export type AnnouncementRepository = {
   insert: (announcement: NewAnnouncement) => Promise<Announcement>;
   find: (id: number) => Promise<Announcement | undefined>;
   list: (guildId: string, limit?: number) => Promise<Announcement[]>;
-  transition: (
-    id: number,
-    from: readonly AnnouncementStatus[],
-    changes: AnnouncementChanges,
-  ) => Promise<Announcement | undefined>;
   update: (
     id: number,
-    changes: Partial<
-      Pick<
-        Announcement,
-        'title' | 'content' | 'channelId' | 'mentionRoleIds' | 'mentionEveryone'
-      >
-    >,
-  ) => Promise<void>;
+    changes: AnnouncementChanges,
+    onlyIf?: readonly AnnouncementStatus[],
+  ) => Promise<Announcement | undefined>;
 };

@@ -108,7 +108,7 @@ function mentionPicker(context: Context, selected: readonly string[] = []) {
 }
 
 const psaActions = (context: Context, psa: { id: number; status: string }) => {
-  if (!['draft', 'failed', 'scheduled'].includes(psa.status)) {
+  if (!['draft', 'scheduled'].includes(psa.status)) {
     return html``;
   }
 
@@ -257,7 +257,14 @@ export function createWebApp(deps: Deps) {
                     (a) =>
                       html`<tr>
                         <td>${a.id}</td>
-                        <td>${a.status}</td>
+                        <td>
+                          ${a.status}
+                          ${
+                            a.failure === null
+                              ? ''
+                              : html`<br /><small>${a.failure}</small>`
+                          }
+                        </td>
                         <td>${channelName(context, a.channelId)}</td>
                         <td>${a.title ?? a.content.slice(0, 60)}</td>
                         <td>${date(a.publishedAt ?? a.scheduledAt)}</td>

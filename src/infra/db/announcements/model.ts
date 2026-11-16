@@ -11,10 +11,8 @@ import {
 export const announcementStatus = pgEnum('announcement_status', [
   'draft',
   'scheduled',
-  'publishing',
   'published',
   'cancelled',
-  'failed',
 ]);
 
 export const announcements = pgTable(

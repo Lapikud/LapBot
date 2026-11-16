@@ -93,9 +93,25 @@ describe.skipIf(noDatabase)('announcement service', () => {
 
     await service.publish(author, draft.id);
     await expect(service.publish(author, draft.id)).rejects.toThrow(
-      'cannot be published',
+      'already published',
     );
     expect(messenger.send).toHaveBeenCalledOnce();
+  });
+
+  it('goes back to draft with the reason when posting fails', async () => {
+    const { service, messenger, repository, author } = setup();
+    const draft = await service.draft(author, {
+      channelId: 'c',
+      content: 'Hi',
+    });
+
+    messenger.send.mockRejectedValueOnce(new Error('Discord is down'));
+    await expect(service.publish(author, draft.id)).rejects.toThrow('down');
+    expect(await repository.find(draft.id)).toMatchObject({
+      status: 'draft',
+      publishedAt: null,
+      failure: 'Discord is down',
+    });
   });
 
   it('refuses unmentionable roles, everyone and channels the author cannot use', async () => {
@@ -130,13 +146,16 @@ describe.skipIf(noDatabase)('announcement service', () => {
       content: 'Hi',
     });
 
-    await repository.transition(draft.id, ['draft'], {
+    await repository.update(draft.id, {
       status: 'scheduled',
       scheduledAt: new Date(Date.now() - 2 * 3_600_000),
     });
     await service.jobs[0]?.run({ announcementId: draft.id });
     expect(messenger.send).not.toHaveBeenCalled();
-    expect((await repository.find(draft.id))?.status).toBe('failed');
+    const skipped = await repository.find(draft.id);
+
+    expect(skipped?.status).toBe('draft');
+    expect(skipped?.failure).toContain('offline');
   });
 
   it('publishes due scheduled announcements once', async () => {
@@ -147,7 +166,7 @@ describe.skipIf(noDatabase)('announcement service', () => {
     });
     const job = service.jobs[0];
 
-    await repository.transition(draft.id, ['draft'], {
+    await repository.update(draft.id, {
       status: 'scheduled',
       scheduledAt: new Date(),
     });
@@ -165,7 +184,13 @@ describe.skipIf(noDatabase)('announcement service', () => {
     });
     const claims = await Promise.all(
       Array.from({ length: 5 }, () =>
-        repository.transition(draft.id, ['draft'], { status: 'publishing' }),
+        repository.update(
+          draft.id,
+          {
+            status: 'published',
+          },
+          ['draft'],
+        ),
       ),
     );
 

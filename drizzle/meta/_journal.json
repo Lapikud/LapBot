@@ -43,6 +43,13 @@
       "when": 1794824606678,
       "tag": "0005_drop_announcement_embed",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794824856256,
+      "tag": "0006_simplify_announcement_status",
+      "breakpoints": true
     }
   ]
 }
