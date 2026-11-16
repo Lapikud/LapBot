@@ -5,7 +5,8 @@
   --pico-form-element-spacing-horizontal: 0.75rem;
 }
 
-form > [type='submit'] {
+form > [type='submit'],
+form > [role='group'] {
   width: auto;
 }
 
@@ -18,7 +19,8 @@ td form {
   margin: 0 0.25rem 0 0;
 }
 
-td [type='submit'] {
+td [type='submit'],
+td [role='button'] {
   --pico-form-element-spacing-vertical: 0.25rem;
   --pico-form-element-spacing-horizontal: 0.75rem;
 

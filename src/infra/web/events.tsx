@@ -125,7 +125,13 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
                   <td>{date(e.startsAt)}</td>
                   <td>{server.channelName(e.channelId)}</td>
                   <td>
-                    <a href={`/events/${e.id}`}>Edit</a>{' '}
+                    <a
+                      href={`/events/${e.id}`}
+                      role="button"
+                      class="secondary outline"
+                    >
+                      Edit
+                    </a>{' '}
                     <ActionButton
                       action={`/events/${e.id}/cancel`}
                       label="Cancel"
