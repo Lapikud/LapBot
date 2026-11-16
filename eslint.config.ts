@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
 import { configs as sonarConfigs } from 'eslint-plugin-sonarjs';
 import unicorn from 'eslint-plugin-unicorn';
 import prettier from 'eslint-config-prettier';
@@ -174,6 +175,17 @@ export default defineConfig(
     files: sourceFiles,
     plugins: { unicorn },
     rules: unicornRules,
+  },
+
+  {
+    files: ['**/*.tsx'],
+    plugins: { react },
+    settings: { react: { version: '19' } },
+    rules: {
+      'react/jsx-key': ['error', { checkFragmentShorthand: true }],
+      'react/no-array-index-key': 'error',
+      'react/button-has-type': 'error',
+    },
   },
 
   {

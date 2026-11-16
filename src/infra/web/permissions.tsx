@@ -19,7 +19,9 @@ export function permissionPages({ services }: WebDeps) {
                   {guild.roles
                     .filter((role) => !role.managed)
                     .map((role) => (
-                      <option value={role.id}>@{role.name}</option>
+                      <option key={role.id} value={role.id}>
+                        @{role.name}
+                      </option>
                     ))}
                 </select>
               </label>
@@ -27,14 +29,14 @@ export function permissionPages({ services }: WebDeps) {
                 Permission
                 <select name="permission">
                   {services.permissions.catalogue().map((p) => (
-                    <option value={p.id}>
+                    <option key={p.id} value={p.id}>
                       {p.id} — {p.description}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
-            <button name="action" value="grant">
+            <button type="submit" name="action" value="grant">
               Grant
             </button>
           </form>
@@ -48,7 +50,7 @@ export function permissionPages({ services }: WebDeps) {
             </thead>
             <tbody>
               {grants.map((grant) => (
-                <tr>
+                <tr key={`${grant.roleId}:${grant.permission}`}>
                   <td>@{guild.roleName(grant.roleId)}</td>
                   <td>{grant.permission}</td>
                   <td>
@@ -59,7 +61,7 @@ export function permissionPages({ services }: WebDeps) {
                         name="permission"
                         value={grant.permission}
                       />
-                      <button name="action" value="revoke">
+                      <button type="submit" name="action" value="revoke">
                         Revoke
                       </button>
                     </form>

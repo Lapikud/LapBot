@@ -9,21 +9,23 @@ const sections = [
   ['/permissions', 'Permissions'],
 ] as const;
 
-export function Layout(
-  props: Readonly<{
-    title: string;
-    path: string;
-    flash?: Flash;
-    children?: Child;
-  }>,
-) {
+const pico =
+  'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.classless.min.css';
+
+export function Layout({
+  title,
+  path,
+  flash = {},
+  children,
+}: Readonly<{ title: string; path: string; flash?: Flash; children?: Child }>) {
   return (
     <html lang="en">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{`${props.title} · LAPbot`}</title>
-        <link rel="stylesheet" href="/style.css" />
+        <title>{`${title} · LAPbot`}</title>
+        <link rel="stylesheet" href={pico} />
+        <link rel="stylesheet" href="/app.css" />
       </head>
       <body>
         <header>
@@ -35,10 +37,10 @@ export function Layout(
             </ul>
             <ul>
               {sections.map(([href, label]) => (
-                <li>
+                <li key={href}>
                   <a
                     href={href}
-                    aria-current={props.path === href ? 'page' : undefined}
+                    aria-current={path === href ? 'page' : undefined}
                   >
                     {label}
                   </a>
@@ -48,66 +50,68 @@ export function Layout(
           </nav>
         </header>
         <main>
-          <h1>{props.title}</h1>
-          {props.flash?.notice === undefined ? null : (
+          <h1>{title}</h1>
+          {flash.notice === undefined ? null : (
             <p class="notice" role="status">
-              {props.flash.notice}
+              {flash.notice}
             </p>
           )}
-          {props.flash?.error === undefined ? null : (
+          {flash.error === undefined ? null : (
             <p class="error" role="alert">
-              {props.flash.error}
+              {flash.error}
             </p>
           )}
-          {props.children}
+          {children}
         </main>
       </body>
     </html>
   );
 }
 
-export function ChannelSelect(
-  props: Readonly<{ guild: Guild; name?: string }>,
-) {
+export function ChannelSelect({
+  guild,
+  name = 'channelId',
+}: Readonly<{ guild: Guild; name?: string }>) {
   return (
     <label>
       Channel
-      <select name={props.name ?? 'channelId'} required>
-        {props.guild.channels.map((channel) => (
-          <option value={channel.id}>#{channel.name}</option>
+      <select name={name} required>
+        {guild.channels.map(({ id, name: channel }) => (
+          <option key={id} value={id}>
+            #{channel}
+          </option>
         ))}
       </select>
     </label>
   );
 }
 
-export function Checkbox(
-  props: Readonly<{
-    name: string;
-    label: string;
-    checked?: boolean;
-    value?: string;
-  }>,
-) {
+export function Checkbox({
+  name,
+  label,
+  checked = false,
+  value = '1',
+}: Readonly<{
+  name: string;
+  label: string;
+  checked?: boolean;
+  value?: string;
+}>) {
   return (
     <label>
-      <input
-        type="checkbox"
-        name={props.name}
-        value={props.value ?? '1'}
-        checked={props.checked}
-      />
-      {props.label}
+      <input type="checkbox" name={name} value={value} checked={checked} />
+      {label}
     </label>
   );
 }
 
-export function ActionButton(
-  props: Readonly<{ action: string; label: string }>,
-) {
+export function ActionButton({
+  action,
+  label,
+}: Readonly<{ action: string; label: string }>) {
   return (
-    <form method="post" action={props.action}>
-      <button type="submit">{props.label}</button>
+    <form method="post" action={action}>
+      <button type="submit">{label}</button>
     </form>
   );
 }

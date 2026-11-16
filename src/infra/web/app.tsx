@@ -1,38 +1,22 @@
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/domain';
-import { back, type Env, type WebDeps } from './context';
+import { back, guildOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
 import { Layout } from './layout';
 import { permissionPages } from './permissions';
 import { pollPages } from './polls';
 import { psaPages } from './psa';
 
-const style = `${readFileSync(
-  createRequire(import.meta.url).resolve(
-    '@picocss/pico/css/pico.classless.min.css',
-  ),
-  'utf8',
-)}
-td form { display: inline-block; margin: 0 .25rem 0 0; }
-td button { padding: .25rem .75rem; margin: 0; }
-.notice { padding: .5rem .75rem; border-radius: 6px; background: #dafbe1; color: #1a7f37; }
-.error { padding: .5rem .75rem; border-radius: 6px; background: #ffebe9; color: #cf222e; }
-.discord { background: #313338; color: #dbdee1; padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
-.discord .h1 { font-size: 1.5rem; font-weight: 700; }
-.mention { background: #3c4270; color: #c9cdfb; border-radius: 3px; padding: 0 .15rem; }
-`;
-
-function Message(props: Readonly<{ title: string; text: string }>) {
+function Message({ title, text }: Readonly<{ title: string; text: string }>) {
   return (
-    <Layout title={props.title} path="">
-      <p>{props.text}</p>
+    <Layout title={title} path="">
+      <p>{text}</p>
       <p>
         <a href="/">Back to the overview</a>
       </p>
@@ -48,16 +32,14 @@ export function createWebApp(deps: WebDeps) {
     secureHeaders({
       contentSecurityPolicy: {
         defaultSrc: ["'none'"],
-        styleSrc: ["'self'"],
+        styleSrc: ["'self'", 'https://cdn.jsdelivr.net'],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
       },
       referrerPolicy: 'same-origin',
     }),
   );
-  app.get('/style.css', (c) =>
-    c.body(style, 200, { 'Content-Type': 'text/css; charset=utf-8' }),
-  );
+  app.use(serveStatic({ root: 'public' }));
   app.use(
     bodyLimit({
       maxSize: 64 * 1024,
@@ -85,18 +67,9 @@ export function createWebApp(deps: WebDeps) {
       directory.channels(guildId),
       directory.roles(guildId),
     ]);
-    const roleNames = new Map(roles.map((role) => [role.id, role.name]));
-    const channelNames = new Map(
-      channels.map((channel) => [channel.id, channel.name]),
-    );
 
     c.set('actor', actor);
-    c.set('guild', {
-      channels,
-      roles,
-      roleName: (id) => roleNames.get(id) ?? 'unknown role',
-      channelName: (id) => `#${channelNames.get(id) ?? id}`,
-    });
+    c.set('guild', guildOf(channels, roles));
 
     return next();
   });

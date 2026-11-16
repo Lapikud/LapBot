@@ -56,7 +56,9 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
                 Reminders
                 <select name="reminders">
                   {reminderChoices.map((choice) => (
-                    <option value={choice.value}>{choice.label}</option>
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -77,7 +79,7 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
             </thead>
             <tbody>
               {upcoming.map((e) => (
-                <tr>
+                <tr key={e.id}>
                   <td>{e.id}</td>
                   <td>{e.title}</td>
                   <td>{date(e.startsAt)}</td>

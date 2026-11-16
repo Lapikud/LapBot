@@ -36,6 +36,22 @@ export type Guild = {
   channelName: (id: string) => string;
 };
 
+export function guildOf(channels: ChannelInfo[], roles: RoleInfo[]): Guild {
+  const roleNames = new Map<string, string>(
+    roles.map((role) => [role.id, role.name]),
+  );
+  const channelNames = new Map<string, string>(
+    channels.map((channel) => [channel.id, channel.name]),
+  );
+
+  return {
+    channels,
+    roles,
+    roleName: (id: string): string => roleNames.get(id) ?? 'unknown role',
+    channelName: (id: string): string => `#${channelNames.get(id) ?? id}`,
+  };
+}
+
 export type Env = { Variables: { actor: Actor; guild: Guild } };
 
 export type Flash = { notice?: string; error?: string };

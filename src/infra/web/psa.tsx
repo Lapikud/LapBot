@@ -31,12 +31,11 @@ function draftOf(form: Form) {
 
 type Draft = ReturnType<typeof draftOf>;
 
-function MentionPicker(
-  props: Readonly<{ guild: Guild; draft: Draft | undefined }>,
-) {
-  const roles = props.guild.roles.filter(
-    (role) => !role.everyone && !role.managed,
-  );
+function MentionPicker({
+  guild,
+  draft,
+}: Readonly<{ guild: Guild; draft: Draft | undefined }>) {
+  const roles = guild.roles.filter((role) => !role.everyone && !role.managed);
 
   return (
     <fieldset>
@@ -44,67 +43,72 @@ function MentionPicker(
       <Checkbox
         name="everyone"
         label="@everyone"
-        checked={props.draft?.mentionEveryone ?? false}
+        checked={draft?.mentionEveryone ?? false}
       />
-      {roles.map((role) => (
+      {roles.map(({ id, name }) => (
         <Checkbox
+          key={id}
           name="role"
-          value={role.id}
-          label={`@${role.name}`}
-          checked={props.draft?.mentionRoleIds.includes(role.id) ?? false}
+          value={id}
+          label={`@${name}`}
+          checked={draft?.mentionRoleIds.includes(id) ?? false}
         />
       ))}
     </fieldset>
   );
 }
 
-function Composer(
-  props: Readonly<{ guild: Guild; draft?: Draft; preview?: Child }>,
-) {
+const actions = [
+  ['preview', 'Preview'],
+  ['draft', 'Save draft'],
+  ['schedule', 'Schedule'],
+  ['publish', 'Publish now'],
+] as const;
+
+function Composer({
+  guild,
+  draft,
+  preview,
+}: Readonly<{ guild: Guild; draft?: Draft; preview?: Child }>) {
   return (
     <form method="post" action="/psa">
-      <ChannelSelect guild={props.guild} />
+      <ChannelSelect guild={guild} />
       <label>
         Title
-        <input name="title" maxlength={256} value={props.draft?.title} />
+        <input name="title" maxlength={256} value={draft?.title} />
       </label>
       <label>
         Message
         <textarea name="content" rows={8} maxlength={1900} required>
-          {props.draft?.content}
+          {draft?.content}
         </textarea>
       </label>
-      <MentionPicker guild={props.guild} draft={props.draft} />
+      <MentionPicker guild={guild} draft={draft} />
       <label>
         Publish later
         <input name="when" placeholder="e.g. 2h, tomorrow 9:00, fri 18:00" />
       </label>
-      {props.preview}
+      {preview}
       <div role="group">
-        <button name="action" value="preview">
-          Preview
-        </button>
-        <button name="action" value="draft">
-          Save draft
-        </button>
-        <button name="action" value="schedule">
-          Schedule
-        </button>
-        <button name="action" value="publish">
-          Publish now
-        </button>
+        {actions.map(([value, label]) => (
+          <button key={value} type="submit" name="action" value={value}>
+            {label}
+          </button>
+        ))}
       </div>
     </form>
   );
 }
 
-function Recent(
-  props: Readonly<{
-    list: Announcement[];
-    guild: Guild;
-    date: (value: Date | null) => string;
-  }>,
-) {
+function Recent({
+  list,
+  guild,
+  date,
+}: Readonly<{
+  list: Announcement[];
+  guild: Guild;
+  date: (value: Date | null) => string;
+}>) {
   return (
     <table>
       <thead>
@@ -118,8 +122,8 @@ function Recent(
         </tr>
       </thead>
       <tbody>
-        {props.list.map((a) => (
-          <tr>
+        {list.map((a) => (
+          <tr key={a.id}>
             <td>{a.id}</td>
             <td>
               {a.status}
@@ -130,9 +134,9 @@ function Recent(
                 </>
               )}
             </td>
-            <td>{props.guild.channelName(a.channelId)}</td>
+            <td>{guild.channelName(a.channelId)}</td>
             <td>{a.title ?? a.content.slice(0, 60)}</td>
-            <td>{props.date(a.publishedAt ?? a.scheduledAt)}</td>
+            <td>{date(a.publishedAt ?? a.scheduledAt)}</td>
             <td>
               {a.status === 'draft' || a.status === 'scheduled' ? (
                 <>

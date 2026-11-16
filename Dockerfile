@@ -18,6 +18,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
+COPY public ./public
 COPY package.json ./
 USER node
 CMD ["node", "--enable-source-maps", "dist/index.mjs"]

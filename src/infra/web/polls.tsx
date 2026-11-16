@@ -57,7 +57,7 @@ export function pollPages({ guildId, services, timezone }: WebDeps) {
             </thead>
             <tbody>
               {open.map((p) => (
-                <tr>
+                <tr key={p.id}>
                   <td>{p.id}</td>
                   <td>{p.question}</td>
                   <td>{date(p.closesAt)}</td>

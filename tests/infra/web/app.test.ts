@@ -125,7 +125,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('serves the stylesheet the pages link to', async () => {
-    const response = await get('/style.css');
+    const response = await get('/app.css');
 
     expect(response.headers.get('content-type')).toContain('text/css');
     expect(await response.text()).toContain('.discord');

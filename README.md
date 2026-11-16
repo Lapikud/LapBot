@@ -81,7 +81,9 @@ it on the host's loopback). Reach it from elsewhere through an SSH tunnel, not
 a public proxy. Sign-in plugs in through the `Authenticator` port.
 
 The pages are server-rendered [Hono](https://hono.dev) JSX styled by
-[Pico.css](https://picocss.com) (classless, so plain form markup looks right).
+[Pico.css](https://picocss.com) (classless, so plain form markup looks right),
+loaded from jsDelivr. Our own styles are in `public/app.css`; every file in
+`public/` is served as is.
 Each section is one file in `src/infra/web/` that returns a small Hono app;
 to add a page, write one and mount it with `app.route()` in `app.tsx`. Forms
 post back to the same path, so there is no client-side JavaScript.
