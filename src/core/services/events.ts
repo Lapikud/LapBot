@@ -68,6 +68,21 @@ export type EventChanges = Partial<
   >
 >;
 
+const maxTitleLength = 200;
+const maxDescriptionLength = 1500;
+
+function requireText(title: string, description?: string) {
+  if (title.trim() === '' || title.length > maxTitleLength) {
+    throw new UserError(`Give a title of 1–${maxTitleLength} characters.`);
+  }
+
+  if ((description?.length ?? 0) > maxDescriptionLength) {
+    throw new UserError(
+      `Keep the description under ${maxDescriptionLength} characters.`,
+    );
+  }
+}
+
 export function eventView(event: Event, counts: RsvpCounts): Message {
   const cancelled = event.status === 'cancelled';
   const icon = (emoji: string) => (event.icons ? `${emoji} ` : '');
@@ -82,33 +97,20 @@ export function eventView(event: Event, counts: RsvpCounts): Message {
     event.capacity === null
       ? String(counts.going)
       : `${counts.going} / ${event.capacity}`;
-  const details = [
+  const prefix = cancelled ? '[Cancelled] ' : '';
+  const lines = [
+    `# ${prefix}${event.title}`,
+    ...(event.description === null ? [] : [event.description, '']),
     `${icon('🗓️')}${discordTime(event.startsAt, 'D')} (${discordTime(event.startsAt, 'R')})`,
     `${icon('🕐')}${discordTime(event.startsAt, 't')}${end}`,
     ...(event.location === null ? [] : [`${icon('📍')}${event.location}`]),
+    '',
+    `**Going:** ${going} · **Maybe:** ${counts.maybe}`,
+    `-# Event #${event.id} · organized by ${userMention(event.organizerId)}`,
   ];
 
   return {
-    embeds: [
-      {
-        title: cancelled ? `[Cancelled] ${event.title}` : event.title,
-        color: cancelled ? 0x80_80_80 : 0x2b_8a_3e,
-        description: [
-          ...(event.description === null ? [] : [event.description, '']),
-          ...details,
-        ].join('\n'),
-        fields: [
-          {
-            name: 'Organizer',
-            value: userMention(event.organizerId),
-            inline: true,
-          },
-          { name: 'Going', value: going, inline: true },
-          { name: 'Maybe', value: String(counts.maybe), inline: true },
-        ],
-        footer: `Event #${event.id}`,
-      },
-    ],
+    content: lines.join('\n'),
     controls: cancelled
       ? []
       : [
@@ -308,13 +310,17 @@ export function createEventService(deps: Deps) {
 
   const publish = async (input: NewEvent, native = false) => {
     let event = await events.insert(input);
-    const sent = await messenger.send(event.channelId, {
-      ...eventView(event, { going: 0, maybe: 0, not_going: 0 }),
-      ...(event.mentionRoleId !== null && {
-        content: roleMention(event.mentionRoleId),
-        mentions: { roles: [event.mentionRoleId] },
-      }),
-    });
+    const view = eventView(event, { going: 0, maybe: 0, not_going: 0 });
+    const sent = await messenger.send(
+      event.channelId,
+      event.mentionRoleId === null
+        ? view
+        : {
+            ...view,
+            content: `${roleMention(event.mentionRoleId)}\n${view.content ?? ''}`,
+            mentions: { roles: [event.mentionRoleId] },
+          },
+    );
 
     event = await events.update(event.id, {
       messageId: sent.messageId,
@@ -396,6 +402,8 @@ export function createEventService(deps: Deps) {
         throw new UserError('The end must be after the start.');
       }
 
+      requireText(request.title, request.description);
+
       const event = await publish(
         {
           guildId: actor.guildId,
@@ -438,6 +446,8 @@ export function createEventService(deps: Deps) {
       if (endsAt && endsAt <= startsAt) {
         throw new UserError('The end must be after the start.');
       }
+
+      requireText(changes.title ?? event.title, changes.description);
 
       let updated = await events.update(event.id, {
         title: changes.title ?? event.title,

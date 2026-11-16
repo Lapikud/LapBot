@@ -49,7 +49,7 @@ const data = new SlashCommandBuilder()
         o
           .setName('description')
           .setDescription('Description')
-          .setMaxLength(2000),
+          .setMaxLength(1500),
       )
       .addStringOption((o) =>
         o.setName('end').setDescription('e.g. 21:00 or 3h after the start'),
@@ -111,7 +111,7 @@ const data = new SlashCommandBuilder()
         o
           .setName('description')
           .setDescription('Description')
-          .setMaxLength(2000),
+          .setMaxLength(1500),
       )
       .addStringOption((o) =>
         o.setName('location').setDescription('Place or link').setMaxLength(200),

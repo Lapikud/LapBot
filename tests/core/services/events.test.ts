@@ -54,7 +54,7 @@ describe('event helpers', () => {
     };
     const counts = { going: 0, maybe: 0, not_going: 0 };
     const text = (icons: boolean) =>
-      eventView({ ...event, icons }, counts).embeds?.[0]?.description ?? '';
+      eventView({ ...event, icons }, counts).content ?? '';
 
     expect(text(true)).toContain('🗓️ <t:');
     expect(text(true)).toContain('🕐 <t:1795190400:t> – <t:1795201200:t>');
@@ -222,6 +222,6 @@ describe.skipIf(noDatabase)('event service', () => {
       'going',
     );
 
-    expect(JSON.stringify(view.embeds)).toContain('1 / 5');
+    expect(view.content).toContain('1 / 5');
   });
 });

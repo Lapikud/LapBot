@@ -40,7 +40,7 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
             </div>
             <label>
               Description
-              <textarea name="description" rows={3} maxlength={2000} />
+              <textarea name="description" rows={3} maxlength={1500} />
             </label>
             <label>
               Location
