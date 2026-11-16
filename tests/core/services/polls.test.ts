@@ -146,10 +146,7 @@ describe.skipIf(noDatabase)('poll service', () => {
       poll.id,
       [poll.options[1]?.id ?? 0],
     );
-    await service.jobs[0]?.run(
-      { pollId: poll.id },
-      { id: 1, runAt: new Date(), attempt: 1 },
-    );
+    await service.jobs[0]?.run({ pollId: poll.id });
 
     const closed = await repository.find(poll.id);
 

@@ -219,7 +219,7 @@ export function createBirthdayService(deps: Deps) {
       async (actor, change: BirthdayConfiguration) => {
         if (change.disable === true) {
           await birthdays.deleteSettings(actor.guildId);
-          await scheduler.cancel(dailyKey(actor.guildId));
+          await scheduler.cancel(dailyJob, dailyKey(actor.guildId));
 
           return 'Birthday announcements are off.';
         }

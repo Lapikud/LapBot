@@ -138,10 +138,7 @@ describe.skipIf(noDatabase)('announcement service', () => {
       status: 'scheduled',
       scheduledAt: new Date(Date.now() - 2 * 3_600_000),
     });
-    await service.jobs[0]?.run(
-      { announcementId: draft.id },
-      { id: 1, runAt: new Date(), attempt: 1 },
-    );
+    await service.jobs[0]?.run({ announcementId: draft.id });
     expect(messenger.send).not.toHaveBeenCalled();
     expect((await repository.find(draft.id))?.status).toBe('failed');
   });
@@ -153,14 +150,13 @@ describe.skipIf(noDatabase)('announcement service', () => {
       content: 'Hi',
     });
     const job = service.jobs[0];
-    const info = { id: 1, runAt: new Date(), attempt: 1 };
 
     await repository.transition(draft.id, ['draft'], {
       status: 'scheduled',
       scheduledAt: new Date(),
     });
-    await job?.run({ announcementId: draft.id }, info);
-    await job?.run({ announcementId: draft.id }, info);
+    await job?.run({ announcementId: draft.id });
+    await job?.run({ announcementId: draft.id });
     expect(messenger.send).toHaveBeenCalledOnce();
     expect((await repository.find(draft.id))?.status).toBe('published');
   });

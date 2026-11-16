@@ -160,10 +160,9 @@ describe.skipIf(noDatabase)('birthdays', () => {
     await service.configure(admin, { channelId: 'c' });
 
     const [daily] = service.jobs;
-    const info = { id: 1, runAt: new Date(), attempt: 1 };
-    const outcome = await daily?.run({ guildId: admin.guildId }, info);
+    const outcome = await daily?.run({ guildId: admin.guildId });
 
-    await daily?.run({ guildId: admin.guildId }, info);
+    await daily?.run({ guildId: admin.guildId });
     expect(messenger.send).toHaveBeenCalledOnce();
     expect(messenger.send).toHaveBeenCalledWith(
       'c',

@@ -192,7 +192,7 @@ export function createReminderService(deps: Deps) {
     cancel: async (actor: Actor, id: number) => {
       await own(actor, id);
       await reminders.update(id, { status: 'cancelled' });
-      await scheduler.cancel(jobKey(id));
+      await scheduler.cancel(deliverJob, jobKey(id));
     },
   };
 }

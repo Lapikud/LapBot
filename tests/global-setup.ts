@@ -14,6 +14,7 @@ export default async function setup(): Promise<void> {
 
   await sql`DROP SCHEMA IF EXISTS public CASCADE`;
   await sql`DROP SCHEMA IF EXISTS drizzle CASCADE`;
+  await sql`DROP SCHEMA IF EXISTS pgboss CASCADE`;
   await sql`CREATE SCHEMA public`;
   await sql.end();
   const database = connectDatabase(url);

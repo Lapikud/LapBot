@@ -32,7 +32,8 @@ import {
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger } from '~/infra/logging';
-import { createJobQueue, createJobRunner } from '~/infra/scheduler';
+import { PgBoss } from 'pg-boss';
+import { createJobQueue, startJobs } from '~/infra/scheduler';
 import { systemClock, type Directory, type Job } from '~/core/ports';
 import type { Actor } from '~/domain';
 import {
@@ -89,7 +90,8 @@ export function compose(config: Config, log: Logger) {
     legacy: legacyPanel(config),
   });
   const timezone = config.DEFAULT_TIMEZONE;
-  const scheduler = createJobQueue(database.db);
+  const boss = new PgBoss({ connectionString: config.DATABASE_URL });
+  const scheduler = createJobQueue(boss);
   const reminders = createReminderService({
     reminders: createReminderRepository(database.db),
     scheduler,
@@ -204,6 +206,7 @@ export function compose(config: Config, log: Logger) {
 
   return {
     database,
+    boss,
     client,
     authz,
     registry,
@@ -268,19 +271,21 @@ export async function startApp(
   config: Config,
   log: Logger,
 ): Promise<() => Promise<void>> {
-  const { database, client, authz, registry, directory, jobs, web } = compose(
-    config,
-    log,
-  );
+  const { database, boss, client, authz, registry, directory, jobs, web } =
+    compose(config, log);
+  const jobLog = log.child({ component: 'scheduler' });
+
+  boss.on('error', (error) => {
+    jobLog.error({ err: error }, 'Job queue error');
+  });
 
   try {
     await runMigrations(database.db);
-    const runner = createJobRunner(
-      database.db,
-      jobs,
-      log.child({ component: 'scheduler' }),
-    );
+    await boss.start();
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
+
+    await startJobs(boss, jobs.values(), jobLog);
+
     const ctx: AppContext = { log, authz };
 
     for (const feature of registry.features) {
@@ -315,7 +320,6 @@ export async function startApp(
         }
       }),
     );
-    runner.start();
 
     const stopWeb = await startWeb(config, {
       directory,
@@ -332,11 +336,12 @@ export async function startApp(
     return async () => {
       client.removeAllListeners(Events.InteractionCreate);
       await stopWeb();
-      await runner.stop();
+      await boss.stop();
       await client.destroy();
       await database.close();
     };
   } catch (error) {
+    await boss.stop().catch(() => null);
     await client.destroy();
     await database.close();
     throw error;

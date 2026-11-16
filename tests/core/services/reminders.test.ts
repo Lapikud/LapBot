@@ -12,8 +12,6 @@ import {
   fakeMessenger,
 } from '../../fakes';
 
-const info = { id: 1, runAt: new Date(), attempt: 1 };
-
 describe.skipIf(noDatabase)('reminder service', () => {
   const setup = (authz = allowAll) => {
     const { messenger } = fakeMessenger();
@@ -66,7 +64,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
       message: 'stand-up',
     });
 
-    expect(await deliver?.run({ reminderId: reminder.id }, info)).toBeNull();
+    expect(await deliver?.run({ reminderId: reminder.id })).toBeNull();
     expect(messenger.direct).toHaveBeenCalledWith(member.userId, {
       content: '⏰ **Reminder:** stand-up',
     });
@@ -84,7 +82,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
       recurrence: 'daily',
       timezone: 'Europe/Tallinn',
     });
-    const outcome = await deliver?.run({ reminderId: reminder.id }, info);
+    const outcome = await deliver?.run({ reminderId: reminder.id });
 
     expect(outcome?.rescheduleAt.getTime()).toBeGreaterThan(Date.now());
     expect(outcome?.rescheduleAt.getTime()).toBeLessThanOrEqual(
@@ -106,7 +104,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
     });
 
     await expect(
-      deliver?.run({ reminderId: reminder.id }, info),
+      deliver?.run({ reminderId: reminder.id }),
     ).rejects.toBeInstanceOf(PermanentError);
     expect((await repository.find(reminder.id))?.status).toBe('failed');
   });
@@ -122,7 +120,7 @@ describe.skipIf(noDatabase)('reminder service', () => {
       service.cancel(actor({ guildId: member.guildId }), reminder.id),
     ).rejects.toBeInstanceOf(UserError);
     await service.cancel(member, reminder.id);
-    await deliver?.run({ reminderId: reminder.id }, info);
+    await deliver?.run({ reminderId: reminder.id });
     expect(messenger.direct).not.toHaveBeenCalled();
   });
 

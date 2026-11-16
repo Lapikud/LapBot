@@ -180,10 +180,7 @@ describe.skipIf(noDatabase)('event service', () => {
 
     await service.cancel(organizer, event.id);
     messenger.send.mockClear();
-    await service.jobs[0]?.run(
-      { eventId: event.id, minutes: 60 },
-      { id: 1, runAt: new Date(), attempt: 1 },
-    );
+    await service.jobs[0]?.run({ eventId: event.id, minutes: 60 });
     expect(messenger.send).not.toHaveBeenCalled();
   });
 

@@ -275,7 +275,7 @@ export function createPollService(deps: Deps) {
         throw new UserError('That poll is not open.');
       }
 
-      await scheduler.cancel(closeKey(id));
+      await scheduler.cancel(closeJob, closeKey(id));
       await refresh(id);
     },
     cancel: async (actor: Actor, id: number) => {
@@ -285,7 +285,7 @@ export function createPollService(deps: Deps) {
         throw new UserError('That poll is not open.');
       }
 
-      await scheduler.cancel(closeKey(id));
+      await scheduler.cancel(closeJob, closeKey(id));
       await refresh(id);
     },
   };

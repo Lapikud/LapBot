@@ -108,10 +108,9 @@ describe.skipIf(noDatabase)('redmine service', () => {
     await repository.setCheckpoint(subscription?.id ?? 0, since);
 
     const [poll] = service.jobs;
-    const info = { id: 1, runAt: new Date(), attempt: 1 };
-    const outcome = await poll?.run({}, info);
+    const outcome = await poll?.run({});
 
-    await poll?.run({}, info);
+    await poll?.run({});
 
     const ours = messenger.send.mock.calls.filter(([id]) => id === channelId);
 
@@ -134,8 +133,6 @@ describe.skipIf(noDatabase)('redmine service', () => {
       }),
     );
 
-    await expect(
-      service.jobs[0]?.run({}, { id: 1, runAt: new Date(), attempt: 1 }),
-    ).resolves.toBeDefined();
+    await expect(service.jobs[0]?.run({})).resolves.toBeDefined();
   });
 });

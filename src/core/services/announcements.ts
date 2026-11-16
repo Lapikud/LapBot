@@ -290,7 +290,7 @@ export function createAnnouncementService(deps: Deps) {
     },
     publish: guard(authz, 'announcement:publish', async (actor, id: number) => {
       await requireOwnGuild(actor, id);
-      await scheduler.cancel(jobKey(id));
+      await scheduler.cancel(publishJob, jobKey(id));
 
       return publish(id, reopenable);
     }),
@@ -336,7 +336,7 @@ export function createAnnouncementService(deps: Deps) {
         );
       }
 
-      await scheduler.cancel(jobKey(id));
+      await scheduler.cancel(publishJob, jobKey(id));
 
       return cancelled;
     },

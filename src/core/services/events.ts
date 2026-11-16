@@ -229,7 +229,7 @@ export function createEventService(deps: Deps) {
   ) => {
     await Promise.all(
       previous.map((minutes) =>
-        scheduler.cancel(reminderKey(event.id, minutes)),
+        scheduler.cancel(remindJob, reminderKey(event.id, minutes)),
       ),
     );
 
