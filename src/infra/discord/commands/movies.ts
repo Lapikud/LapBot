@@ -5,11 +5,21 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import type { MovieService } from '~/core/services';
-import { discordTime, maxPollOptions, movieLabel, userMention } from '~/domain';
+import {
+  discordTime,
+  maxPollOptions,
+  movieLabel,
+  movieLinks,
+  userMention,
+  type MovieLink,
+} from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';
 import type { Feature } from '../module';
 import { respond } from '../router';
+
+const linkLine = (links: readonly MovieLink[]) =>
+  links.map(({ label, url }) => `[${label}](<${url}>)`).join(' · ');
 
 const movieOption = (o: SlashCommandIntegerOption) =>
   o.setName('movie').setDescription('Movie').setAutocomplete(true);
@@ -38,6 +48,25 @@ const data = new SlashCommandBuilder()
       )
       .addStringOption((o) =>
         o.setName('note').setDescription('Why watch it?').setMaxLength(300),
+      )
+      .addStringOption((o) =>
+        o
+          .setName('link')
+          .setDescription('A link, e.g. Letterboxd or a trailer')
+          .setMaxLength(300),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName('link')
+      .setDescription('Add a link to a suggestion')
+      .addIntegerOption((o) => movieOption(o).setRequired(true))
+      .addStringOption((o) =>
+        o
+          .setName('url')
+          .setDescription('e.g. Letterboxd, IMDb or a trailer')
+          .setRequired(true)
+          .setMaxLength(300),
       ),
   )
   .addSubcommand((sub) =>
@@ -122,16 +151,30 @@ export function movieCommands(movies: MovieService): Feature {
       {
         data: data.toJSON(),
         execute: bySubcommand({
-          suggest: async (interaction) => {
+          suggest: deferred(async (interaction) => {
+            const link = interaction.options.getString('link');
             const movie = await movies.suggest(toActor(interaction.member), {
               title: interaction.options.getString('title', true),
               year: interaction.options.getInteger('year'),
               note: interaction.options.getString('note'),
+              links: link === null ? [] : [link],
             });
 
             await respond(
               interaction,
-              `Added #${movie.id} ${movieLabel(movie)} to the list.`,
+              `Added #${movie.id} ${movieLabel(movie)} to the list. ${linkLine(movieLinks(movie))}`,
+            );
+          }),
+          link: async (interaction) => {
+            const movie = await movies.addLinks(
+              toActor(interaction.member),
+              interaction.options.getInteger('movie', true),
+              [interaction.options.getString('url', true)],
+            );
+
+            await respond(
+              interaction,
+              `${movieLabel(movie)}: ${linkLine(movieLinks(movie))}`,
             );
           },
           suggestions: async (interaction) => {
@@ -142,11 +185,16 @@ export function movieCommands(movies: MovieService): Feature {
               list.length === 0
                 ? 'No suggestions yet. Add one with "/movie suggest".'
                 : list
-                    .map(
-                      (m) =>
-                        `#${m.id} ${movieLabel(m)} — ${userMention(m.suggestedBy)}`,
+                    .map((m) =>
+                      [
+                        `#${m.id} **${movieLabel(m)}** — ${userMention(m.suggestedBy)}`,
+                        linkLine(movieLinks(m)),
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
                     )
-                    .join('\n'),
+                    .join('\n')
+                    .slice(0, 2000),
             );
           },
           remove: async (interaction) => {

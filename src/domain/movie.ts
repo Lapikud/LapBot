@@ -33,3 +33,24 @@ export function validateLinks(links: readonly string[]): string[] {
 
   return [...new Set(trimmed)];
 }
+
+export type MovieLink = { label: string; url: string };
+
+export function movieLinks(movie: {
+  trailerUrl: string | null;
+  tmdbId: number | null;
+  links: readonly string[];
+}): MovieLink[] {
+  return [
+    ...(movie.trailerUrl === null
+      ? []
+      : [{ label: 'Trailer', url: movie.trailerUrl }]),
+    ...(movie.tmdbId === null
+      ? []
+      : [{ label: 'TMDB', url: tmdbPage(movie.tmdbId) }]),
+    ...movie.links.map((url) => ({
+      label: new URL(url).hostname.replace(/^www\./, ''),
+      url,
+    })),
+  ];
+}
