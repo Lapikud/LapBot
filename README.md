@@ -81,9 +81,7 @@ unless the bot may mention everyone.
 **There is no sign-in yet.** Whoever can open the page acts as a server
 administrator, which is why it listens on `127.0.0.1` only (Compose publishes
 it on the host's loopback). Reach it from elsewhere through an SSH tunnel, not
-a public proxy. Sign-in plugs in through the `Authenticator` port;
-`createDiscordOAuth` in `src/infra/web/auth.ts` is a Discord OAuth2 adapter
-that is written and tested but not connected yet.
+a public proxy. Sign-in plugs in through the `Authenticator` port.
 
 ## Permissions
 
