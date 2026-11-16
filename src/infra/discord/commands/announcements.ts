@@ -79,9 +79,6 @@ const data = new SlashCommandBuilder()
             ChannelType.GuildText,
             ChannelType.GuildAnnouncement,
           ),
-      )
-      .addBooleanOption((o) =>
-        o.setName('embed').setDescription('Post as an embed (default no)'),
       ),
   )
   .addSubcommand((sub) =>
@@ -140,7 +137,7 @@ export function announcementCommands(
         return;
       }
 
-      const [channelId = '', embed] = args;
+      const [channelId = ''] = args;
       const roles = interaction.fields.getSelectedRoles('mentions');
       const announcement = await announcements.draft(
         toActor(interaction.member),
@@ -148,7 +145,6 @@ export function announcementCommands(
           channelId,
           title: interaction.fields.getTextInputValue('title'),
           content: interaction.fields.getTextInputValue('content'),
-          embed: embed === '1',
           mentionRoleIds: roles ? [...roles.keys()] : [],
           mentionEveryone: interaction.fields
             .getStringSelectValues('everyone')
@@ -204,11 +200,10 @@ export function announcementCommands(
         execute: bySubcommand({
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);
-            const embed = interaction.options.getBoolean('embed') ?? false;
 
             await interaction.showModal(
               contentModal(
-                controlId('announcements:create', channel.id, embed ? 1 : 0),
+                controlId('announcements:create', channel.id),
                 'New announcement',
               ).addLabelComponents(
                 new LabelBuilder()

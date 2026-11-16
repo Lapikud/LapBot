@@ -26,7 +26,6 @@ export const announcements = pgTable(
     channelId: text('channel_id').notNull(),
     title: text('title'),
     content: text('content').notNull(),
-    embed: boolean('embed').notNull().default(true),
     mentionRoleIds: text('mention_role_ids').array().notNull().default([]),
     mentionEveryone: boolean('mention_everyone').notNull().default(false),
     status: announcementStatus('status').notNull().default('draft'),

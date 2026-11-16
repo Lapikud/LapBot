@@ -49,23 +49,15 @@ const lines = (text: string, names: Names) =>
     .split('\n')
     .map(
       (line, index) =>
-        html`${index > 0 ? lineBreak : ''}${inline(line, names)}`,
+        html`${index > 0 ? lineBreak : ''}${
+          line.startsWith('# ')
+            ? html`<span class="h1">${inline(line.slice(2), names)}</span>`
+            : inline(line, names)
+        }`,
     );
 
 export function messagePreview(message: Message, names: Names): Html {
   return html`<div class="discord">
     ${message.content === undefined || message.content === '' ? '' : html`<p>${lines(message.content, names)}</p>`}
-    ${(message.embeds ?? []).map(
-      (embed) =>
-        html`<div
-          class="embed"
-          style="border-color: #${(embed.color ?? 0x5865f2).toString(16).padStart(6, '0')}"
-        >
-          ${embed.title === undefined ? '' : html`<strong>${embed.title}</strong>`}
-          ${embed.description === undefined ? '' : html`<p>${lines(embed.description, names)}</p>`}
-          ${(embed.fields ?? []).map((field) => html`<p><strong>${field.name}</strong><br />${lines(field.value, names)}</p>`)}
-          ${embed.footer === undefined ? '' : html`<small>${embed.footer}</small>`}
-        </div>`,
-    )}
   </div>`;
 }

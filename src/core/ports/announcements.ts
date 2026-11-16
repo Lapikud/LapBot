@@ -8,7 +8,6 @@ export type Announcement = {
   channelId: string;
   title: string | null;
   content: string;
-  embed: boolean;
   mentionRoleIds: string[];
   mentionEveryone: boolean;
   status: AnnouncementStatus;
@@ -26,7 +25,6 @@ export type NewAnnouncement = Pick<
   | 'channelId'
   | 'title'
   | 'content'
-  | 'embed'
   | 'mentionRoleIds'
   | 'mentionEveryone'
 >;
@@ -49,12 +47,7 @@ export type AnnouncementRepository = {
     changes: Partial<
       Pick<
         Announcement,
-        | 'title'
-        | 'content'
-        | 'channelId'
-        | 'embed'
-        | 'mentionRoleIds'
-        | 'mentionEveryone'
+        'title' | 'content' | 'channelId' | 'mentionRoleIds' | 'mentionEveryone'
       >
     >,
   ) => Promise<void>;

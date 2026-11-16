@@ -18,7 +18,7 @@ td form { display: inline; margin: 0; }
 .notice { padding: .5rem .75rem; border-radius: 6px; background: #dafbe1; }
 .error { padding: .5rem .75rem; border-radius: 6px; background: #ffebe9; }
 .discord { background: #313338; color: #dbdee1; padding: .75rem 1rem; border-radius: 8px; max-width: 36rem; }
-.embed { border-left: 4px solid; background: #2b2d31; padding: .5rem .75rem; border-radius: 4px; margin-top: .5rem; }
+.h1 { font-size: 1.5rem; font-weight: 700; }
 .mention { background: #3c4270; color: #c9cdfb; border-radius: 3px; padding: 0 .15rem; }
 `;
 

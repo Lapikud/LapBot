@@ -19,7 +19,6 @@ const sample = (overrides: Partial<Announcement> = {}): Announcement => ({
   channelId: 'c',
   title: 'Hello',
   content: 'World',
-  embed: false,
   mentionRoleIds: [],
   mentionEveryone: false,
   status: 'draft',
@@ -39,7 +38,7 @@ describe('announcement view', () => {
     expect(
       announcementView(sample({ mentionRoleIds: ['r1', 'r2'] })),
     ).toMatchObject({
-      content: '<@&r1> <@&r2>\n**Hello**\nWorld',
+      content: '<@&r1> <@&r2>\n# Hello\nWorld',
       mentions: { roles: ['r1', 'r2'] },
     });
     expect(
@@ -47,13 +46,10 @@ describe('announcement view', () => {
     ).toBe(true);
   });
 
-  it('rejects plain messages over the Discord limit', () => {
+  it('rejects messages over the Discord limit', () => {
     expect(() =>
       announcementView(sample({ content: 'x'.repeat(2001) })),
     ).toThrow('2000');
-    expect(() =>
-      announcementView(sample({ content: 'x'.repeat(2001), embed: true })),
-    ).not.toThrow();
   });
 });
 

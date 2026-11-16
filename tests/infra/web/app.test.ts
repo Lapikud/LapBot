@@ -160,7 +160,6 @@ describe.skipIf(noDatabase)('web UI', () => {
       title: '<b>Hi</b>',
       content: `Meeting <@&${teamId}> **now**`,
       role: teamId,
-      embed: '1',
       action: 'preview',
     });
     const page = await response.text();
@@ -177,7 +176,6 @@ describe.skipIf(noDatabase)('web UI', () => {
       title: 'Hackathon',
       content: 'Sign up today',
       role: teamId,
-      embed: '1',
       action: 'publish',
     });
 
@@ -186,7 +184,7 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect(messenger.send).toHaveBeenCalledWith(
       'general',
       expect.objectContaining({
-        content: `<@&${teamId}>`,
+        content: `<@&${teamId}>\n# Hackathon\nSign up today`,
         mentions: { everyone: false, roles: [teamId] },
       }),
     );

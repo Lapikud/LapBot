@@ -26,16 +26,14 @@ import { defineJob } from './jobs';
 
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
-const accent = 0xff_ac_1c;
 const reopenable: AnnouncementStatus[] = ['draft', 'scheduled', 'failed'];
 
-export const maxAnnouncementLength = 4000;
+export const maxAnnouncementLength = 1900;
 
 export type AnnouncementDraft = {
   channelId: string;
   title?: string;
   content: string;
-  embed?: boolean;
   mentionRoleIds?: readonly string[];
   mentionEveryone?: boolean;
 };
@@ -50,29 +48,15 @@ export function announcementView(announcement: Announcement): Message {
     roles: announcement.mentionRoleIds,
   };
 
-  if (announcement.embed) {
-    return {
-      ...(pings !== '' && { content: pings }),
-      embeds: [
-        {
-          ...(announcement.title !== null && { title: announcement.title }),
-          description: announcement.content,
-          color: accent,
-        },
-      ],
-      mentions,
-    };
-  }
-
   const heading =
-    announcement.title === null ? '' : `**${announcement.title}**\n`;
+    announcement.title === null ? '' : `# ${announcement.title}\n`;
   const content = [pings, `${heading}${announcement.content}`]
     .filter(Boolean)
     .join('\n');
 
   if (content.length > maxContentLength) {
     throw new UserError(
-      'Plain announcements are limited to 2000 characters; use an embed.',
+      'Announcements are limited to 2000 characters, including the title and mentions.',
     );
   }
 
@@ -244,7 +228,6 @@ export function createAnnouncementService(deps: Deps) {
           channelId: draft.channelId,
           title: title === '' ? null : title,
           content: draft.content,
-          embed: draft.embed ?? true,
           mentionRoleIds: [...(draft.mentionRoleIds ?? [])],
           mentionEveryone: draft.mentionEveryone ?? false,
         });

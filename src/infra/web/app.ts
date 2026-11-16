@@ -136,7 +136,6 @@ function psaDraft(context: Context) {
     channelId: field(context.form, 'channelId') ?? '',
     title: field(context.form, 'title') ?? '',
     content: context.form.get('content') ?? '',
-    embed: context.form.get('embed') === '1',
     mentionRoleIds: context.form.getAll('role'),
     mentionEveryone: context.form.get('everyone') === '1',
   };
@@ -152,13 +151,9 @@ function psaForm(context: Context, preview?: Html) {
       /></label>
       <label
         >Message
-        <textarea name="content" rows="8" maxlength="4000" required>
+        <textarea name="content" rows="8" maxlength="1900" required>
 ${draft.content}</textarea>
       </label>
-      <label
-        ><input type="checkbox" name="embed" value="1" checked /> Post as an
-        embed</label
-      >
       ${mentionPicker(context, draft.mentionRoleIds)}
       <label
         >Publish later
