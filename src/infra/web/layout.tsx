@@ -99,11 +99,14 @@ export function Layout({
   );
 }
 
-export function ChannelOptions({ server }: Readonly<{ server: Server }>) {
+export function ChannelOptions({
+  server,
+  selected,
+}: Readonly<{ server: Server; selected?: string | undefined }>) {
   return (
     <>
       {server.channels.map(({ id, name }) => (
-        <option key={id} value={id}>
+        <option key={id} value={id} selected={selected === id}>
           #{name}
         </option>
       ))}
@@ -114,12 +117,13 @@ export function ChannelOptions({ server }: Readonly<{ server: Server }>) {
 export function ChannelSelect({
   server,
   name = 'channelId',
-}: Readonly<{ server: Server; name?: string }>) {
+  selected,
+}: Readonly<{ server: Server; name?: string; selected?: string | undefined }>) {
   return (
     <label>
       Channel
       <select name={name} required>
-        <ChannelOptions server={server} />
+        <ChannelOptions server={server} selected={selected} />
       </select>
     </label>
   );

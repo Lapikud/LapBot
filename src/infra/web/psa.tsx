@@ -23,6 +23,7 @@ function draftOf(form: Form) {
   const content = form.get('content');
 
   return {
+    when: field(form, 'when') ?? '',
     channelId: field(form, 'channelId') ?? '',
     title: field(form, 'title') ?? '',
     content: typeof content === 'string' ? content : '',
@@ -87,7 +88,7 @@ function Composer({
 }>) {
   return (
     <form method="post" action="/psa">
-      <ChannelSelect server={server} />
+      <ChannelSelect server={server} selected={draft?.channelId} />
       <label>
         Title
         <input name="title" maxlength={256} value={draft?.title} />
@@ -101,7 +102,11 @@ function Composer({
       <MentionPicker server={server} draft={draft} />
       <label>
         Publish later
-        <input name="when" placeholder="e.g. 2h, tomorrow 9:00, fri 18:00" />
+        <input
+          name="when"
+          value={draft?.when}
+          placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
+        />
       </label>
       {preview}
       <div role="group">

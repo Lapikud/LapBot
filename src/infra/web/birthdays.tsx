@@ -49,7 +49,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
           {allows(c, 'birthday:manage') ? (
             <>
               <form method="post" action="/birthdays">
-                <ChannelSelect server={server} />
+                <ChannelSelect server={server} selected={settings?.channelId} />
                 <div class="grid">
                   <label>
                     Role for the day

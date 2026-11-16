@@ -4,6 +4,8 @@ import type { WebDeps, Env } from '~/infra/web/context';
 import { serverOf, visibleRecords } from '~/infra/web/context';
 import { eventPages } from '~/infra/web/events';
 import { pollPages } from '~/infra/web/polls';
+import { psaPages } from '~/infra/web/psa';
+import { birthdayPages } from '~/infra/web/birthdays';
 import { actor, fakeDirectory } from '../../fakes';
 
 const channels = [
@@ -69,6 +71,46 @@ it('hides private event and poll records from dashboard lists', async () => {
   }
 
   expect(await visibleRecords(directory, member, records)).toHaveLength(1);
+});
+
+it('preserves the channel and scheduling time through PSA previews', async () => {
+  const deps = {
+    guildId: 'g',
+    timezone: 'UTC',
+    services: {
+      announcements: { view: () => ({ content: 'Hello' }) },
+    },
+  } as unknown as WebDeps;
+  const response = await appFor(psaPages(deps)).request('/', {
+    method: 'POST',
+    body: new URLSearchParams({
+      action: 'preview',
+      channelId: 'private',
+      content: 'Hello',
+      when: 'tomorrow 9:00',
+    }),
+  });
+  const html = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(html).toMatch(/value="private" selected/);
+  expect(html).toContain('value="tomorrow 9:00"');
+});
+
+it('selects the saved birthday announcement channel', async () => {
+  const deps = {
+    guildId: 'g',
+    directory,
+    services: {
+      birthdays: {
+        settings: async () => ({ channelId: 'private', hour: 9, roleId: null }),
+        upcoming: async () => [],
+      },
+    },
+  } as unknown as WebDeps;
+  const html = await (await appFor(birthdayPages(deps)).request('/')).text();
+
+  expect(html).toMatch(/value="private" selected/);
 });
 
 it('submits explicit nulls when event fields are cleared', async () => {
