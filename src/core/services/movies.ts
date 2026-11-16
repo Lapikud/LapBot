@@ -1,6 +1,7 @@
 import {
   maxOptionLength,
   movieLabel,
+  movieLinks,
   parseFutureWhen,
   parseWhen,
   UserError,
@@ -159,6 +160,7 @@ export function createMovieService(deps: Deps) {
           options: candidates.map((m) => ({
             label: movieLabel(m).slice(0, maxOptionLength),
             ref: String(m.id),
+            url: movieLinks(m)[0]?.url ?? null,
           })),
           closesAt,
           source: pollSource,
@@ -172,7 +174,13 @@ export function createMovieService(deps: Deps) {
         guildId: actor.guildId,
         title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
         description:
-          [movie.note, movie.overview?.slice(0, 900), movie.trailerUrl]
+          [
+            movie.note,
+            movie.overview?.slice(0, 900),
+            movieLinks(movie)
+              .map(({ label, url }) => `[${label}](<${url}>)`)
+              .join(' · '),
+          ]
             .filter(Boolean)
             .join('\n\n') || null,
         startsAt,

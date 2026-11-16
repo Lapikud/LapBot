@@ -24,6 +24,7 @@ export type PollOption = {
   position: number;
   label: string;
   ref: string | null;
+  url: string | null;
 };
 
 export type PollWithOptions = Poll & { options: PollOption[] };
@@ -37,7 +38,11 @@ export type NewPoll = Pick<
   Partial<
     Pick<Poll, 'multiple' | 'anonymous' | 'showResults' | 'closesAt' | 'source'>
   > & {
-    options: ReadonlyArray<{ label: string; ref?: string | null }>;
+    options: ReadonlyArray<{
+      label: string;
+      ref?: string | null;
+      url?: string | null;
+    }>;
   };
 
 export type PollRepository = {

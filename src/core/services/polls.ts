@@ -60,10 +60,12 @@ function statusLine(poll: Poll, open: boolean): string {
 export function pollView(poll: PollWithOptions, results: PollResults): Message {
   const open = isPollOpen(poll);
   const showCounts = poll.showResults === 'live' || !open;
+  const name = (option: { label: string; url: string | null }) =>
+    option.url === null ? option.label : `[${option.label}](<${option.url}>)`;
   const lines = results.options.map((option) =>
     showCounts
-      ? `${bar(option.votes, results.voters)} ${option.votes} · **${option.label}**`
-      : `• ${option.label}`,
+      ? `${bar(option.votes, results.voters)} ${option.votes} · **${name(option)}**`
+      : `• ${name(option)}`,
   );
   const outcome =
     !open && results.winners.length > 0

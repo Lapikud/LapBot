@@ -56,6 +56,7 @@ export const pollOptions = pgTable(
     position: integer('position').notNull(),
     label: text('label').notNull(),
     ref: text('ref'),
+    url: text('url'),
   },
   (table) => [
     unique('poll_options_position_unique').on(table.pollId, table.position),

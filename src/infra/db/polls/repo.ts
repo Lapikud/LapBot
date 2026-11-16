@@ -42,6 +42,7 @@ export async function insertPoll(
           position,
           label: labels[position] ?? '',
           ref: option.ref ?? null,
+          url: option.url ?? null,
         })),
       )
       .returning();

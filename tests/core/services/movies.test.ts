@@ -4,6 +4,7 @@ import {
   createEventService,
   createMovieService,
   createPollService,
+  pollView,
 } from '~/core/services';
 import {
   createEventRepository,
@@ -127,6 +128,27 @@ describe.skipIf(noDatabase)('movie service', () => {
     ]);
 
     expect(updated.links).toHaveLength(2);
+  });
+
+  it('links each poll option to the movie trailer or link', async () => {
+    const { movies, pollRepository, member } = setup();
+
+    await movies.suggest(member, {
+      ...suggestion('Papa John'),
+      links: ['https://youtu.be/W7bSunrD4WY'],
+    });
+    await movies.suggest(member, suggestion('Plain'));
+
+    const poll = await movies.vote(member, { channelId: 'c' });
+    const view = pollView(poll, await pollRepository.results(poll));
+
+    expect(poll.options.map((option) => option.url)).toEqual([
+      'https://youtu.be/W7bSunrD4WY',
+      null,
+    ]);
+    expect(view.content).toContain(
+      '[Papa John](<https://youtu.be/W7bSunrD4WY>)',
+    );
   });
 
   it('votes through the poll service and refuses ties', async () => {
