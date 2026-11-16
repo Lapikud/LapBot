@@ -30,6 +30,7 @@ export type Directory = {
   role: (guildId: string, roleId: string) => Promise<RoleInfo | undefined>;
   member: (guildId: string, userId: string) => Promise<Actor | undefined>;
   displayName: (guildId: string, userId: string) => Promise<string | undefined>;
+  canView: (actor: Actor, channelId: string) => Promise<boolean>;
   canPost: (actor: Actor, channelId: string) => Promise<boolean>;
   addRoles: (
     member: { guildId: string; userId: string },

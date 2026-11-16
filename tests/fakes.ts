@@ -95,6 +95,7 @@ export function fakeDirectory(
     ),
     member: vi.fn<Directory['member']>(async () => undefined),
     displayName: vi.fn<Directory['displayName']>(async () => undefined),
+    canView: vi.fn<Directory['canView']>(async () => true),
     canPost: vi.fn<Directory['canPost']>(async () => options.canPost ?? true),
     addRoles: vi.fn<Directory['addRoles']>(async () => undefined),
     removeRoles: vi.fn<Directory['removeRoles']>(async () => undefined),

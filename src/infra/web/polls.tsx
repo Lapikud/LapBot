@@ -8,17 +8,22 @@ import {
   flashOf,
   formatter,
   owns,
+  visibleRecords,
   type Env,
   type WebDeps,
 } from './context';
 import { ActionButton, ChannelSelect, Checkbox, Layout } from './layout';
 
-export function pollPages({ guildId, services, timezone }: WebDeps) {
+export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
   const date = formatter(timezone);
 
   return new Hono<Env>()
     .get('/', async (c) => {
-      const open = await services.polls.open(guildId);
+      const open = await visibleRecords(
+        directory,
+        c.var.actor,
+        await services.polls.open(guildId),
+      );
 
       return c.html(
         <Layout

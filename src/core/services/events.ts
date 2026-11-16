@@ -334,7 +334,10 @@ export function createEventService(deps: Deps) {
   const requireEvent = async (actor: Actor, id: number) => {
     const event = await events.find(id);
 
-    if (event?.guildId !== actor.guildId) {
+    if (
+      event?.guildId !== actor.guildId ||
+      !(await directory.canView(actor, event.channelId))
+    ) {
       throw new UserError(`Event #${id} does not exist.`);
     }
 

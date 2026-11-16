@@ -8,7 +8,13 @@ import { secureHeaders } from 'hono/secure-headers';
 import { UserError, webAccess, type Permission } from '~/domain';
 import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
-import { back, serverOf, type Env, type WebDeps } from './context';
+import {
+  back,
+  serverOf,
+  visibleRecords,
+  type Env,
+  type WebDeps,
+} from './context';
 import { eventPages } from './events';
 import { moviePages } from './movies';
 import { Layout } from './layout';
@@ -116,7 +122,13 @@ export function createWebApp(deps: WebDeps) {
 
     c.set('actor', actor);
     c.set('can', new Set(held.flat()));
-    c.set('server', serverOf(channels, roles));
+    const visible = await visibleRecords(
+      directory,
+      actor,
+      channels.map((channel) => ({ ...channel, channelId: channel.id })),
+    );
+
+    c.set('server', serverOf(visible, roles));
 
     return next();
   });
@@ -126,6 +138,10 @@ export function createWebApp(deps: WebDeps) {
       services.announcements.list(guildId),
       services.events.upcoming(guildId),
       services.polls.open(guildId),
+    ]);
+    const [visibleEvents, visiblePolls] = await Promise.all([
+      visibleRecords(directory, c.var.actor, events),
+      visibleRecords(directory, c.var.actor, polls),
     ]);
     const pending = announcements.filter(
       (a) => a.status === 'scheduled' || a.status === 'draft',
@@ -140,10 +156,10 @@ export function createWebApp(deps: WebDeps) {
             </li>
           ) : null}
           <li>
-            <a href="/events">{events.length} upcoming events</a>
+            <a href="/events">{visibleEvents.length} upcoming events</a>
           </li>
           <li>
-            <a href="/polls">{polls.length} open polls</a>
+            <a href="/polls">{visiblePolls.length} open polls</a>
           </li>
         </ul>
       </Layout>,

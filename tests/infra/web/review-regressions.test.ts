@@ -1,0 +1,73 @@
+import { Hono } from 'hono';
+import { expect, it } from 'vitest';
+import type { WebDeps, Env } from '~/infra/web/context';
+import { serverOf, visibleRecords } from '~/infra/web/context';
+import { eventPages } from '~/infra/web/events';
+import { pollPages } from '~/infra/web/polls';
+import { actor, fakeDirectory } from '../../fakes';
+
+const channels = [
+  { id: 'public', name: 'Public', kind: 'text' as const },
+  { id: 'private', name: 'Private', kind: 'text' as const },
+];
+const member = actor();
+const directory = fakeDirectory();
+const server = serverOf(channels, []);
+
+function appFor(pages: Hono<Env>) {
+  const app = new Hono<Env>();
+
+  app.use(async (c, next) => {
+    c.set('actor', member);
+    c.set('server', server);
+    c.set('can', new Set(['announcement:create', 'birthday:manage'] as const));
+    await next();
+  });
+
+  return app.route('/', pages);
+}
+
+it('hides private event and poll records from dashboard lists', async () => {
+  directory.canView.mockImplementation(async (_actor, id) => id === 'public');
+  const records = [
+    {
+      id: 1,
+      channelId: 'public',
+      title: 'Visible event',
+      question: 'Visible poll',
+      startsAt: new Date(),
+      closesAt: null,
+    },
+    {
+      id: 2,
+      channelId: 'private',
+      title: 'Secret event',
+      question: 'Secret poll',
+      startsAt: new Date(),
+      closesAt: null,
+    },
+  ];
+  const deps = {
+    guildId: 'g',
+    timezone: 'UTC',
+    directory,
+    services: {
+      events: { upcoming: async () => records },
+      polls: { open: async () => records },
+    },
+  } as unknown as WebDeps;
+
+  for (const [pages, visible, hidden] of [
+    [eventPages(deps), 'Visible event', 'Secret event'],
+    [pollPages(deps), 'Visible poll', 'Secret poll'],
+  ] as const) {
+    const html = await (await appFor(pages).request('/')).text();
+
+    expect(html).toContain(visible);
+    expect(html).not.toContain(hidden);
+    expect(html).not.toContain('#Private');
+  }
+
+  expect(await visibleRecords(directory, member, records)).toHaveLength(1);
+});
+

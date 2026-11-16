@@ -157,12 +157,13 @@ describe.skipIf(noDatabase)('event service', () => {
       upsert: vi.fn<Calendar['upsert']>(async () => 'native'),
       remove: vi.fn<Calendar['remove']>(async () => undefined),
     };
+    const directory = fakeDirectory();
     const service = createEventService({
       events: createEventRepository(testDb()),
       scheduler,
       messenger,
       calendar,
-      directory: fakeDirectory(),
+      directory,
       authz: allowAll,
       log: silentLog,
       timezone: 'Europe/Tallinn',
@@ -170,6 +171,7 @@ describe.skipIf(noDatabase)('event service', () => {
 
     return {
       service,
+      directory,
       messenger,
       scheduler,
       calendar,
@@ -223,5 +225,25 @@ describe.skipIf(noDatabase)('event service', () => {
     );
 
     expect(view.content).toContain('1 / 5');
+  });
+
+  it('denies direct reads and edits after channel visibility is lost', async () => {
+    const { service, organizer, directory } = setup();
+    const event = await service.create(organizer, {
+      title: 'Secret',
+      start: '3h',
+      channelId: 'private',
+    });
+
+    directory.canView.mockResolvedValue(false);
+    await expect(service.get(organizer, event.id)).rejects.toThrow(
+      'does not exist',
+    );
+    await expect(service.view(organizer, event.id)).rejects.toThrow(
+      'does not exist',
+    );
+    await expect(
+      service.edit(organizer, event.id, { title: 'Changed' }),
+    ).rejects.toThrow('does not exist');
   });
 });

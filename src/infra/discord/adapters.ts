@@ -161,6 +161,19 @@ export function createDiscordDirectory(client: Client): Directory {
 
       return member?.displayName;
     },
+    canView: async (actor, channelId) => {
+      const found = await guild(actor.guildId);
+      const [channel, member] = await Promise.all([
+        found.channels.fetch(channelId).catch(() => null),
+        found.members.fetch(actor.userId).catch(() => null),
+      ]);
+
+      return (
+        !!channel &&
+        !!member &&
+        channel.permissionsFor(member).has(PermissionFlagsBits.ViewChannel)
+      );
+    },
     canPost: async (actor, channelId) => {
       const found = await guild(actor.guildId);
       const [channel, member] = await Promise.all([

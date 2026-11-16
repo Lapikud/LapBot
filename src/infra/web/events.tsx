@@ -11,6 +11,7 @@ import {
   formatter,
   inputTime,
   owns,
+  visibleRecords,
   type Env,
   type Form,
   type WebDeps,
@@ -99,13 +100,22 @@ function fieldsOf(form: Form) {
   };
 }
 
-export function eventPages({ guildId, services, timezone }: WebDeps) {
+export function eventPages({
+  guildId,
+  services,
+  timezone,
+  directory,
+}: WebDeps) {
   const date = formatter(timezone);
   const time = inputTime(timezone);
 
   return new Hono<Env>()
     .get('/', async (c) => {
-      const upcoming = await services.events.upcoming(guildId);
+      const upcoming = await visibleRecords(
+        directory,
+        c.var.actor,
+        await services.events.upcoming(guildId),
+      );
       const { server } = c.var;
 
       return c.html(

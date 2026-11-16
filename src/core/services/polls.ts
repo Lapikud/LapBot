@@ -181,7 +181,10 @@ export function createPollService(deps: Deps) {
   const requirePoll = async (actor: Actor, id: number) => {
     const poll = await polls.find(id);
 
-    if (poll?.guildId !== actor.guildId) {
+    if (
+      poll?.guildId !== actor.guildId ||
+      !(await directory.canView(actor, poll.channelId))
+    ) {
       throw new UserError(`Poll #${id} does not exist.`);
     }
 
