@@ -8,7 +8,7 @@ import {
   type GuildTextBasedChannel,
 } from 'discord.js';
 import type { Calendar, Directory, Messenger } from '~/core/ports';
-import { PermanentError } from '~/domain';
+import { PermanentError, UserError } from '~/domain';
 import { toActor, toRoleInfo } from './actor';
 import { isPermanentDiscordError, isUnknownObject } from './errors';
 import { render } from './render';
@@ -88,6 +88,31 @@ export function createDiscordMessenger(client: Client): Messenger {
         (message) =>
           message.author.id === client.user?.id && message.content === content,
       )?.id;
+    },
+    clearReactionsExcept: async (channelId, messageId, emojis) => {
+      await orFalse(async () => {
+        const channel = await textChannel(channelId);
+        const message = await channel.messages.fetch(messageId);
+        const obsolete = [...message.reactions.cache.values()].filter(
+          (reaction) => !emojis.includes(reaction.emoji.name ?? ''),
+        );
+
+        if (obsolete.length === 0) {
+          return;
+        }
+
+        const bot = await channel.guild.members.fetchMe();
+
+        if (
+          !channel.permissionsFor(bot).has(PermissionFlagsBits.ManageMessages)
+        ) {
+          throw new UserError(
+            'Give the bot Manage Messages in this channel to remove old panel reactions, then save again.',
+          );
+        }
+
+        await Promise.all(obsolete.map((reaction) => reaction.remove()));
+      });
     },
     ownReactions: async (channelId, messageId) => {
       const channel = await textChannel(channelId);

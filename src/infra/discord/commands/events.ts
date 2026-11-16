@@ -1,10 +1,11 @@
+import { visibleRecords } from '~/core/helper/visible-records';
 import {
   ChannelType,
   InteractionContextType,
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { rsvpStatuses, type RsvpStatus } from '~/core/ports';
+import { rsvpStatuses, type Directory, type RsvpStatus } from '~/core/ports';
 import {
   reminderChoices,
   rsvpLabels,
@@ -150,7 +151,10 @@ function optional(interaction: CommandInteraction, name: string) {
   return interaction.options.getString(name) ?? undefined;
 }
 
-export function eventCommands(events: EventService): Feature {
+export function eventCommands(
+  events: EventService,
+  directory: Directory,
+): Feature {
   const rsvp: ComponentHandler = {
     prefix: 'events:rsvp',
     execute: async (interaction, [id, answer]) => {
@@ -262,7 +266,11 @@ export function eventCommands(events: EventService): Feature {
             await respond(interaction, `Event #${event.id} is cancelled.`);
           }),
           list: async (interaction) => {
-            const upcoming = await events.upcoming(interaction.guildId);
+            const upcoming = await visibleRecords(
+              directory,
+              toActor(interaction.member),
+              await events.upcoming(interaction.guildId),
+            );
 
             await respond(
               interaction,
@@ -307,7 +315,11 @@ export function eventCommands(events: EventService): Feature {
           },
         }),
         autocomplete: async (interaction) => {
-          const upcoming = await events.upcoming(interaction.guildId);
+          const upcoming = await visibleRecords(
+            directory,
+            toActor(interaction.member),
+            await events.upcoming(interaction.guildId),
+          );
 
           await interaction.respond(
             upcoming.map((e) => ({

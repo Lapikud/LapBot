@@ -44,9 +44,9 @@ All settings come from environment variables (see `.env.example`), validated
 at startup. Only `DISCORD_TOKEN` and `DATABASE_URL` are required; each optional
 feature asks only for what it needs.
 
-Times are read and shown in `DEFAULT_TIMEZONE`. The birthday channel is set
-with `/birthday settings` and lives in the database; everything else is
-environment-only.
+Times are read and shown in `DEFAULT_TIMEZONE`. Birthday settings and
+self-selection role panels live in the database. Connection settings come
+from the environment.
 
 ## Commands
 
@@ -120,17 +120,27 @@ The bot has its own action-based permissions (`event:create`, `poll:manage`,
 
 ## Role selection
 
-Members pick their own roles through Discord's **Server Settings → Onboarding**
-(customization questions) and the **Channels & Roles** page. The bot has no
-role commands.
+Server administrators manage reaction panels on **Self-selection roles** in the
+web dashboard. Choose a channel, pair existing Discord roles with standard
+emojis, then **Save reaction panel**. The bot creates or updates one panel per
+channel. Use **Add role** to add a choice with a suggested emoji; each existing
+choice has a **Remove** button. Members react to receive a role and remove their
+reaction to leave it.
+Up to 20 choices are supported per panel; custom server emojis are not supported.
+Use **Remove** to remove a choice. The bot needs **Manage Messages** in the
+panel channel to clear obsolete reactions when choices are removed or changed.
+This keeps roles already held by members;
+reactions for removed choices no longer change roles.
 
-The original reaction message (`Valige endale rolli: …` with 1️⃣ 2️⃣ 3️⃣) still
-works when `ROLE_SELECTION_CHANNEL_ID` and the role IDs are set. On first start
-the bot finds the message it posted before, or posts it once, and stores its
-ID. It no longer reposts or searches on later starts, and reactions on any
-other message are ignored. Roles that grant moderator permissions, are managed
-by integrations, or sit above the bot are never handed out. To retire it,
-clear `ROLE_SELECTION_CHANNEL_ID` and delete the message yourself.
+Moderator roles, integration-managed roles, @everyone and roles above the bot
+are blocked. The bot needs Manage Roles, and its role must be above every
+selectable role. Only Discord server administrators can configure panels.
+
+The original reaction message (`Valige endale rolli: …` with 1️⃣ 2️⃣ 3️⃣) is
+imported when `ROLE_SELECTION_CHANNEL_ID` and the role IDs are configured.
+After import, the database owns its choices: web changes survive restarts and
+are not overwritten by environment settings. Saving also recreates a deleted
+panel message. New panels can be configured entirely through the dashboard.
 
 ## Movies
 

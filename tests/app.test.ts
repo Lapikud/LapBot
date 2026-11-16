@@ -83,6 +83,10 @@ describe('composition root', () => {
     );
   });
 
+  it('disables Redmine commands even when Redmine is configured', () => {
+    expect(registry.commands.has('redmine')).toBe(false);
+  });
+
   it('declares commands Discord will accept', () => {
     const commands = [...registry.commands.values()].map(
       (c): RESTPostAPIChatInputApplicationCommandsJSONBody => c.data,

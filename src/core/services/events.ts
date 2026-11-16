@@ -123,6 +123,31 @@ export function eventView(event: Event, counts: RsvpCounts): Message {
   };
 }
 
+// Reserve space for the generated ID, cancellation label and growing RSVP counts.
+function requirePublishable(input: NewEvent, mention = false) {
+  const view = eventView(
+    {
+      ...input,
+      id: 2_147_483_647,
+      messageId: null,
+      discordEventId: null,
+      status: 'cancelled',
+      createdAt: new Date(),
+    },
+    { going: 2_147_483_647, maybe: 2_147_483_647, not_going: 0 },
+  );
+  const prefix =
+    mention && input.mentionRoleId !== null
+      ? `${roleMention(input.mentionRoleId)}\n`
+      : '';
+
+  if (prefix.length + (view.content?.length ?? 0) > maxContentLength) {
+    throw new UserError(
+      `Keep the complete event message under ${maxContentLength} characters. Shorten the title, description or location.`,
+    );
+  }
+}
+
 export const reminderChoices = [
   { label: '1 hour before', value: '60' },
   { label: '15 minutes before', value: '15' },
@@ -305,6 +330,8 @@ export function createEventService(deps: Deps) {
   };
 
   const publish = async (input: NewEvent, native = false) => {
+    requirePublishable(input, true);
+
     let event = await events.insert(input);
     const view = eventView(event, { going: 0, maybe: 0, not_going: 0 });
     const sent = await messenger.send(
@@ -453,7 +480,7 @@ export function createEventService(deps: Deps) {
 
       requireText(changes.title ?? event.title, changes.description);
 
-      let updated = await events.update(event.id, {
+      const updates = {
         title: changes.title ?? event.title,
         description:
           changes.description === undefined
@@ -466,7 +493,11 @@ export function createEventService(deps: Deps) {
         icons: changes.icons ?? event.icons,
         startsAt,
         endsAt,
-      });
+      };
+
+      requirePublishable({ ...event, ...updates });
+
+      let updated = await events.update(event.id, updates);
 
       if (updated.discordEventId !== null) {
         updated = await events.update(event.id, {

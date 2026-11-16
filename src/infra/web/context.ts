@@ -9,11 +9,13 @@ import type {
   EventService,
   PermissionService,
   PollService,
+  RoleService,
 } from '~/core/services';
 import type { Actor, Permission, RoleInfo } from '~/domain';
 import type { SignIn } from './auth';
 
 export type WebServices = {
+  roles: RoleService;
   announcements: AnnouncementService;
   events: EventService;
   polls: PollService;
@@ -114,19 +116,3 @@ export const formatter = (timezone: string) => {
 
   return (date: Date | null) => (date === null ? '' : display.format(date));
 };
-
-export async function visibleRecords<T extends { channelId: string }>(
-  directory: Directory,
-  actor: Actor,
-  records: readonly T[],
-): Promise<T[]> {
-  const channels = [...new Set(records.map((record) => record.channelId))];
-  const allowed = await Promise.all(
-    channels.map(async (id) =>
-      (await directory.canView(actor, id)) ? [id] : [],
-    ),
-  );
-  const visible = new Set(allowed.flat());
-
-  return records.filter((record) => visible.has(record.channelId));
-}

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { PanelRole, RolePanelRepository } from '~/core/ports';
 import type { Db } from '../client';
 import { rolePanelRoles, rolePanels } from './model';
@@ -101,6 +101,30 @@ export async function replacePanelRoles(
 
 export function createRolePanelRepository(db: Db): RolePanelRepository {
   return {
+    list: async (guildId) => {
+      const panels = await db
+        .select()
+        .from(rolePanels)
+        .where(
+          and(eq(rolePanels.guildId, guildId), eq(rolePanels.kind, 'reaction')),
+        )
+        .orderBy(asc(rolePanels.id));
+
+      return Promise.all(
+        panels.map(async (panel) => ({
+          ...panel,
+          roles: await db
+            .select({
+              roleId: rolePanelRoles.roleId,
+              label: rolePanelRoles.label,
+              emoji: rolePanelRoles.emoji,
+            })
+            .from(rolePanelRoles)
+            .where(eq(rolePanelRoles.panelId, panel.id))
+            .orderBy(asc(rolePanelRoles.position)),
+        })),
+      );
+    },
     reactionRole: (key) => findReactionRole(db, key),
     create: (panel) => createPanel(db, panel),
     reactionPanel: (guildId, channelId) =>

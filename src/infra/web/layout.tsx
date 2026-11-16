@@ -11,6 +11,7 @@ const sections: ReadonlyArray<
   ['/birthdays', 'Birthdays'],
   ['/movies', 'Movies'],
   ['/psa', 'PSAs', 'announcement:create'],
+  ['/roles', 'Self-selection roles', managePermissions],
   ['/permissions', 'Permissions', managePermissions],
 ];
 

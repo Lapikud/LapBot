@@ -144,3 +144,69 @@ td:last-child:has([type='submit'], [role='button']) {
 td form:last-child {
   margin-right: 0;
 }
+
+.role-channel,
+.role-add-fields {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.role-channel label,
+.role-add-fields label:first-child {
+  flex: 1 1 14rem;
+}
+
+.role-choices {
+  margin-bottom: 1rem;
+}
+
+.role-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.role-choice strong {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.role-choice select,
+.role-choice button {
+  margin: 0;
+}
+
+.role-emoji {
+  width: 5.5rem;
+  flex-shrink: 0;
+}
+
+.role-add {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+}
+
+.role-choice button,
+.role-add-fields > button {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.role-channel label,
+.role-channel select,
+.role-channel button,
+.role-add-fields label,
+.role-add-fields select,
+.role-add-fields button {
+  margin-bottom: 0;
+}
+
+.role-channel {
+  margin-bottom: 1.5rem;
+}

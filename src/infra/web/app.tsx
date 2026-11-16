@@ -1,3 +1,4 @@
+import { visibleRecords } from '~/core/helper/visible-records';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -8,17 +9,12 @@ import { secureHeaders } from 'hono/secure-headers';
 import { UserError, webAccess, type Permission } from '~/domain';
 import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
-import {
-  back,
-  serverOf,
-  visibleRecords,
-  type Env,
-  type WebDeps,
-} from './context';
+import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
 import { moviePages } from './movies';
 import { Layout } from './layout';
 import { permissionPages } from './permissions';
+import { rolePages } from './roles';
 import { pollPages } from './polls';
 import { psaPages } from './psa';
 
@@ -170,6 +166,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/polls', pollPages(deps));
   app.route('/birthdays', birthdayPages(deps));
   app.route('/movies', moviePages(deps));
+  app.route('/roles', rolePages(deps));
   app.route('/permissions', permissionPages(deps));
 
   app.notFound((c) =>

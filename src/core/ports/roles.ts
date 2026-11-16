@@ -21,7 +21,14 @@ export type ReactionKey = {
   emoji: string;
 };
 
+export type RolePanel = NewPanel & {
+  id: number;
+  messageId: string | null;
+  roles: PanelRole[];
+};
+
 export type RolePanelRepository = {
+  list: (guildId: string) => Promise<RolePanel[]>;
   reactionRole: (key: ReactionKey) => Promise<string | undefined>;
   create: (panel: NewPanel) => Promise<number>;
   reactionPanel: (

@@ -1,3 +1,4 @@
+import { visibleRecords } from '~/core/helper/visible-records';
 import { Hono } from 'hono';
 import { UserError } from '~/domain';
 import {
@@ -8,7 +9,6 @@ import {
   flashOf,
   formatter,
   owns,
-  visibleRecords,
   type Env,
   type WebDeps,
 } from './context';

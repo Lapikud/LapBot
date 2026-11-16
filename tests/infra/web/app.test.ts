@@ -8,6 +8,7 @@ import {
   createEventService,
   createPermissionService,
   createPollService,
+  createRoleService,
 } from '~/core/services';
 import {
   createAnnouncementRepository,
@@ -16,6 +17,7 @@ import {
   createEventRepository,
   createGrantRepository,
   createPollRepository,
+  createRolePanelRepository,
 } from '~/infra/db';
 import type { Permission, PermissionDefinition } from '~/domain';
 import { createWebApp, type WebApp } from '~/infra/web';
@@ -108,6 +110,12 @@ describe.skipIf(noDatabase)('web UI', () => {
       directory,
       log: silentLog,
       services: {
+        roles: createRoleService({
+          panels: createRolePanelRepository(db),
+          directory,
+          messenger,
+          log: silentLog,
+        }),
         announcements: createAnnouncementService({
           ...shared,
           announcements: createAnnouncementRepository(db),

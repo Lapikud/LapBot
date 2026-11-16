@@ -1,3 +1,5 @@
+import type { Directory } from '~/core/ports';
+import { visibleRecords } from '~/core/helper/visible-records';
 import {
   ChannelType,
   InteractionContextType,
@@ -95,7 +97,10 @@ function parseId(value: string | undefined): number {
   return id;
 }
 
-export function pollCommands(polls: PollService): Feature {
+export function pollCommands(
+  polls: PollService,
+  directory: Directory,
+): Feature {
   const answer = async (
     interaction: Parameters<ComponentHandler['execute']>[0],
     outcome: Awaited<ReturnType<PollService['vote']>>,
@@ -183,7 +188,11 @@ export function pollCommands(polls: PollService): Feature {
             );
           }),
           list: async (interaction) => {
-            const open = await polls.open(interaction.guildId);
+            const open = await visibleRecords(
+              directory,
+              toActor(interaction.member),
+              await polls.open(interaction.guildId),
+            );
 
             await respond(
               interaction,
@@ -236,7 +245,11 @@ export function pollCommands(polls: PollService): Feature {
           }),
         }),
         autocomplete: async (interaction) => {
-          const open = await polls.open(interaction.guildId);
+          const open = await visibleRecords(
+            directory,
+            toActor(interaction.member),
+            await polls.open(interaction.guildId),
+          );
 
           await interaction.respond(
             open.map((p) => ({

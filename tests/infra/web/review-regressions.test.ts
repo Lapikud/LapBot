@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
 import type { WebDeps, Env } from '~/infra/web/context';
-import { serverOf, visibleRecords } from '~/infra/web/context';
+import { serverOf } from '~/infra/web/context';
+import { visibleRecords } from '~/core/helper/visible-records';
 import { eventPages } from '~/infra/web/events';
 import { pollPages } from '~/infra/web/polls';
 import { psaPages } from '~/infra/web/psa';

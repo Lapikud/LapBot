@@ -75,6 +75,9 @@ export function fakeMessenger() {
           ([, m]) => m.channelId === channelId && m.content === content,
         )?.[0],
     ),
+    clearReactionsExcept: vi.fn<Messenger['clearReactionsExcept']>(
+      async () => undefined,
+    ),
     ownReactions: vi.fn<Messenger['ownReactions']>(async () => []),
     react: vi.fn<Messenger['react']>(async () => undefined),
   } satisfies Messenger;

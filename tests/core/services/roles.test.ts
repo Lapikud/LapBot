@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createRoleService, legacyMessage } from '~/core/services';
 import { createRolePanelRepository } from '~/infra/db';
 import { noDatabase, snowflake, testDb } from '../../db';
-import { fakeDirectory, fakeMessenger, role, silentLog } from '../../fakes';
+import {
+  actor,
+  fakeDirectory,
+  fakeMessenger,
+  role,
+  silentLog,
+} from '../../fakes';
 
 describe.skipIf(noDatabase)('role service', () => {
   const setup = (
@@ -67,6 +73,37 @@ describe.skipIf(noDatabase)('role service', () => {
       expect.any(String),
     );
     expect(directory.removeRoles).toHaveBeenCalledOnce();
+  });
+
+  it('persists web choices and keeps them after legacy startup sync', async () => {
+    const { service, guildId, channelId, sent, directory } = setup();
+    const admin = actor({ guildId, administrator: true });
+
+    await service.syncLegacyPanel();
+    await service.save(admin, channelId, [{ roleId: 'helpdesk', emoji: '🎉' }]);
+    await service.syncLegacyPanel();
+
+    const panels = await service.list(admin);
+
+    expect(panels[0]?.roles).toEqual([
+      { roleId: 'helpdesk', label: 'Role', emoji: '🎉' },
+    ]);
+    expect(sent).toHaveLength(1);
+    await service.reacted(
+      {
+        guildId,
+        channelId,
+        messageId: sent[0] ?? '',
+        emoji: '🎉',
+        userId: 'member',
+      },
+      true,
+    );
+    expect(directory.addRoles).toHaveBeenCalledWith(
+      { guildId, userId: 'member' },
+      ['helpdesk'],
+      expect.any(String),
+    );
   });
 
   it('skips roles that are gone or no longer assignable', async () => {

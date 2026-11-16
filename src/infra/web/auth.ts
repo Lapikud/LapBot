@@ -21,9 +21,32 @@ export async function signedInUser(
   c: Context<Env>,
   signIn: SignIn,
 ): Promise<string | undefined> {
-  const userId = await getSignedCookie(c, signIn.sessionSecret, sessionCookie);
+  const value = await getSignedCookie(c, signIn.sessionSecret, sessionCookie);
 
-  return typeof userId === 'string' ? userId : undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  try {
+    const session: unknown = JSON.parse(value);
+
+    if (
+      session !== null &&
+      typeof session === 'object' &&
+      'userId' in session &&
+      typeof session.userId === 'string' &&
+      'expiresAt' in session &&
+      typeof session.expiresAt === 'number' &&
+      Number.isFinite(session.expiresAt) &&
+      session.expiresAt > Date.now()
+    ) {
+      return session.userId;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
 }
 
 export function signInPages(signIn: SignIn) {
@@ -44,13 +67,22 @@ export function signInPages(signIn: SignIn) {
         return c.redirect('/login', 303);
       }
 
-      await setSignedCookie(c, sessionCookie, user.id, signIn.sessionSecret, {
-        httpOnly: true,
-        sameSite: 'Lax',
-        secure: signIn.publicUrl.startsWith('https://'),
-        path: '/',
-        maxAge: sessionSeconds,
-      });
+      await setSignedCookie(
+        c,
+        sessionCookie,
+        JSON.stringify({
+          userId: user.id,
+          expiresAt: Date.now() + sessionSeconds * 1000,
+        }),
+        signIn.sessionSecret,
+        {
+          httpOnly: true,
+          sameSite: 'Lax',
+          secure: signIn.publicUrl.startsWith('https://'),
+          path: '/',
+          maxAge: sessionSeconds,
+        },
+      );
 
       return c.redirect('/', 303);
     })

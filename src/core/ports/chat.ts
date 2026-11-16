@@ -19,6 +19,11 @@ export type Messenger = {
   direct: (userId: string, message: Message) => Promise<void>;
   exists: (channelId: string, messageId: string) => Promise<boolean>;
   findOwn: (channelId: string, content: string) => Promise<string | undefined>;
+  clearReactionsExcept: (
+    channelId: string,
+    messageId: string,
+    emojis: readonly string[],
+  ) => Promise<void>;
   ownReactions: (channelId: string, messageId: string) => Promise<string[]>;
   react: (channelId: string, messageId: string, emoji: string) => Promise<void>;
 };

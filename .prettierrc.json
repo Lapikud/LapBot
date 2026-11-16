@@ -9,13 +9,5 @@
   "bracketSameLine": false,
   "arrowParens": "always",
   "objectWrap": "preserve",
-  "endOfLine": "lf",
-  "overrides": [
-    {
-      "files": ["*.scss", "*.sass"],
-      "options": {
-        "useTabs": true
-      }
-    }
-  ]
+  "endOfLine": "lf"
 }

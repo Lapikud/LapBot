@@ -170,9 +170,9 @@ export function compose(config: Config, log: Logger) {
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),
-    eventCommands(events),
+    eventCommands(events, directory),
     birthdayCommands(birthdays),
-    pollCommands(polls),
+    pollCommands(polls, directory),
     movieCommands(movies),
     {
       name: 'web',
@@ -198,7 +198,8 @@ export function compose(config: Config, log: Logger) {
       timezone,
     });
 
-    features.push(redmineCommands(redmine));
+    // Temporarily disable Redmine commands while keeping subscription jobs running.
+    features.push({ ...redmineCommands(redmine), commands: [] });
     jobs.push(...redmine.jobs);
   }
 
@@ -222,7 +223,15 @@ export function compose(config: Config, log: Logger) {
     registry,
     directory,
     jobs: runnerJobs,
-    web: { announcements, events, polls, permissions, birthdays, movies },
+    web: {
+      announcements,
+      events,
+      polls,
+      permissions,
+      birthdays,
+      movies,
+      roles,
+    },
   };
 }
 
