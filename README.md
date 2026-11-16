@@ -281,11 +281,11 @@ drizzle/              SQL migrations
   recording it, that message can be sent twice (at-least-once). Announcements,
   birthday wishes and Redmine notifications go the other way and can be lost
   instead.
-- Redmine polling handles 25 changed issues per project per run. More than 25
-  issues changed within the same second could keep the checkpoint from moving.
+- Redmine changes and deadlines are fetched in pages until all matching
+  issues have been processed. Failed sends are retried on subsequent runs;
+  a process crash after claiming a notification can still lose that message.
 - Birthday announcements are not sent for days the bot was entirely offline.
 - User-facing text is English (the legacy panel and birthday wishes are
   Estonian).
-- The web UI has no sign-in yet (see [Web UI](#web-ui)).
 - Native Discord polls are not used, because bot polls must persist and work
   with movie nights.
