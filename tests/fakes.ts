@@ -94,6 +94,7 @@ export function fakeDirectory(
       roles.find((r) => r.id === id),
     ),
     member: vi.fn<Directory['member']>(async () => undefined),
+    displayName: vi.fn<Directory['displayName']>(async () => undefined),
     canPost: vi.fn<Directory['canPost']>(async () => options.canPost ?? true),
     addRoles: vi.fn<Directory['addRoles']>(async () => undefined),
     removeRoles: vi.fn<Directory['removeRoles']>(async () => undefined),

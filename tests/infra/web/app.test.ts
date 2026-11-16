@@ -3,12 +3,14 @@ import type { Scheduler } from '~/core/ports';
 import {
   createAnnouncementService,
   createAuthorizer,
+  createBirthdayService,
   createEventService,
   createPermissionService,
   createPollService,
 } from '~/core/services';
 import {
   createAnnouncementRepository,
+  createBirthdayRepository,
   createEventRepository,
   createGrantRepository,
   createPollRepository,
@@ -72,6 +74,10 @@ describe.skipIf(noDatabase)('web UI', () => {
         polls: createPollService({
           ...shared,
           polls: createPollRepository(db),
+        }),
+        birthdays: createBirthdayService({
+          ...shared,
+          birthdays: createBirthdayRepository(db),
         }),
         permissions: createPermissionService({
           grants: createGrantRepository(db),
@@ -198,6 +204,19 @@ describe.skipIf(noDatabase)('web UI', () => {
     });
 
     expect(poll.status).toBe(303);
+  });
+
+  it('saves birthday settings and lists upcoming birthdays', async () => {
+    const saved = await post('/birthdays', {
+      channelId: 'general',
+      roleId: '',
+      hour: '8',
+      action: 'save',
+    });
+    const page = await (await get('/birthdays')).text();
+
+    expect(saved.status).toBe(303);
+    expect(page).toContain('Announced in #general at 8:00');
   });
 
   it('returns 404 for unknown pages', async () => {

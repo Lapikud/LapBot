@@ -6,6 +6,7 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/domain';
+import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
 import { Layout } from './layout';
@@ -103,6 +104,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/psa', psaPages(deps));
   app.route('/events', eventPages(deps));
   app.route('/polls', pollPages(deps));
+  app.route('/birthdays', birthdayPages(deps));
   app.route('/permissions', permissionPages(deps));
 
   app.notFound((c) =>

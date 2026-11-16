@@ -7,6 +7,7 @@ import type {
 } from '~/core/ports';
 import type {
   AnnouncementService,
+  BirthdayService,
   EventService,
   PermissionService,
   PollService,
@@ -18,6 +19,7 @@ export type WebServices = {
   events: EventService;
   polls: PollService;
   permissions: PermissionService;
+  birthdays: BirthdayService;
 };
 
 export type WebDeps = {

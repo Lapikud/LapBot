@@ -29,7 +29,7 @@ const dailyKey = (guildId: string) => `birthdays:${guildId}`;
 
 export type BirthdayConfiguration = {
   channelId?: string;
-  roleId?: string;
+  roleId?: string | null;
   hour?: number;
   disable?: boolean;
 };
@@ -167,7 +167,7 @@ export function createBirthdayService(deps: Deps) {
       throw new UserError('Choose an announcement channel.');
     }
 
-    if (change.roleId !== undefined) {
+    if (typeof change.roleId === 'string') {
       const role = await directory.role(actor.guildId, change.roleId);
 
       if (!role || role.managed || !role.botCanAssign) {
@@ -178,7 +178,8 @@ export function createBirthdayService(deps: Deps) {
     return {
       guildId: actor.guildId,
       channelId,
-      roleId: change.roleId ?? current?.roleId ?? null,
+      roleId:
+        change.roleId === undefined ? (current?.roleId ?? null) : change.roleId,
       hour: change.hour ?? current?.hour ?? 9,
     };
   };
@@ -211,6 +212,7 @@ export function createBirthdayService(deps: Deps) {
         ? birthday
         : undefined;
     },
+    settings: (guildId: string) => birthdays.settings(guildId),
     upcoming: async (guildId: string) =>
       birthdays.upcoming(guildId, calendarDay(new Date(), timezone)),
     configure: guard(
