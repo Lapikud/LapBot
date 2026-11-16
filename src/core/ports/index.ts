@@ -3,7 +3,6 @@ export type * from './chat';
 export * from './clock';
 export type * from './logger';
 export type * from './scheduler';
-export type * from './secrets';
 export type * from './roles';
 export type * from './reminders';
 export type * from './announcements';

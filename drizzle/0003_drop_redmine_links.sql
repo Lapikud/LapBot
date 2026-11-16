@@ -1,0 +1,1 @@
+DROP TABLE "redmine_links" CASCADE;

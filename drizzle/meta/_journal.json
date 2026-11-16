@@ -22,6 +22,13 @@
       "when": 1794821716333,
       "tag": "0002_drop_guild_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794822022773,
+      "tag": "0003_drop_redmine_links",
+      "breakpoints": true
     }
   ]
 }

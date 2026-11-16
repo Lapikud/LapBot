@@ -8,16 +8,6 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
-export const redmineLinks = pgTable('redmine_links', {
-  userId: text('user_id').primaryKey(),
-  redmineUserId: integer('redmine_user_id').notNull(),
-  redmineLogin: text('redmine_login').notNull(),
-  encryptedApiKey: text('encrypted_api_key').notNull(),
-  linkedAt: timestamp('linked_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
 export const redmineSubscriptions = pgTable(
   'redmine_subscriptions',
   {
@@ -48,5 +38,4 @@ export const redmineNotifications = pgTable(
   (table) => [primaryKey({ columns: [table.subscriptionId, table.key] })],
 );
 
-export type RedmineLink = typeof redmineLinks.$inferSelect;
 export type RedmineSubscription = typeof redmineSubscriptions.$inferSelect;

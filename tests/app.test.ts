@@ -10,7 +10,7 @@ import type { Config } from '~/config';
 const config = {
   DEFAULT_TIMEZONE: 'Europe/Tallinn',
   REDMINE_BASE_URL: 'https://redmine.example',
-  CREDENTIAL_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+  REDMINE_API_KEY: 'key',
 } as Config;
 
 function problems(

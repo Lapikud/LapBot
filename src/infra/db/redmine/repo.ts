@@ -1,46 +1,7 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
 import type { TrackerRepository } from '~/core/ports';
 import type { Db } from '../client';
-import {
-  redmineLinks,
-  redmineNotifications,
-  redmineSubscriptions,
-  type RedmineLink,
-} from './model';
-
-export async function saveLink(
-  db: Db,
-  link: Omit<RedmineLink, 'linkedAt'>,
-): Promise<void> {
-  await db
-    .insert(redmineLinks)
-    .values(link)
-    .onConflictDoUpdate({
-      target: redmineLinks.userId,
-      set: { ...link, linkedAt: new Date() },
-    });
-}
-
-export async function getLink(
-  db: Db,
-  userId: string,
-): Promise<RedmineLink | undefined> {
-  const [row] = await db
-    .select()
-    .from(redmineLinks)
-    .where(eq(redmineLinks.userId, userId));
-
-  return row;
-}
-
-export async function deleteLink(db: Db, userId: string): Promise<boolean> {
-  const rows = await db
-    .delete(redmineLinks)
-    .where(eq(redmineLinks.userId, userId))
-    .returning({ userId: redmineLinks.userId });
-
-  return rows.length > 0;
-}
+import { redmineNotifications, redmineSubscriptions } from './model';
 
 export async function addSubscription(
   db: Db,
@@ -111,9 +72,6 @@ export async function claimNotification(
 
 export function createTrackerRepository(db: Db): TrackerRepository {
   return {
-    saveLink: (link) => saveLink(db, link),
-    link: (userId) => getLink(db, userId),
-    unlink: (userId) => deleteLink(db, userId),
     subscribe: (subscription) => addSubscription(db, subscription),
     unsubscribe: (guildId, channelId, projectId) =>
       removeSubscription(db, guildId, channelId, projectId),

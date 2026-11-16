@@ -1,9 +1,7 @@
-import { randomBytes } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import type { IssueTracker, Scheduler } from '~/core/ports';
-import { createRedmineService, type ReminderService } from '~/core/services';
+import { createRedmineService } from '~/core/services';
 import { IntegrationError, UserError, type Issue } from '~/domain';
-import { createSecretBox } from '~/infra/crypto';
 import { createTrackerRepository } from '~/infra/db';
 import { noDatabase, snowflake, testDb } from '../../db';
 import { actor, allowAll, fakeMessenger, silentLog } from '../../fakes';
@@ -26,7 +24,6 @@ const issue: Issue = {
 
 function tracker(overrides: Partial<IssueTracker> = {}): IssueTracker {
   return {
-    currentUser: vi.fn(async () => ({ id: 5, login: 'mari' })),
     listProjects: vi.fn(async () => ({
       projects: [{ id: 1, name: 'Web', identifier: 'web' }],
       total: 1,
@@ -34,8 +31,6 @@ function tracker(overrides: Partial<IssueTracker> = {}): IssueTracker {
     listIssues: vi.fn(async () => ({ issues: [issue], total: 1 })),
     getIssue: vi.fn(async () => issue),
     listStatuses: vi.fn(async () => []),
-    createIssue: vi.fn(async () => issue),
-    updateIssue: vi.fn(async () => undefined),
     ...overrides,
   };
 }
@@ -43,14 +38,10 @@ function tracker(overrides: Partial<IssueTracker> = {}): IssueTracker {
 describe.skipIf(noDatabase)('redmine service', () => {
   const setup = (client = tracker()) => {
     const { messenger } = fakeMessenger();
-    const connect = vi.fn(() => client);
     const service = createRedmineService({
       baseUrl: 'https://r',
-      connect,
-      service: client,
+      client,
       tracker: createTrackerRepository(testDb()),
-      secrets: createSecretBox(randomBytes(32).toString('base64')),
-      reminders: {} as ReminderService,
       scheduler: {
         schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
         cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
@@ -61,19 +52,26 @@ describe.skipIf(noDatabase)('redmine service', () => {
       timezone: 'Europe/Tallinn',
     });
 
-    return { service, messenger, connect, client };
+    return { service, messenger };
   };
 
-  it('requires a linked account and uses that key for user actions', async () => {
-    const { service, connect } = setup();
+  it('subscribes a channel to a project found by identifier', async () => {
+    const { service } = setup();
     const member = actor({ guildId: snowflake(), userId: snowflake() });
+    const channelId = snowflake();
 
-    await expect(service.projects(member)).rejects.toThrow(
-      'Link your Redmine account',
+    await expect(service.subscribe(member, channelId, 'nope')).rejects.toThrow(
+      UserError,
     );
-    await service.link(member, 'k'.repeat(40));
-    await service.projects(member);
-    expect(connect).toHaveBeenLastCalledWith('k'.repeat(40));
+
+    const first = await service.subscribe(member, channelId, 'web');
+    const again = await service.subscribe(member, channelId, '1');
+
+    expect(first).toMatchObject({ project: { id: 1 }, added: true });
+    expect(again.added).toBe(false);
+    expect((await service.unsubscribe(member, channelId, 'web')).removed).toBe(
+      true,
+    );
   });
 
   it('turns tracker failures into user-facing errors', async () => {
@@ -85,8 +83,9 @@ describe.skipIf(noDatabase)('redmine service', () => {
     const { service } = setup(failing);
     const member = actor({ guildId: snowflake(), userId: snowflake() });
 
-    await service.link(member, 'k'.repeat(40));
-    await expect(service.projects(member)).rejects.toThrow(UserError);
+    await expect(service.subscribe(member, snowflake(), 'web')).rejects.toThrow(
+      UserError,
+    );
   });
 
   it('notifies once per change and advances the checkpoint', async () => {

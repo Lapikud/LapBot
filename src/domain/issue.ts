@@ -1,12 +1,5 @@
 export type Named = { id: number; name: string };
 
-export type TrackerUser = {
-  id: number;
-  login: string;
-  firstname?: string;
-  lastname?: string;
-};
-
 export type TrackerProject = {
   id: number;
   name: string;
@@ -52,7 +45,6 @@ export type Issue = {
 
 export type IssueQuery = {
   projectId?: number | string;
-  assignedToMe?: boolean;
   status?: 'open' | 'closed' | '*';
   updatedSince?: Date;
   dueDate?: string;
@@ -61,21 +53,8 @@ export type IssueQuery = {
   limit?: number;
 };
 
-export type IssueChanges = {
-  subject?: string;
-  description?: string;
-  status_id?: number;
-  assigned_to_id?: number;
-  notes?: string;
-};
-
 export type IntegrationErrorKind =
-  | 'auth'
-  | 'forbidden'
-  | 'not_found'
-  | 'validation'
-  | 'unavailable'
-  | 'invalid_response';
+  'auth' | 'forbidden' | 'not_found' | 'unavailable' | 'invalid_response';
 
 export class IntegrationError extends Error {
   override readonly name = 'IntegrationError';

@@ -4,21 +4,12 @@ import {
   IntegrationError,
   type IntegrationErrorKind,
   type Issue,
-  type IssueChanges,
   type IssueQuery,
   type IssueStatus,
   type TrackerProject,
-  type TrackerUser,
 } from '~/domain';
 
 const named = z.object({ id: z.number(), name: z.string() });
-
-const userSchema = z.object({
-  id: z.number(),
-  login: z.string(),
-  firstname: z.string().exactOptional(),
-  lastname: z.string().exactOptional(),
-});
 
 const projectSchema = z.object({
   id: z.number(),
@@ -78,18 +69,9 @@ const issuesPage = z.object({
   total_count: z.number().exactOptional(),
 });
 
-type Request = {
-  method?: 'GET' | 'POST' | 'PUT';
-  body?: unknown;
-  query?: Record<string, string>;
-};
-
 const messages: Record<number, [IntegrationErrorKind, string]> = {
-  401: [
-    'auth',
-    'Redmine rejected the API key. Link your account again with `/redmine link`.',
-  ],
-  403: ['forbidden', 'Your Redmine account is not allowed to do that.'],
+  401: ['auth', 'Redmine rejected REDMINE_API_KEY.'],
+  403: ['forbidden', 'The Redmine service account is not allowed to do that.'],
   404: ['not_found', 'Redmine could not find that (or you cannot see it).'],
 };
 
@@ -102,69 +84,48 @@ export class RedmineClient implements IssueTracker {
     private readonly options: { timeoutMs?: number; fetch?: typeof fetch } = {},
   ) {}
 
-  private async request(path: string, request: Request = {}): Promise<unknown> {
+  private async request(
+    path: string,
+    query: Record<string, string> = {},
+  ): Promise<unknown> {
     const url = new URL(
       path,
       this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
     );
 
-    for (const [key, value] of Object.entries(request.query ?? {})) {
+    for (const [key, value] of Object.entries(query)) {
       url.searchParams.set(key, value);
     }
 
-    const method = request.method ?? 'GET';
-
     try {
-      return await this.send(url, method, request.body);
+      return await this.send(url);
     } catch (error) {
-      const retryable =
-        method === 'GET' &&
-        error instanceof IntegrationError &&
-        error.kind === 'unavailable';
-
-      if (!retryable) {
+      if (
+        !(error instanceof IntegrationError) ||
+        error.kind !== 'unavailable'
+      ) {
         throw error;
       }
 
-      return this.send(url, method, request.body);
+      return this.send(url);
     }
   }
 
-  private async send(
-    url: URL,
-    method: string,
-    body: unknown,
-  ): Promise<unknown> {
+  private async send(url: URL): Promise<unknown> {
     let response: Response;
 
     try {
       response = await (this.options.fetch ?? fetch)(url, {
-        method,
         headers: {
           'X-Redmine-API-Key': this.apiKey,
           Accept: 'application/json',
-          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(this.options.timeoutMs ?? 10_000),
       });
     } catch {
       throw new IntegrationError(
         'unavailable',
         'Redmine did not respond in time.',
-      );
-    }
-
-    if (response.status === 422) {
-      const parsed = z
-        .object({ errors: z.array(z.string()) })
-        .safeParse(await response.json().catch(() => null));
-
-      throw new IntegrationError(
-        'validation',
-        parsed.success
-          ? parsed.data.errors.join('; ')
-          : 'Redmine rejected the request.',
       );
     }
 
@@ -181,9 +142,7 @@ export class RedmineClient implements IssueTracker {
       );
     }
 
-    const text = await response.text();
-
-    return text === '' ? null : JSON.parse(text);
+    return response.json().catch(() => null);
   }
 
   private async get<T extends z.ZodType>(
@@ -191,9 +150,7 @@ export class RedmineClient implements IssueTracker {
     schema: T,
     query?: Record<string, string>,
   ): Promise<z.infer<T>> {
-    const parsed = schema.safeParse(
-      await this.request(path, query === undefined ? {} : { query }),
-    );
+    const parsed = schema.safeParse(await this.request(path, query));
 
     if (!parsed.success) {
       throw new IntegrationError(
@@ -203,15 +160,6 @@ export class RedmineClient implements IssueTracker {
     }
 
     return parsed.data;
-  }
-
-  async currentUser(): Promise<TrackerUser> {
-    const data = await this.get(
-      'users/current.json',
-      z.object({ user: userSchema }),
-    );
-
-    return data.user;
   }
 
   async listProjects(
@@ -241,10 +189,6 @@ export class RedmineClient implements IssueTracker {
 
     if (query.projectId !== undefined) {
       params.project_id = String(query.projectId);
-    }
-
-    if (query.assignedToMe === true) {
-      params.assigned_to_id = 'me';
     }
 
     if (query.updatedSince) {
@@ -281,31 +225,5 @@ export class RedmineClient implements IssueTracker {
     );
 
     return data.issue_statuses;
-  }
-
-  async createIssue(
-    fields: IssueChanges & { project_id: number | string; subject: string },
-  ): Promise<Issue> {
-    const data = await this.request('issues.json', {
-      method: 'POST',
-      body: { issue: fields },
-    });
-    const parsed = z.object({ issue: issueSchema }).safeParse(data);
-
-    if (!parsed.success) {
-      throw new IntegrationError(
-        'invalid_response',
-        'Redmine created the issue but sent an unexpected response.',
-      );
-    }
-
-    return parsed.data.issue;
-  }
-
-  async updateIssue(id: number, changes: IssueChanges): Promise<void> {
-    await this.request(`issues/${id}.json`, {
-      method: 'PUT',
-      body: { issue: changes },
-    });
   }
 }

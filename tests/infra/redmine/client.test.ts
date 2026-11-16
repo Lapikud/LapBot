@@ -15,7 +15,7 @@ const issue = {
 };
 
 const json = (status: number, body: unknown) =>
-  new Response(body === undefined ? null : JSON.stringify(body), { status });
+  new Response(JSON.stringify(body), { status });
 
 function client(...responses: Array<Response | Error>) {
   const fetch = vi.fn<typeof globalThis.fetch>();
@@ -51,7 +51,6 @@ describe('RedmineClient', () => {
     );
     const result = await redmine.listIssues({
       projectId: 'web',
-      assignedToMe: true,
       updatedSince: new Date('2026-11-01T10:00:00.123Z'),
     });
 
@@ -60,7 +59,6 @@ describe('RedmineClient', () => {
     const url = input instanceof URL ? input.href : '';
 
     expect(url).toContain('project_id=web');
-    expect(url).toContain('assigned_to_id=me');
     expect(decodeURIComponent(url)).toContain(
       'updated_on=>=2026-11-01T10:00:00Z',
     );
@@ -80,32 +78,18 @@ describe('RedmineClient', () => {
   ])('maps HTTP %i to %s', async (status, expected) => {
     const { redmine } = client(json(status, {}));
 
-    expect(await kind(redmine.currentUser())).toBe(expected);
+    expect(await kind(redmine.listStatuses())).toBe(expected);
   });
 
-  it('reports validation errors from Redmine', async () => {
-    const { redmine } = client(
-      json(422, { errors: ['Subject cannot be blank'] }),
-    );
-
-    await expect(
-      redmine.createIssue({ project_id: 1, subject: '' }),
-    ).rejects.toThrow('Subject cannot be blank');
-  });
-
-  it('retries reads once on timeouts but never retries writes', async () => {
+  it('retries once on timeouts', async () => {
     const timeout = new DOMException('timed out', 'TimeoutError');
-    const read = client(timeout, json(200, { user: { id: 1, login: 'mari' } }));
-
-    expect((await read.redmine.currentUser()).login).toBe('mari');
-    expect(read.fetch).toHaveBeenCalledTimes(2);
-
-    const write = client(timeout, json(204, undefined));
-
-    expect(await kind(write.redmine.updateIssue(7, { notes: 'hi' }))).toBe(
-      'unavailable',
+    const { fetch, redmine } = client(
+      timeout,
+      json(200, { issue_statuses: [{ id: 1, name: 'New' }] }),
     );
-    expect(write.fetch).toHaveBeenCalledOnce();
+
+    expect(await redmine.listStatuses()).toHaveLength(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it('treats server errors as unavailable', async () => {

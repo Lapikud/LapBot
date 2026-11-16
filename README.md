@@ -60,7 +60,7 @@ environment-only.
 | `/birthday set/remove/view/upcoming`, `/birthday settings`                 | everyone; settings need `birthday:manage`                      |
 | `/poll create/list/results/close/cancel`                                   | create needs `poll:create`; creator or `poll:manage` manages   |
 | `/movie suggest/suggestions/remove/vote/night/watched/history`             | vote, night, watched need `movie:manage`                       |
-| `/redmine …`                                                               | see [Redmine](#redmine)                                        |
+| `/redmine subscribe/unsubscribe`                                           | `redmine:subscription:manage`                                  |
 | `/permissions grant/revoke/list/check`                                     | `permissions:manage`                                           |
 
 ## Web UI
@@ -97,8 +97,7 @@ The bot has its own action-based permissions (`event:create`, `poll:manage`,
   grant only permissions they hold themselves, only to roles below their
   own highest role, and never `permissions:manage`.
 - Permissions are checked again on every button and menu press, not just when
-  the message was created. Discord role hierarchy and Redmine's own
-  permissions always apply on top.
+  the message was created. Discord role hierarchy always applies on top.
 - Every grant and revoke is logged.
 
 ## Role panels and migrating from reactions
@@ -124,27 +123,17 @@ above the bot cannot be put on a panel.
 
 ## Redmine
 
-Set `REDMINE_BASE_URL` and `CREDENTIAL_ENCRYPTION_KEY`
-(`openssl rand -base64 32`) to enable it.
+Set `REDMINE_BASE_URL` and `REDMINE_API_KEY` (a dedicated, restricted service
+account) to enable it.
 
-- Each member runs `/redmine link` and pastes their own Redmine API key
-  (_My account → API access key_; the REST API must be enabled by a Redmine
-  admin). The key is checked against Redmine, then stored encrypted
-  (AES-256-GCM) with a key that never enters the database. `/redmine unlink`
-  deletes it.
-- Every user action (`projects`, `issues`, `issue view/create/update/assign/comment`)
-  uses that member's own key, so Redmine decides what they can see and change.
-  The bot permissions `redmine:issue:create`, `redmine:issue:update` and
-  `redmine:issue:assign` are an additional gate, never a bypass.
-- `/redmine issue remind` sets a personal DM reminder before an issue's due date.
-- **Notifications:** with `REDMINE_API_KEY` (a dedicated, restricted service
-  account) set, `/redmine subscribe project:<identifier>` posts new issues,
-  status changes, assignments and comments to a channel, plus a daily "due
-  tomorrow" digest. The bot polls every two minutes and asks only for issues
-  updated since each subscription's stored checkpoint. Private issues and
-  private notes are never posted. Anyone who can read the channel sees the
-  updates, so subscribe only channels whose audience may see the project.
-  Standard Redmine has no webhooks, so polling is the mechanism.
+`/redmine subscribe project:<identifier>` posts new issues, status changes,
+assignments and comments to a channel, plus a daily "due tomorrow" digest
+(`/redmine unsubscribe` stops it; both need `redmine:subscription:manage`).
+The bot polls every two minutes and asks only for issues updated since each
+subscription's stored checkpoint. Private issues and private notes are never
+posted. Anyone who can read the channel sees the updates, so subscribe only
+channels whose audience may see the project. Standard Redmine has no
+webhooks, so polling is the mechanism.
 
 ## Development
 
@@ -228,8 +217,7 @@ drizzle/              SQL migrations
 - **Messages are transport-neutral** (`domain/message.ts`): content, embeds,
   mentions and controls. `infra/discord/render.ts` turns them into discord.js
   payloads.
-- **Cross-service use is explicit**: movies get the poll and event services,
-  Redmine gets the reminder service.
+- **Cross-service use is explicit**: movies get the poll and event services.
 - **Scheduler:** jobs live in `scheduled_jobs`. The runner claims due jobs
   with `FOR UPDATE SKIP LOCKED` and a lease, so a crash mid-job leads to a
   retry after the lease expires. Delivery is at-least-once, and handlers

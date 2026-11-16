@@ -31,14 +31,6 @@ const envSchema = z.object({
 
   REDMINE_BASE_URL: optional(z.url()),
   REDMINE_API_KEY: optional(z.string().min(1)),
-  CREDENTIAL_ENCRYPTION_KEY: optional(
-    z
-      .string()
-      .refine(
-        (key) => Buffer.from(key, 'base64').length === 32,
-        'must be 32 bytes encoded as base64',
-      ),
-  ),
 
   WEB_PORT: optional(z.coerce.number().int().min(1).max(65_535)),
   WEB_HOST: z.string().default('127.0.0.1'),
@@ -46,13 +38,22 @@ const envSchema = z.object({
 
 export type Config = z.infer<typeof envSchema>;
 
-const checkedSchema = envSchema.refine(
-  (env) => env.WEB_PORT === undefined || env.DISCORD_GUILD_ID !== undefined,
-  {
-    message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
-    path: ['DISCORD_GUILD_ID'],
-  },
-);
+const checkedSchema = envSchema
+  .refine(
+    (env) => env.WEB_PORT === undefined || env.DISCORD_GUILD_ID !== undefined,
+    {
+      message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
+      path: ['DISCORD_GUILD_ID'],
+    },
+  )
+  .refine(
+    (env) =>
+      env.REDMINE_BASE_URL === undefined || env.REDMINE_API_KEY !== undefined,
+    {
+      message: 'REDMINE_API_KEY is required when REDMINE_BASE_URL is set',
+      path: ['REDMINE_API_KEY'],
+    },
+  );
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = checkedSchema.safeParse(env);
