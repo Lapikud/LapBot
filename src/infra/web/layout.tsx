@@ -1,15 +1,18 @@
 import type { Child } from 'hono/jsx';
+import { managePermissions, type Permission } from '~/domain';
 import type { Flash, Server } from './context';
 
-const sections = [
+const sections: ReadonlyArray<
+  readonly [href: string, label: string, permission?: Permission]
+> = [
   ['/', 'Overview'],
   ['/events', 'Events'],
   ['/polls', 'Polls'],
   ['/birthdays', 'Birthdays'],
   ['/movies', 'Movies'],
-  ['/psa', 'PSAs'],
-  ['/permissions', 'Permissions'],
-] as const;
+  ['/psa', 'PSAs', 'announcement:create'],
+  ['/permissions', 'Permissions', managePermissions],
+];
 
 const pico =
   'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css';
@@ -17,9 +20,21 @@ const pico =
 export function Layout({
   title,
   path,
+  can,
   flash = {},
   children,
-}: Readonly<{ title: string; path: string; flash?: Flash; children?: Child }>) {
+}: Readonly<{
+  title: string;
+  path: string;
+  can?: ReadonlySet<Permission>;
+  flash?: Flash;
+  children?: Child;
+}>) {
+  const visible = sections.filter(
+    ([, , permission]) =>
+      permission === undefined || can?.has(permission) === true,
+  );
+
   return (
     <html lang="en">
       <head>
@@ -38,7 +53,7 @@ export function Layout({
               </li>
             </ul>
             <ul>
-              {sections.map(([href, label]) => (
+              {(can === undefined ? [] : visible).map(([href, label]) => (
                 <li key={href}>
                   <a
                     href={href}
@@ -79,6 +94,18 @@ export function Layout({
   );
 }
 
+export function ChannelOptions({ server }: Readonly<{ server: Server }>) {
+  return (
+    <>
+      {server.channels.map(({ id, name }) => (
+        <option key={id} value={id}>
+          #{name}
+        </option>
+      ))}
+    </>
+  );
+}
+
 export function ChannelSelect({
   server,
   name = 'channelId',
@@ -87,11 +114,7 @@ export function ChannelSelect({
     <label>
       Channel
       <select name={name} required>
-        {server.channels.map(({ id, name: channel }) => (
-          <option key={id} value={id}>
-            #{channel}
-          </option>
-        ))}
+        <ChannelOptions server={server} />
       </select>
     </label>
   );
@@ -126,5 +149,49 @@ export function ActionButton({
         {label}
       </button>
     </form>
+  );
+}
+
+export type Choice = { name: string; value: string; label: string };
+
+export function MultiSelect({
+  label,
+  placeholder,
+  choices,
+  selected,
+}: Readonly<{
+  label: string;
+  placeholder: string;
+  choices: readonly Choice[];
+  selected: ReadonlySet<string>;
+}>) {
+  const picked = choices.filter(({ value }) => selected.has(value));
+
+  return (
+    <label>
+      {label}
+      <details class="dropdown">
+        <summary>
+          {picked.length === 0
+            ? placeholder
+            : picked.map((choice) => choice.label).join(', ')}
+        </summary>
+        <ul>
+          {choices.map((choice) => (
+            <li key={`${choice.name}:${choice.value}`}>
+              <label>
+                <input
+                  type="checkbox"
+                  name={choice.name}
+                  value={choice.value}
+                  checked={selected.has(choice.value)}
+                />
+                {choice.label}
+              </label>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </label>
   );
 }

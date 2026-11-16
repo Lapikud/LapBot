@@ -1,13 +1,16 @@
 import { Hono } from 'hono';
 import type { Event } from '~/core/ports';
 import { reminderChoices } from '~/core/services';
+import { UserError } from '~/domain';
 import {
+  allows,
   back,
   checked,
   field,
   flashOf,
   formatter,
   inputTime,
+  owns,
   type Env,
   type Form,
   type WebDeps,
@@ -106,7 +109,12 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
       const { server } = c.var;
 
       return c.html(
-        <Layout title="Events" path="/events" flash={flashOf(c)}>
+        <Layout
+          can={c.var.can}
+          title="Events"
+          path="/events"
+          flash={flashOf(c)}
+        >
           <table>
             <thead>
               <tr>
@@ -125,44 +133,52 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
                   <td>{date(e.startsAt)}</td>
                   <td>{server.channelName(e.channelId)}</td>
                   <td>
-                    <a
-                      href={`/events/${e.id}`}
-                      role="button"
-                      class="secondary outline"
-                    >
-                      Edit
-                    </a>{' '}
-                    <ActionButton
-                      action={`/events/${e.id}/cancel`}
-                      label="Cancel"
-                    />
+                    {owns(c, e.organizerId, 'event:manage') ? (
+                      <>
+                        <a
+                          href={`/events/${e.id}`}
+                          role="button"
+                          class="secondary outline"
+                        >
+                          Edit
+                        </a>{' '}
+                        <ActionButton
+                          action={`/events/${e.id}/cancel`}
+                          label="Cancel"
+                        />
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <h2>New event</h2>
-          <form method="post" action="/events">
-            <EventFields time={time} />
-            <div class="grid">
-              <ChannelSelect server={server} />
-              <label>
-                Reminders
-                <select name="reminders">
-                  {reminderChoices.map((choice) => (
-                    <option key={choice.value} value={choice.value}>
-                      {choice.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <fieldset>
-              <Checkbox name="native" label="Also create a Discord event" />
-              <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
-            </fieldset>
-            <button type="submit">Create event</button>
-          </form>
+          {allows(c, 'event:create') ? (
+            <>
+              <h2>New event</h2>
+              <form method="post" action="/events">
+                <EventFields time={time} />
+                <div class="grid">
+                  <ChannelSelect server={server} />
+                  <label>
+                    Reminders
+                    <select name="reminders">
+                      {reminderChoices.map((choice) => (
+                        <option key={choice.value} value={choice.value}>
+                          {choice.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <fieldset>
+                  <Checkbox name="native" label="Also create a Discord event" />
+                  <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
+                </fieldset>
+                <button type="submit">Create event</button>
+              </form>
+            </>
+          ) : null}
         </Layout>,
       );
     })
@@ -186,8 +202,13 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
         Number(c.req.param('id')),
       );
 
+      if (!owns(c, event.organizerId, 'event:manage')) {
+        throw new UserError('Only the organizer can edit this event.');
+      }
+
       return c.html(
         <Layout
+          can={c.var.can}
           title={`Edit event #${event.id}`}
           path="/events"
           flash={flashOf(c)}

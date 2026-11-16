@@ -10,7 +10,7 @@ import type {
   PermissionService,
   PollService,
 } from '~/core/services';
-import type { Actor, RoleInfo } from '~/domain';
+import type { Actor, Permission, RoleInfo } from '~/domain';
 import type { SignIn } from './auth';
 
 export type WebServices = {
@@ -55,7 +55,18 @@ export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
   };
 }
 
-export type Env = { Variables: { actor: Actor; server: Server } };
+export type Env = {
+  Variables: { actor: Actor; server: Server; can: ReadonlySet<Permission> };
+};
+
+export const allows = (c: Context<Env>, permission: Permission) =>
+  c.var.can.has(permission);
+
+export const owns = (
+  c: Context<Env>,
+  ownerId: string,
+  permission: Permission,
+) => c.var.actor.userId === ownerId || allows(c, permission);
 
 export type Flash = { notice?: string; error?: string };
 

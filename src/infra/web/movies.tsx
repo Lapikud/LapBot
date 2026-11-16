@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { MovieSuggestion } from '~/core/ports';
 import { movieLabel, movieLinks } from '~/domain';
-import { back, field, flashOf, type Env, type WebDeps } from './context';
+import { back, field, flashOf, owns, type Env, type WebDeps } from './context';
 import { ActionButton, Layout } from './layout';
 
 const linksOf = (value: string | undefined) =>
@@ -10,7 +10,12 @@ const linksOf = (value: string | undefined) =>
 function MovieCard({
   movie,
   suggestedBy,
-}: Readonly<{ movie: MovieSuggestion; suggestedBy: string }>) {
+  editable,
+}: Readonly<{
+  movie: MovieSuggestion;
+  suggestedBy: string;
+  editable: boolean;
+}>) {
   return (
     <article class="movie">
       {movie.posterUrl === null ? (
@@ -32,15 +37,27 @@ function MovieCard({
             </a>
           ))}
         </p>
-        <form method="post" action={`/movies/${movie.id}/links`}>
-          <div role="group">
-            <input name="url" type="url" placeholder="Add a link" required />
-            <button type="submit" class="secondary">
-              Add
-            </button>
-          </div>
-        </form>
-        <ActionButton action={`/movies/${movie.id}/remove`} label="Remove" />
+        {editable ? (
+          <>
+            <form method="post" action={`/movies/${movie.id}/links`}>
+              <div role="group">
+                <input
+                  name="url"
+                  type="url"
+                  placeholder="Add a link"
+                  required
+                />
+                <button type="submit" class="secondary">
+                  Add
+                </button>
+              </div>
+            </form>
+            <ActionButton
+              action={`/movies/${movie.id}/remove`}
+              label="Remove"
+            />
+          </>
+        ) : null}
       </div>
     </article>
   );
@@ -59,13 +76,19 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
       );
 
       return c.html(
-        <Layout title="Movies" path="/movies" flash={flashOf(c)}>
+        <Layout
+          can={c.var.can}
+          title="Movies"
+          path="/movies"
+          flash={flashOf(c)}
+        >
           {list.length === 0 ? <p>No suggestions yet.</p> : null}
           {list.map((movie, index) => (
             <MovieCard
               key={movie.id}
               movie={movie}
               suggestedBy={names[index] ?? ''}
+              editable={owns(c, movie.suggestedBy, 'movie:manage')}
             />
           ))}
           <h2>Suggest a movie</h2>

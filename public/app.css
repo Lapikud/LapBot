@@ -91,35 +91,6 @@ td [role='button'] {
   margin-right: 0.75rem;
 }
 
-.permissions {
-  display: grid;
-  grid-template-columns: minmax(10rem, 14rem) 1fr;
-  gap: 2rem;
-  align-items: start;
-}
-
-.role-list {
-  padding: 0;
-  list-style: none;
-}
-
-.role-list li {
-  list-style: none;
-}
-
-.role-list a {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--pico-border-radius);
-  text-decoration: none;
-}
-
-.role-list a[aria-current] {
-  background: var(--pico-primary-background);
-  color: var(--pico-primary-inverse);
-}
-
 .permissions label small {
   display: inline;
   margin-left: 0.5rem;
@@ -136,4 +107,15 @@ nav [type='submit'] {
   --pico-form-element-spacing-horizontal: 0.75rem;
 
   font-size: 0.875rem;
+}
+
+details.dropdown > ul {
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+details.dropdown > summary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

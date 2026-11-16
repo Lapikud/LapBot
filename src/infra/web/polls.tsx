@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import {
+  allows,
   back,
   checked,
   field,
   flashOf,
   formatter,
+  owns,
   type Env,
   type WebDeps,
 } from './context';
@@ -18,36 +20,40 @@ export function pollPages({ guildId, services, timezone }: WebDeps) {
       const open = await services.polls.open(guildId);
 
       return c.html(
-        <Layout title="Polls" path="/polls" flash={flashOf(c)}>
-          <form method="post" action="/polls">
-            <label>
-              Question
-              <input name="question" required maxlength={256} />
-            </label>
-            <label>
-              Options (one per line, up to 10)
-              <textarea name="options" rows={5} required />
-            </label>
-            <ChannelSelect server={c.var.server} />
-            <fieldset>
-              <Checkbox name="multiple" label="Allow several choices" />
-              <Checkbox name="anonymous" label="Anonymous" />
-            </fieldset>
-            <div class="grid">
-              <label>
-                Results
-                <select name="results">
-                  <option value="live">Live</option>
-                  <option value="closed">After closing</option>
-                </select>
-              </label>
-              <label>
-                Closes
-                <input name="closes" placeholder="e.g. 2h, 1d, fri 18:00" />
-              </label>
-            </div>
-            <button type="submit">Start poll</button>
-          </form>
+        <Layout can={c.var.can} title="Polls" path="/polls" flash={flashOf(c)}>
+          {allows(c, 'poll:create') ? (
+            <>
+              <form method="post" action="/polls">
+                <label>
+                  Question
+                  <input name="question" required maxlength={256} />
+                </label>
+                <label>
+                  Options (one per line, up to 10)
+                  <textarea name="options" rows={5} required />
+                </label>
+                <ChannelSelect server={c.var.server} />
+                <fieldset>
+                  <Checkbox name="multiple" label="Allow several choices" />
+                  <Checkbox name="anonymous" label="Anonymous" />
+                </fieldset>
+                <div class="grid">
+                  <label>
+                    Results
+                    <select name="results">
+                      <option value="live">Live</option>
+                      <option value="closed">After closing</option>
+                    </select>
+                  </label>
+                  <label>
+                    Closes
+                    <input name="closes" placeholder="e.g. 2h, 1d, fri 18:00" />
+                  </label>
+                </div>
+                <button type="submit">Start poll</button>
+              </form>
+            </>
+          ) : null}
           <table>
             <thead>
               <tr>
@@ -64,10 +70,14 @@ export function pollPages({ guildId, services, timezone }: WebDeps) {
                   <td>{p.question}</td>
                   <td>{date(p.closesAt)}</td>
                   <td>
-                    <ActionButton
-                      action={`/polls/${p.id}/close`}
-                      label="Close"
-                    />
+                    {owns(c, p.creatorId, 'poll:manage') ? (
+                      <>
+                        <ActionButton
+                          action={`/polls/${p.id}/close`}
+                          label="Close"
+                        />
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))}

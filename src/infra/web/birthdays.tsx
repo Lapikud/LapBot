@@ -1,6 +1,13 @@
 import { Hono } from 'hono';
-import { back, field, flashOf, type Env, type WebDeps } from './context';
-import { ChannelSelect, Layout } from './layout';
+import {
+  allows,
+  back,
+  field,
+  flashOf,
+  type Env,
+  type WebDeps,
+} from './context';
+import { ChannelOptions, ChannelSelect, Layout } from './layout';
 
 const dayMonth = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -27,71 +34,85 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
       );
 
       return c.html(
-        <Layout title="Birthdays" path="/birthdays" flash={flashOf(c)}>
+        <Layout
+          can={c.var.can}
+          title="Birthdays"
+          path="/birthdays"
+          flash={flashOf(c)}
+        >
           <p>
             {settings === undefined
               ? 'Birthday announcements are off.'
               : `Announced in ${server.channelName(settings.channelId)} at ${settings.hour}:00.`}{' '}
             Members add their own birthday with /birthday set.
           </p>
-          <form method="post" action="/birthdays">
-            <ChannelSelect server={server} />
-            <div class="grid">
-              <label>
-                Role for the day
-                <select name="roleId">
-                  <option value="">None</option>
-                  {roles.map(({ id, name }) => (
-                    <option
-                      key={id}
-                      value={id}
-                      selected={settings?.roleId === id}
+          {allows(c, 'birthday:manage') ? (
+            <>
+              <form method="post" action="/birthdays">
+                <ChannelSelect server={server} />
+                <div class="grid">
+                  <label>
+                    Role for the day
+                    <select name="roleId">
+                      <option value="">None</option>
+                      {roles.map(({ id, name }) => (
+                        <option
+                          key={id}
+                          value={id}
+                          selected={settings?.roleId === id}
+                        >
+                          @{name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Hour
+                    <input
+                      name="hour"
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={String(settings?.hour ?? 9)}
+                    />
+                  </label>
+                </div>
+                <div role="group">
+                  <button type="submit" name="action" value="save">
+                    Save
+                  </button>
+                  {settings === undefined ? null : (
+                    <button
+                      type="submit"
+                      name="action"
+                      value="disable"
+                      class="secondary outline"
                     >
-                      @{name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Hour
-                <input
-                  name="hour"
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={String(settings?.hour ?? 9)}
-                />
-              </label>
-            </div>
-            <div role="group">
-              <button type="submit" name="action" value="save">
-                Save
-              </button>
-              {settings === undefined ? null : (
-                <button
-                  type="submit"
-                  name="action"
-                  value="disable"
-                  class="secondary outline"
-                >
-                  Turn off
-                </button>
-              )}
-            </div>
-          </form>
-          <h2>Sign-up message</h2>
-          <p>
-            Post a message with an <q>Add my birthday</q> button. It keeps
-            working after restarts, so one post is enough.
-          </p>
-          <form method="post" action="/birthdays/signup">
-            <div role="group">
-              <ChannelSelect server={server} />
-              <button type="submit" class="secondary">
-                Post
-              </button>
-            </div>
-          </form>
+                      Turn off
+                    </button>
+                  )}
+                </div>
+              </form>
+              <h2>Sign-up message</h2>
+              <p>
+                Post a message with an <q>Add my birthday</q> button. It keeps
+                working after restarts, so one post is enough.
+              </p>
+              <form method="post" action="/birthdays/signup">
+                <label>
+                  Channel
+                  <div role="group">
+                    <select name="channelId" required>
+                      <ChannelOptions server={server} />
+                    </select>
+                    <button type="submit" class="secondary">
+                      Post
+                    </button>
+                  </div>
+                </label>
+              </form>
+            </>
+          ) : null}
           <h2>Coming up</h2>
           {upcoming.length === 0 ? (
             <p>No public birthdays saved yet.</p>

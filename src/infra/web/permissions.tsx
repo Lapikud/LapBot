@@ -18,7 +18,10 @@ function groupsOf(catalogue: readonly PermissionDefinition[]) {
   return [...groups];
 }
 
-function RoleList({
+const roleName = (role: RoleInfo) =>
+  role.everyone ? 'Everyone' : `@${role.name}`;
+
+function RolePicker({
   roles,
   selected,
   counts,
@@ -28,19 +31,27 @@ function RoleList({
   counts: ReadonlyMap<string, number>;
 }>) {
   return (
-    <ul class="role-list">
-      {roles.map((role) => (
-        <li key={role.id}>
-          <a
-            href={`/permissions?role=${role.id}`}
-            aria-current={role.id === selected ? 'true' : undefined}
-          >
-            {role.everyone ? 'Everyone' : `@${role.name}`}
-            <small>{counts.get(role.id) ?? 0}</small>
-          </a>
-        </li>
-      ))}
-    </ul>
+    <form method="get" action="/permissions">
+      <div role="group">
+        <select name="role" aria-label="Role" required>
+          <option value="" disabled selected={selected === undefined}>
+            Pick a role
+          </option>
+          {roles.map((role) => (
+            <option
+              key={role.id}
+              value={role.id}
+              selected={role.id === selected}
+            >
+              {roleName(role)} ({counts.get(role.id) ?? 0})
+            </option>
+          ))}
+        </select>
+        <button type="submit" class="secondary">
+          Open
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -55,7 +66,7 @@ function RoleForm({
 }>) {
   return (
     <form method="post" action={`/permissions/${role.id}`}>
-      <h2>{role.everyone ? 'Everyone' : `@${role.name}`}</h2>
+      <h2>{roleName(role)}</h2>
       {groupsOf(catalogue).map(([group, permissions]) => (
         <fieldset key={group}>
           <legend>{group}</legend>
@@ -93,29 +104,30 @@ export function permissionPages({ services }: WebDeps) {
       }
 
       return c.html(
-        <Layout title="Permissions" path="/permissions" flash={flashOf(c)}>
+        <Layout
+          can={c.var.can}
+          title="Permissions"
+          path="/permissions"
+          flash={flashOf(c)}
+        >
           <p>
             Server administrators can do everything, including opening this
             dashboard. Pick a role to choose what its members may do.
           </p>
-          <div class="permissions">
-            <RoleList roles={roles} selected={selected?.id} counts={counts} />
-            {selected ? (
-              <RoleForm
-                role={selected}
-                granted={
-                  new Set(
-                    grants
-                      .filter((grant) => grant.roleId === selected.id)
-                      .map((grant) => grant.permission),
-                  )
-                }
-                catalogue={services.permissions.catalogue()}
-              />
-            ) : (
-              <p>Pick a role on the left.</p>
-            )}
-          </div>
+          <RolePicker roles={roles} selected={selected?.id} counts={counts} />
+          {selected ? (
+            <RoleForm
+              role={selected}
+              granted={
+                new Set(
+                  grants
+                    .filter((grant) => grant.roleId === selected.id)
+                    .map((grant) => grant.permission),
+                )
+              }
+              catalogue={services.permissions.catalogue()}
+            />
+          ) : null}
         </Layout>,
       );
     })

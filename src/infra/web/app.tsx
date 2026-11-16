@@ -5,7 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
-import { UserError, webAccess } from '~/domain';
+import { UserError, webAccess, type Permission } from '~/domain';
 import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
@@ -16,9 +16,13 @@ import { permissionPages } from './permissions';
 import { pollPages } from './polls';
 import { psaPages } from './psa';
 
-function Message({ title, text }: Readonly<{ title: string; text: string }>) {
+function Message({
+  title,
+  text,
+  can,
+}: Readonly<{ title: string; text: string; can?: ReadonlySet<Permission> }>) {
   return (
-    <Layout title={title} path="">
+    <Layout title={title} path="" {...(can && { can })}>
       <p>{text}</p>
       <p>
         <a href="/">Back to the overview</a>
@@ -90,7 +94,14 @@ export function createWebApp(deps: WebDeps) {
       directory.roles(guildId),
     ]);
 
+    const held = await Promise.all(
+      services.permissions
+        .catalogue()
+        .map(async ({ id }) => ((await authz.can(actor, id)) ? [id] : [])),
+    );
+
     c.set('actor', actor);
+    c.set('can', new Set(held.flat()));
     c.set('server', serverOf(channels, roles));
 
     return next();
@@ -107,11 +118,13 @@ export function createWebApp(deps: WebDeps) {
     );
 
     return c.html(
-      <Layout title="Overview" path="/">
+      <Layout can={c.var.can} title="Overview" path="/">
         <ul>
-          <li>
-            <a href="/psa">{pending.length} PSA drafts and scheduled posts</a>
-          </li>
+          {c.var.can.has('announcement:create') ? (
+            <li>
+              <a href="/psa">{pending.length} PSA drafts and scheduled posts</a>
+            </li>
+          ) : null}
           <li>
             <a href="/events">{events.length} upcoming events</a>
           </li>
@@ -134,7 +147,10 @@ export function createWebApp(deps: WebDeps) {
   );
   app.onError((error, c) => {
     if (error instanceof UserError && c.req.method === 'GET') {
-      return c.html(<Message title="Not allowed" text={error.message} />, 403);
+      return c.html(
+        <Message title="Not allowed" text={error.message} can={c.var.can} />,
+        403,
+      );
     }
 
     if (error instanceof UserError) {

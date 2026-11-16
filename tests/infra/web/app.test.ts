@@ -138,6 +138,18 @@ describe.skipIf(noDatabase)('web UI', () => {
                 'event:create',
                 { id: 'event:create', description: 'Create events' },
               ],
+              [
+                'web:access',
+                { id: 'web:access', description: 'Open the dashboard' },
+              ],
+              [
+                'announcement:create',
+                { id: 'announcement:create', description: 'Write PSAs' },
+              ],
+              [
+                'announcement:publish',
+                { id: 'announcement:publish', description: 'Publish PSAs' },
+              ],
             ]),
         }),
       },
@@ -367,6 +379,22 @@ describe.skipIf(noDatabase)('web UI', () => {
       'Nothing changed.',
     );
     expect(await notice({})).toBe('Saved: 0 added, 1 removed.');
+  });
+
+  it('shows members only the parts they may use', async () => {
+    await post(`/permissions/${teamId}`, { permission: 'web:access' });
+    directory.member.mockResolvedValueOnce(
+      actor({ guildId, userId: '42', roleIds: [teamId] }),
+    );
+
+    const page = await (await get('/events')).text();
+
+    expect(page).toContain('href="/movies"');
+    expect(page).not.toContain('href="/permissions"');
+    expect(page).not.toContain('href="/psa"');
+    expect(page).not.toContain('New event');
+
+    await post(`/permissions/${teamId}`, {});
   });
 
   it('returns 404 for unknown pages', async () => {

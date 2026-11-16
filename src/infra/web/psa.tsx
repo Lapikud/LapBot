@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Child } from 'hono/jsx';
 import type { Announcement } from '~/core/ports';
+import { UserError, type Permission } from '~/domain';
 import {
+  allows,
   back,
   checked,
   field,
@@ -12,7 +14,7 @@ import {
   type Server,
   type WebDeps,
 } from './context';
-import { ActionButton, ChannelSelect, Checkbox, Layout } from './layout';
+import { ActionButton, ChannelSelect, Layout, MultiSelect } from './layout';
 import { MessagePreview } from './preview';
 
 const title = 'Public service announcements';
@@ -36,40 +38,53 @@ function MentionPicker({
   draft,
 }: Readonly<{ server: Server; draft: Draft | undefined }>) {
   const roles = server.roles.filter((role) => !role.everyone && !role.managed);
+  const selected = new Set([
+    ...(draft?.mentionEveryone === true ? ['1'] : []),
+    ...(draft?.mentionRoleIds ?? []),
+  ]);
 
   return (
-    <fieldset>
-      <legend>Mention</legend>
-      <Checkbox
-        name="everyone"
-        label="@everyone"
-        checked={draft?.mentionEveryone ?? false}
-      />
-      {roles.map(({ id, name }) => (
-        <Checkbox
-          key={id}
-          name="role"
-          value={id}
-          label={`@${name}`}
-          checked={draft?.mentionRoleIds.includes(id) ?? false}
-        />
-      ))}
-    </fieldset>
+    <MultiSelect
+      label="Mention"
+      placeholder="Nobody"
+      selected={selected}
+      choices={[
+        { name: 'everyone', value: '1', label: '@everyone' },
+        ...roles.map(({ id, name }) => ({
+          name: 'role',
+          value: id,
+          label: `@${name}`,
+        })),
+      ]}
+    />
   );
 }
 
-const actions = [
+const actions: ReadonlyArray<
+  readonly [
+    value: string,
+    label: string,
+    variant: string | undefined,
+    needs?: Permission,
+  ]
+> = [
   ['preview', 'Preview', 'secondary outline'],
   ['draft', 'Save draft', 'secondary'],
-  ['schedule', 'Schedule', 'secondary'],
-  ['publish', 'Publish now', undefined],
-] as const;
+  ['schedule', 'Schedule', 'secondary', 'announcement:schedule'],
+  ['publish', 'Publish now', undefined, 'announcement:publish'],
+];
 
 function Composer({
   server,
+  can,
   draft,
   preview,
-}: Readonly<{ server: Server; draft?: Draft; preview?: Child }>) {
+}: Readonly<{
+  server: Server;
+  can: ReadonlySet<Permission>;
+  draft?: Draft;
+  preview?: Child;
+}>) {
   return (
     <form method="post" action="/psa">
       <ChannelSelect server={server} />
@@ -90,17 +105,19 @@ function Composer({
       </label>
       {preview}
       <div role="group">
-        {actions.map(([value, label, variant]) => (
-          <button
-            key={value}
-            type="submit"
-            name="action"
-            value={value}
-            class={variant}
-          >
-            {label}
-          </button>
-        ))}
+        {actions
+          .filter(([, , , needs]) => needs === undefined || can.has(needs))
+          .map(([value, label, variant]) => (
+            <button
+              key={value}
+              type="submit"
+              name="action"
+              value={value}
+              class={variant}
+            >
+              {label}
+            </button>
+          ))}
       </div>
     </form>
   );
@@ -110,11 +127,17 @@ function Recent({
   list,
   server,
   date,
+  can,
+  userId,
 }: Readonly<{
   list: Announcement[];
   server: Server;
   date: (value: Date | null) => string;
+  can: ReadonlySet<Permission>;
+  userId: string;
 }>) {
+  const publisher = can.has('announcement:publish');
+
   return (
     <table>
       <thead>
@@ -146,11 +169,18 @@ function Recent({
             <td>
               {a.status === 'draft' || a.status === 'scheduled' ? (
                 <>
-                  <ActionButton
-                    action={`/psa/${a.id}/publish`}
-                    label="Publish"
-                  />
-                  <ActionButton action={`/psa/${a.id}/cancel`} label="Cancel" />
+                  {publisher ? (
+                    <ActionButton
+                      action={`/psa/${a.id}/publish`}
+                      label="Publish"
+                    />
+                  ) : null}
+                  {publisher || a.authorId === userId ? (
+                    <ActionButton
+                      action={`/psa/${a.id}/cancel`}
+                      label="Cancel"
+                    />
+                  ) : null}
                 </>
               ) : null}
             </td>
@@ -165,14 +195,27 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
   const date = formatter(timezone);
 
   return new Hono<Env>()
+    .use(async (c, next) => {
+      if (!allows(c, 'announcement:create')) {
+        throw new UserError('You need the "announcement:create" permission.');
+      }
+
+      await next();
+    })
     .get('/', async (c) => {
       const list = await services.announcements.list(guildId);
 
       return c.html(
-        <Layout title={title} path="/psa" flash={flashOf(c)}>
-          <Composer server={c.var.server} />
+        <Layout can={c.var.can} title={title} path="/psa" flash={flashOf(c)}>
+          <Composer server={c.var.server} can={c.var.can} />
           <h2>Recent</h2>
-          <Recent list={list} server={c.var.server} date={date} />
+          <Recent
+            list={list}
+            server={c.var.server}
+            date={date}
+            can={c.var.can}
+            userId={c.var.actor.userId}
+          />
         </Layout>,
       );
     })
@@ -198,8 +241,9 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         });
 
         return c.html(
-          <Layout title={title} path="/psa">
+          <Layout can={c.var.can} title={title} path="/psa">
             <Composer
+              can={c.var.can}
               server={server}
               draft={draft}
               preview={
