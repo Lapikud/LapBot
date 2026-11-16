@@ -90,3 +90,50 @@ td [role='button'] {
 .movie p a {
   margin-right: 0.75rem;
 }
+
+.permissions {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.role-list {
+  padding: 0;
+  list-style: none;
+}
+
+.role-list li {
+  list-style: none;
+}
+
+.role-list a {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--pico-border-radius);
+  text-decoration: none;
+}
+
+.role-list a[aria-current] {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+
+.permissions label small {
+  display: inline;
+  margin-left: 0.5rem;
+  color: var(--pico-muted-color);
+}
+
+nav form,
+nav [type='submit'] {
+  margin: 0;
+}
+
+nav [type='submit'] {
+  --pico-form-element-spacing-vertical: 0.25rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+
+  font-size: 0.875rem;
+}

@@ -348,6 +348,27 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect((await get('/')).status).toBe(403);
   });
 
+  it('sets the permissions of a role from the checkboxes', async () => {
+    const page = await (await get(`/permissions?role=${teamId}`)).text();
+    const notice = async (fields: Record<string, string | string[]>) => {
+      const response = await post(`/permissions/${teamId}`, fields);
+
+      return new URL(
+        response.headers.get('location') ?? '',
+        'http://localhost',
+      ).searchParams.get('notice');
+    };
+
+    expect(page).toContain('value="event:create"');
+    expect(await notice({ permission: 'event:create' })).toBe(
+      'Saved: 1 added, 0 removed.',
+    );
+    expect(await notice({ permission: 'event:create' })).toBe(
+      'Nothing changed.',
+    );
+    expect(await notice({})).toBe('Saved: 0 added, 1 removed.');
+  });
+
   it('returns 404 for unknown pages', async () => {
     expect((await get('/nope')).status).toBe(404);
   });

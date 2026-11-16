@@ -83,7 +83,9 @@ export const flashOf = (c: Context<Env>): Flash => {
 export const withFlash = (path: string, flash: Flash) => {
   const query = new URLSearchParams(Object.entries(flash)).toString();
 
-  return query === '' ? path : `${path}?${query}`;
+  const separator = path.includes('?') ? '&' : '?';
+
+  return query === '' ? path : `${path}${separator}${query}`;
 };
 
 export const back = (c: Context<Env>, path: string, flash: Flash) =>
