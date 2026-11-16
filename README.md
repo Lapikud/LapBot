@@ -191,7 +191,7 @@ src/
   lib/                generic helpers
   core/
     ports/            contracts: Messenger, Directory, Calendar, Scheduler,
-                      IssueTracker, SecretBox and one repository per area
+                      IssueTracker and one repository per area
     services/         use cases (roles, reminders, events, polls, ...), each
                       created from its ports, with permission guards
   infra/
@@ -200,9 +200,8 @@ src/
                       thin slash-command adapters in commands/
     scheduler/        job queue (Scheduler port) and the job runner
     redmine/          Redmine adapter for the IssueTracker port
-    crypto/           AES-256-GCM SecretBox
     logging/          pino
-    web/              server-rendered web UI and the Authenticator adapters
+    web/              server-rendered web UI and its Authenticator adapter
 tests/                mirrors src/
 drizzle/              SQL migrations
 ```
