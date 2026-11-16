@@ -208,7 +208,7 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
       await next();
     })
     .get('/', async (c) => {
-      const list = await services.announcements.list(guildId);
+      const list = await services.announcements.list(c.var.actor);
 
       return c.html(
         <Layout

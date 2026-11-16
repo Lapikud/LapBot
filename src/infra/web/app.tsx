@@ -135,7 +135,7 @@ export function createWebApp(deps: WebDeps) {
 
   app.get('/', async (c) => {
     const [announcements, events, polls] = await Promise.all([
-      services.announcements.list(guildId),
+      services.announcements.list(c.var.actor),
       services.events.upcoming(guildId),
       services.polls.open(guildId),
     ]);

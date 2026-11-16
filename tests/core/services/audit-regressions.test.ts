@@ -110,4 +110,98 @@ describe.skipIf(noDatabase)('audit security regressions', () => {
     });
   });
 
+  it('hides private-channel announcements even from publishers', async () => {
+    const { member, directory, announcements, announcementService } =
+      await setup(['announcement:publish']);
+    const draft = await announcements.insert({
+      guildId: member.guildId,
+      authorId: 'other',
+      channelId: 'private',
+      title: 'Secret',
+      content: 'Hidden',
+      mentionRoleIds: [],
+      mentionEveryone: false,
+    });
+
+    directory.canView.mockResolvedValue(false);
+    await expect(announcementService.get(member, draft.id)).rejects.toThrow(
+      'does not exist',
+    );
+    expect(await announcementService.list(member)).toEqual([]);
+  });
+
+  it('hides another author’s drafts but keeps their published announcements visible', async () => {
+    const { member, announcements, announcementService } = await setup();
+    const draft = await announcements.insert({
+      guildId: member.guildId,
+      authorId: 'other',
+      channelId: 'c',
+      title: 'Unpublished',
+      content: 'Hidden',
+      mentionRoleIds: [],
+      mentionEveryone: false,
+    });
+
+    await expect(announcementService.get(member, draft.id)).rejects.toThrow();
+    expect(await announcementService.list(member)).toEqual([]);
+    await announcements.update(draft.id, { status: 'published' });
+    expect(
+      (await announcementService.list(member)).map((row) => row.id),
+    ).toEqual([draft.id]);
+  });
+
+  it('lets authors and publishers read visible drafts', async () => {
+    const { member, announcements, announcementService } = await setup([
+      'announcement:publish',
+    ]);
+    const draft = await announcements.insert({
+      guildId: member.guildId,
+      authorId: 'author',
+      channelId: 'c',
+      title: null,
+      content: 'Draft',
+      mentionRoleIds: [],
+      mentionEveryone: false,
+    });
+
+    expect((await announcementService.get(member, draft.id)).id).toBe(draft.id);
+    expect(
+      (
+        await announcementService.get(
+          actor({ guildId: member.guildId, userId: 'author' }),
+          draft.id,
+        )
+      ).id,
+    ).toBe(draft.id);
+  });
+
+  it.each(['channel', 'everyone', 'role'] as const)(
+    'rechecks %s restrictions before publishing',
+    async (restriction) => {
+      const {
+        member,
+        directory,
+        announcements,
+        announcementService,
+        messages,
+      } = await setup(['announcement:publish']);
+      const draft = await announcements.insert({
+        guildId: member.guildId,
+        authorId: 'other',
+        channelId: 'c',
+        title: null,
+        content: 'Draft',
+        mentionRoleIds: restriction === 'role' ? ['r'] : [],
+        mentionEveryone: restriction === 'everyone',
+      });
+
+      directory.canPost.mockResolvedValue(restriction !== 'channel');
+      directory.role.mockResolvedValue(role({ mentionable: false }));
+      await expect(
+        announcementService.publish(member, draft.id),
+      ).rejects.toThrow();
+      expect(messages.size).toBe(0);
+      expect((await announcements.find(draft.id))?.status).toBe('draft');
+    },
+  );
 });

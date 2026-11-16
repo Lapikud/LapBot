@@ -334,7 +334,7 @@ export function announcementCommands(
           },
         }),
         autocomplete: async (interaction) => {
-          const rows = await announcements.list(interaction.guildId);
+          const rows = await announcements.list(toActor(interaction.member));
 
           await interaction.respond(
             rows

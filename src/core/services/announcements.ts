@@ -79,10 +79,16 @@ export function createAnnouncementService(deps: Deps) {
   const { announcements, scheduler, messenger, directory, authz, log, clock } =
     deps;
 
-  const requireOwnGuild = async (actor: Actor, id: number) => {
+  const requireReadable = async (actor: Actor, id: number) => {
     const announcement = await announcements.find(id);
 
-    if (announcement?.guildId !== actor.guildId) {
+    if (
+      announcement?.guildId !== actor.guildId ||
+      !(await directory.canView(actor, announcement.channelId)) ||
+      (announcement.status !== 'published' &&
+        announcement.authorId !== actor.userId &&
+        !(await authz.can(actor, 'announcement:publish')))
+    ) {
       throw new UserError(`Announcement #${id} does not exist.`);
     }
 
@@ -90,7 +96,7 @@ export function createAnnouncementService(deps: Deps) {
   };
 
   const requireEditable = async (actor: Actor, id: number) => {
-    const announcement = await requireOwnGuild(actor, id);
+    const announcement = await requireReadable(actor, id);
 
     if (announcement.authorId !== actor.userId) {
       await authz.require(actor, 'announcement:publish');
@@ -215,8 +221,30 @@ export function createAnnouncementService(deps: Deps) {
   return {
     jobs: [publishJob],
     view: announcementView,
-    list: (guildId: string) => announcements.list(guildId),
-    get: requireOwnGuild,
+    list: async (actor: Actor) => {
+      const [records, publisher] = await Promise.all([
+        announcements.list(actor.guildId),
+        authz.can(actor, 'announcement:publish'),
+      ]);
+      const accessible = records.filter(
+        (record) =>
+          record.status === 'published' ||
+          record.authorId === actor.userId ||
+          publisher,
+      );
+      const channels = [
+        ...new Set(accessible.map((record) => record.channelId)),
+      ];
+      const allowed = await Promise.all(
+        channels.map(async (id) =>
+          (await directory.canView(actor, id)) ? [id] : [],
+        ),
+      );
+      const visible = new Set(allowed.flat());
+
+      return accessible.filter((record) => visible.has(record.channelId));
+    },
+    get: requireReadable,
     draft: guard(
       authz,
       'announcement:create',
@@ -275,7 +303,9 @@ export function createAnnouncementService(deps: Deps) {
       return updated;
     },
     publish: guard(authz, 'announcement:publish', async (actor, id: number) => {
-      await requireOwnGuild(actor, id);
+      const announcement = await requireReadable(actor, id);
+
+      await checkTargets(actor, announcement);
       await scheduler.cancel(publishJob, jobKey(id));
 
       return publish(id, open);
@@ -284,7 +314,7 @@ export function createAnnouncementService(deps: Deps) {
       authz,
       'announcement:schedule',
       async (actor, id: number, when: string) => {
-        const announcement = await requireOwnGuild(actor, id);
+        const announcement = await requireReadable(actor, id);
         const runAt = parseFutureWhen(when, deps.timezone, clock.now());
 
         await checkTargets(actor, announcement);
