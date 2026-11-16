@@ -1,14 +1,34 @@
 import {
   ChannelType,
   InteractionContextType,
+  LabelBuilder,
+  ModalBuilder,
   SlashCommandBuilder,
+  StringSelectMenuBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } from 'discord.js';
 import { describeBirthday, type BirthdayService } from '~/core/services';
 import { birthdayVisibilities, birthdayVisibilityLabels } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand } from '../define';
-import type { Feature } from '../module';
+import type { ComponentHandler, Feature } from '../module';
 import { respond } from '../router';
+
+const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 const data = new SlashCommandBuilder()
   .setName('birthday')
@@ -62,6 +82,17 @@ const data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub
+      .setName('post')
+      .setDescription('Post a message with an "Add my birthday" button')
+      .addChannelOption((o) =>
+        o
+          .setName('channel')
+          .setDescription('Where to post it (default: here)')
+          .addChannelTypes(ChannelType.GuildText),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
       .setName('settings')
       .setDescription('Configure birthday announcements')
       .addChannelOption((o) =>
@@ -86,7 +117,83 @@ const data = new SlashCommandBuilder()
   );
 
 export function birthdayCommands(birthdays: BirthdayService): Feature {
+  const add: ComponentHandler = {
+    prefix: 'birthdays:add',
+    execute: async (interaction) => {
+      if (!interaction.isButton()) {
+        return;
+      }
+
+      const current = await birthdays.view(
+        toActor(interaction.member),
+        interaction.user.id,
+      );
+      const day = new TextInputBuilder()
+        .setCustomId('day')
+        .setStyle(TextInputStyle.Short)
+        .setMinLength(1)
+        .setMaxLength(2)
+        .setPlaceholder('e.g. 17');
+
+      if (current) {
+        day.setValue(String(current.day));
+      }
+
+      await interaction.showModal(
+        new ModalBuilder()
+          .setCustomId('birthdays:save')
+          .setTitle('Your birthday')
+          .addLabelComponents(
+            new LabelBuilder().setLabel('Month').setStringSelectMenuComponent(
+              new StringSelectMenuBuilder().setCustomId('month').addOptions(
+                months.map((name, index) => ({
+                  label: name,
+                  value: String(index + 1),
+                  default: current?.month === index + 1,
+                })),
+              ),
+            ),
+            new LabelBuilder().setLabel('Day').setTextInputComponent(day),
+            new LabelBuilder()
+              .setLabel('Who gets to know')
+              .setStringSelectMenuComponent(
+                new StringSelectMenuBuilder()
+                  .setCustomId('visibility')
+                  .addOptions(
+                    birthdayVisibilities.map((value) => ({
+                      label: birthdayVisibilityLabels[value],
+                      value,
+                      default: (current?.visibility ?? 'public') === value,
+                    })),
+                  ),
+              ),
+          ),
+      );
+    },
+  };
+
+  const save: ComponentHandler = {
+    prefix: 'birthdays:save',
+    execute: async (interaction) => {
+      if (!interaction.isModalSubmit()) {
+        return;
+      }
+
+      const [month = ''] = interaction.fields.getStringSelectValues('month');
+      const [visibility = 'public'] =
+        interaction.fields.getStringSelectValues('visibility');
+      const saved = await birthdays.set(toActor(interaction.member), {
+        day: Number(interaction.fields.getTextInputValue('day')),
+        month: Number(month),
+        visibility,
+      });
+
+      await respond(interaction, `Saved. ${birthdayVisibilityLabels[saved]}.`);
+    },
+  };
+
   return {
+    components: [add, save],
     name: 'birthdays',
     permissions: [
       {
@@ -152,6 +259,14 @@ export function birthdayCommands(birthdays: BirthdayService): Feature {
                 ? 'No public birthdays yet.'
                 : list.map((birthday) => describeBirthday(birthday)).join('\n'),
             );
+          },
+          post: async (interaction) => {
+            const channelId =
+              interaction.options.getChannel('channel')?.id ??
+              interaction.channelId;
+
+            await birthdays.postSignup(toActor(interaction.member), channelId);
+            await respond(interaction, 'Posted.');
           },
           settings: async (interaction) => {
             const channel = interaction.options.getChannel('channel');

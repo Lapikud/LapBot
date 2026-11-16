@@ -301,6 +301,18 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect(await (await get('/events')).text()).toContain('Board games night');
   });
 
+  it('posts the birthday sign-up message with its button', async () => {
+    const response = await post('/birthdays/signup', { channelId: 'general' });
+
+    expect(response.status).toBe(303);
+    expect(messenger.send).toHaveBeenCalledWith(
+      'general',
+      expect.objectContaining({
+        controls: [[expect.objectContaining({ id: 'birthdays:add' })]],
+      }),
+    );
+  });
+
   it('returns 404 for unknown pages', async () => {
     expect((await get('/nope')).status).toBe(404);
   });

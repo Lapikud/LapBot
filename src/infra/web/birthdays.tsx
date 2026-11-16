@@ -79,6 +79,19 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
               )}
             </div>
           </form>
+          <h2>Sign-up message</h2>
+          <p>
+            Post a message with an <q>Add my birthday</q> button. It keeps
+            working after restarts, so one post is enough.
+          </p>
+          <form method="post" action="/birthdays/signup">
+            <div role="group">
+              <ChannelSelect server={server} />
+              <button type="submit" class="secondary">
+                Post
+              </button>
+            </div>
+          </form>
           <h2>Coming up</h2>
           {upcoming.length === 0 ? (
             <p>No public birthdays saved yet.</p>
@@ -119,5 +132,15 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
       );
 
       return back(c, '/birthdays', { notice: message });
+    })
+    .post('/signup', async (c) => {
+      const form = await c.req.formData();
+
+      await services.birthdays.postSignup(
+        c.var.actor,
+        field(form, 'channelId') ?? '',
+      );
+
+      return back(c, '/birthdays', { notice: 'Sign-up message posted.' });
     });
 }

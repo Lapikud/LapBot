@@ -10,6 +10,7 @@ import {
   userMention,
   type Actor,
   type BirthdayVisibility,
+  type Message,
 } from '~/domain';
 import type {
   Authorizer,
@@ -42,6 +43,21 @@ export function describeBirthday(birthday: Birthday): string {
 
   return `${userMention(birthday.userId)} — ${date}`;
 }
+
+export const birthdaySignup: Message = {
+  content:
+    '# 🎂 Birthdays\nAdd your birthday and the server will celebrate with you. No year needed.',
+  controls: [
+    [
+      {
+        kind: 'button',
+        id: 'birthdays:add',
+        label: 'Add my birthday',
+        style: 'primary',
+      },
+    ],
+  ],
+};
 
 type Deps = {
   birthdays: BirthdayRepository;
@@ -213,6 +229,19 @@ export function createBirthdayService(deps: Deps) {
         : undefined;
     },
     settings: (guildId: string) => birthdays.settings(guildId),
+    postSignup: guard(
+      authz,
+      'birthday:manage',
+      async (actor, channelId: string) => {
+        if (!(await directory.canPost(actor, channelId))) {
+          throw new UserError(
+            `You cannot post in ${channelMention(channelId)} yourself.`,
+          );
+        }
+
+        await messenger.send(channelId, birthdaySignup);
+      },
+    ),
     upcoming: async (guildId: string) =>
       birthdays.upcoming(guildId, calendarDay(new Date(), timezone)),
     configure: guard(
