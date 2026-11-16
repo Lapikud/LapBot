@@ -87,23 +87,32 @@ function parseRelative(input: string, now: Date): Date | undefined {
   return new Date(now.getTime() + total);
 }
 
+function parseClockFields(
+  input: string,
+): { hours: number; minutes: number } | undefined {
+  if (!/^\d{1,2}:\d{2}$/.test(input)) {
+    return undefined;
+  }
+
+  const clock = parse(input, 'H:mm', new Date(0), { in: tz('UTC') });
+
+  if (!isValid(clock)) {
+    return undefined;
+  }
+
+  return { hours: clock.getHours(), minutes: clock.getMinutes() };
+}
+
 function parseClock(input: string, zone: string, now: Date): Date | undefined {
-  const clock = /^(\d{1,2}):(\d{2})$/.exec(input);
+  const clock = parseClockFields(input);
 
   if (!clock) {
     return undefined;
   }
 
-  const hours = Number(clock[1]);
-  const minutes = Number(clock[2]);
-
-  if (hours > 23 || minutes > 59) {
-    return undefined;
-  }
-
   const today = set(
     now,
-    { hours, minutes, seconds: 0, milliseconds: 0 },
+    { ...clock, seconds: 0, milliseconds: 0 },
     { in: tz(zone) },
   );
 
@@ -133,18 +142,18 @@ function parseNamedDay(
   zone: string,
   now: Date,
 ): Date | undefined {
-  const match = /^([a-z]+)\s+(\d{1,2}):(\d{2})$/i.exec(input);
+  const match = /^([a-z]+)\s+(\d{1,2}:\d{2})$/i.exec(input);
   const offset = match && dayOffset(match[1]?.toLowerCase() ?? '', now, zone);
+  const clock = parseClockFields(match?.[2] ?? '');
 
-  if (!match || offset === undefined || offset === null) {
+  if (!match || !clock || offset === undefined || offset === null) {
     return undefined;
   }
 
   const date = set(
     addDays(now, offset, { in: tz(zone) }),
     {
-      hours: Number(match[2]),
-      minutes: Number(match[3]),
+      ...clock,
       seconds: 0,
       milliseconds: 0,
     },

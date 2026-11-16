@@ -63,6 +63,38 @@ describe('parseWhen', () => {
     );
   });
 
+  const clockFormats = [
+    '%s',
+    'today %s',
+    'tomorrow %s',
+    'tue %s',
+    'Friday %s',
+    '20.11 %s',
+    '20.11.2026 %s',
+    '2026-11-20 %s',
+    '2026-11-20T%s',
+  ];
+
+  it.each(clockFormats)('rejects out-of-range clocks in "%s"', (format) => {
+    for (const clock of ['24:00', '23:60', '99:99', '9:99']) {
+      expect(() => parseWhen(format.replace('%s', clock), zone, now)).toThrow(
+        UserError,
+      );
+    }
+  });
+
+  it.each(clockFormats)('accepts clock boundaries in "%s"', (format) => {
+    for (const clock of ['00:00', '9:00', '23:59']) {
+      const date = parseWhen(format.replace('%s', clock), 'UTC', now);
+      const [hours, minutes] = clock.split(':').map(Number);
+
+      expect(date.getUTCHours()).toBe(hours);
+      expect(date.getUTCMinutes()).toBe(minutes);
+      expect(date.getUTCSeconds()).toBe(0);
+      expect(date.getUTCMilliseconds()).toBe(0);
+    }
+  });
+
   it('rejects nonsense, invalid zones and past times', () => {
     expect(() => parseWhen('next tuesday-ish', zone, now)).toThrow(UserError);
     expect(() => parseWhen('2026-01-01 10:00', 'Mars/Base', now)).toThrow(
