@@ -19,6 +19,8 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test": "vitest run",
+    "test:db": "docker compose -f compose.test.yaml up -d --wait",
+    "test:integration": "node --env-file=.env.test ./node_modules/vitest/vitest.mjs run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "commands:register": "tsx --env-file-if-exists=.env scripts/register-commands.ts"

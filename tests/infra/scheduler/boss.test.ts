@@ -7,8 +7,8 @@ import { silentLog } from '../../fakes';
 import { noDatabase } from '../../db';
 
 describe.skipIf(noDatabase)('pg-boss scheduler', () => {
-  const boss = new PgBoss(process.env.TEST_DATABASE_URL ?? '');
-  const scheduler = createJobQueue(boss);
+  let boss: PgBoss;
+  let scheduler: ReturnType<typeof createJobQueue>;
   const later = new Date(Date.now() + 60 * 60 * 1000);
   const idle: Job<{ n: number }> = { type: 'test-idle', run: async () => null };
   const recurring: Job<{ n: number }> = {
@@ -25,6 +25,8 @@ describe.skipIf(noDatabase)('pg-boss scheduler', () => {
     boss.findJobs<{ n: number }>(job.type, { key, queued: true });
 
   beforeAll(async () => {
+    boss = new PgBoss(process.env.TEST_DATABASE_URL ?? '');
+    scheduler = createJobQueue(boss);
     await boss.start();
     await startJobs(boss, [idle, recurring, broken], silentLog);
   });

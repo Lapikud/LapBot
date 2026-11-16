@@ -162,18 +162,27 @@ webhooks, so polling is the mechanism.
 | `pnpm build` / `pnpm start`                        | Compile to `dist/` and run it                               |
 | `pnpm typecheck`, `pnpm lint`, `pnpm format:check` | Static checks                                               |
 | `pnpm test`                                        | Vitest; set `TEST_DATABASE_URL` to run the PostgreSQL tests |
+| `pnpm test:db`                                     | Start isolated PostgreSQL on localhost:5433                 |
+| `pnpm test:integration`                            | Run all tests using `.env.test`                             |
 | `pnpm db:generate`                                 | Create a migration after editing a `schema.ts`              |
 | `pnpm db:migrate`                                  | Apply migrations                                            |
 | `pnpm commands:register`                           | Register slash commands with Discord                        |
 
-Database tests run against a real PostgreSQL and **reset its schema**, so
-point `TEST_DATABASE_URL` at a throwaway database, for example:
+Database tests run against a real PostgreSQL and **reset its schema**. Start
+the dedicated test service, which uses temporary storage separate from the
+development database:
 
 ```sh
-docker run -d --name lapbot-test-pg -e POSTGRES_USER=lapbot -e POSTGRES_PASSWORD=lapbot \
-  -e POSTGRES_DB=lapbot_test -p 127.0.0.1:55432:5432 postgres:17-alpine
-TEST_DATABASE_URL=postgres://lapbot:lapbot@127.0.0.1:55432/lapbot_test pnpm test
+pnpm test:db
+pnpm test:integration
+# Stop the test service and discard its data:
+docker compose -f compose.test.yaml stop postgres-test
 ```
+
+`.env.test` contains only local test credentials. An exported
+`TEST_DATABASE_URL` overrides it; use a throwaway database only. `pnpm test`
+still runs without PostgreSQL, skipping database tests when the variable is
+unset. CI supplies its own PostgreSQL service and connection URL.
 
 Linting uses the shared baseline (typescript-eslint strict and stylistic, type
 checked; sonarjs; unicorn) plus `eslint-plugin-import-x` for cycles and module
