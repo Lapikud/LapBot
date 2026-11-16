@@ -3,6 +3,7 @@ import {
   InteractionContextType,
   LabelBuilder,
   ModalBuilder,
+  RoleSelectMenuBuilder,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -81,8 +82,8 @@ const data = new SlashCommandBuilder()
       .addBooleanOption((o) =>
         o.setName('embed').setDescription('Post as an embed (default yes)'),
       )
-      .addRoleOption((o) =>
-        o.setName('mention').setDescription('Role to mention'),
+      .addBooleanOption((o) =>
+        o.setName('everyone').setDescription('Mention @everyone'),
       ),
   )
   .addSubcommand((sub) =>
@@ -141,8 +142,8 @@ export function announcementCommands(
         return;
       }
 
-      const [channelId = '', embed, role = '-'] = args;
-      const everyone = role === interaction.guildId;
+      const [channelId = '', embed, everyone] = args;
+      const roles = interaction.fields.getSelectedRoles('mentions');
       const announcement = await announcements.draft(
         toActor(interaction.member),
         {
@@ -150,8 +151,8 @@ export function announcementCommands(
           title: interaction.fields.getTextInputValue('title'),
           content: interaction.fields.getTextInputValue('content'),
           embed: embed === '1',
-          mentionRoleIds: role === '-' || everyone ? [] : [role],
-          mentionEveryone: everyone,
+          mentionRoleIds: roles ? [...roles.keys()] : [],
+          mentionEveryone: everyone === '1',
         },
       );
 
@@ -203,8 +204,9 @@ export function announcementCommands(
         execute: bySubcommand({
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);
-            const role = interaction.options.getRole('mention');
             const embed = interaction.options.getBoolean('embed') ?? true;
+            const everyone =
+              interaction.options.getBoolean('everyone') ?? false;
 
             await interaction.showModal(
               contentModal(
@@ -212,9 +214,18 @@ export function announcementCommands(
                   'announcements:create',
                   channel.id,
                   embed ? 1 : 0,
-                  role?.id ?? '-',
+                  everyone ? 1 : 0,
                 ),
                 'New announcement',
+              ).addLabelComponents(
+                new LabelBuilder()
+                  .setLabel('Mention roles')
+                  .setRoleSelectMenuComponent(
+                    new RoleSelectMenuBuilder()
+                      .setCustomId('mentions')
+                      .setRequired(false)
+                      .setMaxValues(25),
+                  ),
               ),
             );
           },
