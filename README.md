@@ -50,16 +50,16 @@ environment-only.
 
 ## Commands
 
-| Command                                                        | Who                                                            |
-| -------------------------------------------------------------- | -------------------------------------------------------------- |
-| `/remindme`, `/reminders list/edit/cancel`                     | everyone; `channel:` needs `reminder:channel`                  |
-| `/announce create/preview/publish/schedule/edit/cancel`        | `announcement:create`, `:publish`, `:schedule`                 |
-| `/event create/edit/cancel/list/view/attendees`, RSVP buttons  | create needs `event:create`; organizer or `event:manage` edits |
-| `/birthday set/remove/view/upcoming`, `/birthday settings`     | everyone; settings need `birthday:manage`                      |
-| `/poll create/list/results/close/cancel`                       | create needs `poll:create`; creator or `poll:manage` manages   |
-| `/movie suggest/suggestions/remove/vote/night/watched/history` | vote, night, watched need `movie:manage`                       |
-| `/redmine subscribe/unsubscribe`                               | `redmine:subscription:manage`                                  |
-| `/permissions grant/revoke/list/check`                         | `permissions:manage`                                           |
+| Command                                                                         | Who                                                            |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `/remindme`, `/reminders list/edit/cancel`                                      | everyone; `channel:` needs `reminder:channel`                  |
+| `/announce create` (then Publish / Schedule / Edit / Discard), `/announce edit` | `announcement:create`, `:publish`, `:schedule`                 |
+| `/event create/edit/cancel/list/view/attendees`, RSVP buttons                   | create needs `event:create`; organizer or `event:manage` edits |
+| `/birthday set/remove/view/upcoming`, `/birthday settings`                      | everyone; settings need `birthday:manage`                      |
+| `/poll create/list/results/close/cancel`                                        | create needs `poll:create`; creator or `poll:manage` manages   |
+| `/movie suggest/suggestions/remove/vote/night/watched/history`                  | vote, night, watched need `movie:manage`                       |
+| `/redmine subscribe/unsubscribe`                                                | `redmine:subscription:manage`                                  |
+| `/permissions grant/revoke/list/check`                                          | `permissions:manage`                                           |
 
 ## Web UI
 
