@@ -4,24 +4,27 @@ td form {
 }
 
 td button {
+  --pico-form-element-spacing-vertical: 0.25rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+
   margin: 0;
-  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
 }
 
 .notice,
 .error {
   padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--pico-border-radius);
 }
 
 .notice {
-  background: #dafbe1;
-  color: #1a7f37;
+  background: var(--pico-ins-color);
+  color: var(--pico-primary-inverse);
 }
 
 .error {
-  background: #ffebe9;
-  color: #cf222e;
+  background: var(--pico-del-color);
+  color: var(--pico-primary-inverse);
 }
 
 .discord {

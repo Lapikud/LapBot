@@ -10,7 +10,7 @@ const sections = [
 ] as const;
 
 const pico =
-  'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.classless.min.css';
+  'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css';
 
 export function Layout({
   title,
@@ -28,7 +28,7 @@ export function Layout({
         <link rel="stylesheet" href="/app.css" />
       </head>
       <body>
-        <header>
+        <header class="container">
           <nav>
             <ul>
               <li>
@@ -49,7 +49,7 @@ export function Layout({
             </ul>
           </nav>
         </header>
-        <main>
+        <main class="container">
           <h1>{title}</h1>
           {flash.notice === undefined ? null : (
             <p class="notice" role="status">
@@ -111,7 +111,9 @@ export function ActionButton({
 }: Readonly<{ action: string; label: string }>) {
   return (
     <form method="post" action={action}>
-      <button type="submit">{label}</button>
+      <button type="submit" class="secondary outline">
+        {label}
+      </button>
     </form>
   );
 }

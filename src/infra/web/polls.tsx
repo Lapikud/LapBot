@@ -29,8 +29,10 @@ export function pollPages({ guildId, services, timezone }: WebDeps) {
               <textarea name="options" rows={5} required />
             </label>
             <ChannelSelect server={c.var.server} />
-            <Checkbox name="multiple" label="Allow several choices" />
-            <Checkbox name="anonymous" label="Anonymous" />
+            <fieldset>
+              <Checkbox name="multiple" label="Allow several choices" />
+              <Checkbox name="anonymous" label="Anonymous" />
+            </fieldset>
             <div class="grid">
               <label>
                 Results

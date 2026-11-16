@@ -63,8 +63,10 @@ export function eventPages({ guildId, services, timezone }: WebDeps) {
                 </select>
               </label>
             </div>
-            <Checkbox name="native" label="Also create a Discord event" />
-            <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
+            <fieldset>
+              <Checkbox name="native" label="Also create a Discord event" />
+              <Checkbox name="icons" label="Show 🗓️ 🕐 📍 icons" checked />
+            </fieldset>
             <button type="submit">Create event</button>
           </form>
           <table>

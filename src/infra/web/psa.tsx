@@ -59,10 +59,10 @@ function MentionPicker({
 }
 
 const actions = [
-  ['preview', 'Preview'],
-  ['draft', 'Save draft'],
-  ['schedule', 'Schedule'],
-  ['publish', 'Publish now'],
+  ['preview', 'Preview', 'secondary outline'],
+  ['draft', 'Save draft', 'secondary'],
+  ['schedule', 'Schedule', 'secondary'],
+  ['publish', 'Publish now', undefined],
 ] as const;
 
 function Composer({
@@ -90,8 +90,14 @@ function Composer({
       </label>
       {preview}
       <div role="group">
-        {actions.map(([value, label]) => (
-          <button key={value} type="submit" name="action" value={value}>
+        {actions.map(([value, label, variant]) => (
+          <button
+            key={value}
+            type="submit"
+            name="action"
+            value={value}
+            class={variant}
+          >
             {label}
           </button>
         ))}
