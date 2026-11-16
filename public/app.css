@@ -91,7 +91,7 @@ td [role='button'] {
   margin-right: 0.75rem;
 }
 
-.permissions label small {
+fieldset label small {
   display: inline;
   margin-left: 0.5rem;
   color: var(--pico-muted-color);
@@ -118,4 +118,8 @@ details.dropdown > summary {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+fieldset > details.dropdown {
+  width: 100%;
 }

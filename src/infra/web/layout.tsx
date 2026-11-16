@@ -168,8 +168,8 @@ export function MultiSelect({
   const picked = choices.filter(({ value }) => selected.has(value));
 
   return (
-    <label>
-      {label}
+    <fieldset>
+      <legend>{label}</legend>
       <details class="dropdown">
         <summary>
           {picked.length === 0
@@ -192,6 +192,6 @@ export function MultiSelect({
           ))}
         </ul>
       </details>
-    </label>
+    </fieldset>
   );
 }
