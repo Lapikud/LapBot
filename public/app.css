@@ -63,3 +63,30 @@ td [role='button'] {
   background: #3c4270;
   color: #c9cdfb;
 }
+
+.movie {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 1rem;
+}
+
+.movie .poster {
+  width: 6rem;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-muted-border-color);
+  object-fit: cover;
+}
+
+.movie h3 {
+  margin-bottom: 0;
+}
+
+.movie .overview {
+  color: var(--pico-muted-color);
+  font-size: 0.9em;
+}
+
+.movie p a {
+  margin-right: 0.75rem;
+}

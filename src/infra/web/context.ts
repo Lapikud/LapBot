@@ -5,6 +5,7 @@ import type { ChannelInfo, Directory, Logger } from '~/core/ports';
 import type {
   AnnouncementService,
   BirthdayService,
+  MovieService,
   EventService,
   PermissionService,
   PollService,
@@ -18,6 +19,7 @@ export type WebServices = {
   polls: PollService;
   permissions: PermissionService;
   birthdays: BirthdayService;
+  movies: MovieService;
 };
 
 export type WebDeps = {

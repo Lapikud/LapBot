@@ -4,6 +4,7 @@ import {
   createAnnouncementService,
   createAuthorizer,
   createBirthdayService,
+  createMovieService,
   createEventService,
   createPermissionService,
   createPollService,
@@ -11,6 +12,7 @@ import {
 import {
   createAnnouncementRepository,
   createBirthdayRepository,
+  createMovieRepository,
   createEventRepository,
   createGrantRepository,
   createPollRepository,
@@ -83,6 +85,16 @@ describe.skipIf(noDatabase)('web UI', () => {
       timezone: 'Europe/Tallinn',
     };
 
+    const events = createEventService({
+      ...shared,
+      events: createEventRepository(db),
+      calendar: { upsert: async () => 'n', remove: async () => undefined },
+    });
+    const polls = createPollService({
+      ...shared,
+      polls: createPollRepository(db),
+    });
+
     app = createWebApp({
       guildId,
       timezone: 'Europe/Tallinn',
@@ -100,14 +112,15 @@ describe.skipIf(noDatabase)('web UI', () => {
           announcements: createAnnouncementRepository(db),
           clock: { now: () => new Date() },
         }),
-        events: createEventService({
-          ...shared,
-          events: createEventRepository(db),
-          calendar: { upsert: async () => 'n', remove: async () => undefined },
-        }),
-        polls: createPollService({
-          ...shared,
-          polls: createPollRepository(db),
+        events,
+        polls,
+        movies: createMovieService({
+          movies: createMovieRepository(db),
+          catalog: undefined,
+          polls,
+          events,
+          authz,
+          timezone: 'Europe/Tallinn',
         }),
         birthdays: createBirthdayService({
           ...shared,
@@ -311,6 +324,19 @@ describe.skipIf(noDatabase)('web UI', () => {
         controls: [[expect.objectContaining({ id: 'birthdays:add' })]],
       }),
     );
+  });
+
+  it('suggests movies with links and lists them', async () => {
+    const added = await post('/movies', {
+      title: 'Paprika',
+      year: '2006',
+      links: 'https://letterboxd.com/film/paprika-2006/',
+    });
+    const page = await (await get('/movies')).text();
+
+    expect(added.status).toBe(303);
+    expect(page).toContain('Paprika (2006)');
+    expect(page).toContain('letterboxd.com');
   });
 
   it('returns 404 for unknown pages', async () => {

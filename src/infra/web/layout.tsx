@@ -6,6 +6,7 @@ const sections = [
   ['/events', 'Events'],
   ['/polls', 'Polls'],
   ['/birthdays', 'Birthdays'],
+  ['/movies', 'Movies'],
   ['/psa', 'PSAs'],
   ['/permissions', 'Permissions'],
 ] as const;

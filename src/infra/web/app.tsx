@@ -10,6 +10,7 @@ import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
+import { moviePages } from './movies';
 import { Layout } from './layout';
 import { permissionPages } from './permissions';
 import { pollPages } from './polls';
@@ -35,6 +36,7 @@ export function createWebApp(deps: WebDeps) {
       contentSecurityPolicy: {
         defaultSrc: ["'none'"],
         styleSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+        imgSrc: ["'self'", 'https://image.tmdb.org'],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
       },
@@ -114,6 +116,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/events', eventPages(deps));
   app.route('/polls', pollPages(deps));
   app.route('/birthdays', birthdayPages(deps));
+  app.route('/movies', moviePages(deps));
   app.route('/permissions', permissionPages(deps));
 
   app.notFound((c) =>

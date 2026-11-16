@@ -212,7 +212,7 @@ export function compose(config: Config, log: Logger) {
     registry,
     directory,
     jobs: runnerJobs,
-    web: { announcements, events, polls, permissions, birthdays },
+    web: { announcements, events, polls, permissions, birthdays, movies },
   };
 }
 

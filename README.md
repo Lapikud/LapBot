@@ -50,16 +50,16 @@ environment-only.
 
 ## Commands
 
-| Command                                                                                         | Who                                                            |
-| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `/remindme`, `/reminders list/edit/cancel`                                                      | everyone; `channel:` needs `reminder:channel`                  |
-| `/announce create` (then Publish / Schedule / Edit / Discard), `/announce edit`                 | `announcement:create`, `:publish`, `:schedule`                 |
-| `/event create/edit/cancel/list/view/attendees`, RSVP buttons                                   | create needs `event:create`; organizer or `event:manage` edits |
-| `/birthday set/remove/view/upcoming`, the **Add my birthday** button, `/birthday post/settings` | everyone; post and settings need `birthday:manage`             |
-| `/poll create/list/results/close/cancel`                                                        | create needs `poll:create`; creator or `poll:manage` manages   |
-| `/movie suggest/suggestions/remove/vote/night/watched/history`                                  | vote, night, watched need `movie:manage`                       |
-| `/redmine subscribe/unsubscribe`                                                                | `redmine:subscription:manage`                                  |
-| `/permissions grant/revoke/list`                                                                | `permissions:manage`                                           |
+| Command                                                                                         | Who                                                                                            |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/remindme`, `/reminders list/edit/cancel`                                                      | everyone; `channel:` needs `reminder:channel`                                                  |
+| `/announce create` (then Publish / Schedule / Edit / Discard), `/announce edit`                 | `announcement:create`, `:publish`, `:schedule`                                                 |
+| `/event create/edit/cancel/list/view/attendees`, RSVP buttons                                   | create needs `event:create`; organizer or `event:manage` edits                                 |
+| `/birthday set/remove/view/upcoming`, the **Add my birthday** button, `/birthday post/settings` | everyone; post and settings need `birthday:manage`                                             |
+| `/poll create/list/results/close/cancel`                                                        | create needs `poll:create`; creator or `poll:manage` manages                                   |
+| `/movie suggest/suggestions/link/remove/vote/night/watched/history`                             | vote, night, watched need `movie:manage`; link and remove need the suggester or `movie:manage` |
+| `/redmine subscribe/unsubscribe`                                                                | `redmine:subscription:manage`                                                                  |
+| `/permissions grant/revoke/list`                                                                | `permissions:manage`                                                                           |
 
 ## Web UI
 
@@ -128,6 +128,14 @@ ID. It no longer reposts or searches on later starts, and reactions on any
 other message are ignored. Roles that grant moderator permissions, are managed
 by integrations, or sit above the bot are never handed out. To retire it,
 clear `ROLE_SELECTION_CHANNEL_ID` and delete the message yourself.
+
+## Movies
+
+With `TMDB_ACCESS_TOKEN` set, each suggestion is looked up on
+[TMDB](https://www.themoviedb.org): the bot stores the official title and
+year, the synopsis, the poster and the YouTube trailer. Members can add their
+own links (Letterboxd, IMDb, …) with `/movie link` or on the web Movies page.
+Without a token, suggestions keep only what members type.
 
 ## Redmine
 
