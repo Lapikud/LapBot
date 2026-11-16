@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Events, type Client } from 'discord.js';
 import type { Config } from '~/config';
 import {
@@ -35,13 +36,7 @@ import type { Logger } from '~/infra/logging';
 import { PgBoss } from 'pg-boss';
 import { createJobQueue, startJobs } from '~/infra/scheduler';
 import { systemClock, type Directory, type Job } from '~/core/ports';
-import type { Actor } from '~/domain';
-import {
-  createWebApp,
-  localOperator,
-  startWebServer,
-  type WebServices,
-} from '~/infra/web';
+import { createWebApp, startWebServer, type WebServices } from '~/infra/web';
 import {
   connectDatabase,
   createAnnouncementRepository,
@@ -222,43 +217,40 @@ export function createRegistry(config: Config, log: Logger): Registry {
 
 async function startWeb(
   config: Config,
-  deps: {
-    directory: Directory;
-    services: WebServices;
-    botUserId: string;
-    log: Logger;
-  },
+  deps: { directory: Directory; services: WebServices; log: Logger },
 ): Promise<() => Promise<void>> {
+  const port = config.WEB_PORT;
   const guildId = config.DISCORD_GUILD_ID;
+  const clientId = config.DISCORD_APPLICATION_ID;
+  const clientSecret = config.DISCORD_CLIENT_SECRET;
 
-  if (config.WEB_PORT === undefined || guildId === undefined) {
+  if (port === undefined || guildId === undefined) {
     return () => Promise.resolve();
   }
 
-  const operator = async (): Promise<Actor> => {
-    const bot = await deps.directory.member(guildId, deps.botUserId);
+  if (clientId === undefined || clientSecret === undefined) {
+    deps.log.warn(
+      'Web UI is off: set DISCORD_APPLICATION_ID and DISCORD_CLIENT_SECRET for Discord sign-in',
+    );
 
-    if (!bot) {
-      throw new Error('The bot is not a member of DISCORD_GUILD_ID');
-    }
-
-    return { ...bot, administrator: true };
-  };
+    return () => Promise.resolve();
+  }
 
   const app = createWebApp({
     guildId,
     timezone: config.DEFAULT_TIMEZONE,
-    auth: localOperator(operator),
+    signIn: {
+      clientId,
+      clientSecret,
+      publicUrl: config.WEB_URL ?? `http://localhost:${port}`,
+      sessionSecret: config.SESSION_SECRET ?? randomBytes(32).toString('hex'),
+    },
     directory: deps.directory,
     services: deps.services,
     log: deps.log,
   });
 
-  return startWebServer(app, {
-    port: config.WEB_PORT,
-    host: config.WEB_HOST,
-    log: deps.log,
-  });
+  return startWebServer(app, { port, host: config.WEB_HOST, log: deps.log });
 }
 
 function waitForReady(client: Client, token: string): Promise<Client<true>> {
@@ -325,7 +317,6 @@ export async function startApp(
     const stopWeb = await startWeb(config, {
       directory,
       services: web,
-      botUserId: ready.user.id,
       log: log.child({ component: 'web' }),
     });
 

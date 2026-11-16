@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Scheduler } from '~/core/ports';
 import {
   createAnnouncementService,
@@ -16,7 +16,7 @@ import {
   createPollRepository,
 } from '~/infra/db';
 import type { Permission, PermissionDefinition } from '~/domain';
-import { createWebApp, localOperator, type WebApp } from '~/infra/web';
+import { createWebApp, type WebApp } from '~/infra/web';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -34,9 +34,38 @@ describe.skipIf(noDatabase)('web UI', () => {
   const directory = fakeDirectory([role({ id: teamId, name: 'Team' })]);
   let app: WebApp;
 
+  let cookie = '';
+
   directory.channels.mockResolvedValue([
     { id: 'general', name: 'general', kind: 'text' },
   ]);
+  directory.member.mockImplementation(async (_guild, userId) =>
+    userId === '42'
+      ? actor({ guildId, userId, administrator: true })
+      : undefined,
+  );
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string) =>
+      input.includes('/oauth2/token')
+        ? Response.json({
+            access_token: 't',
+            expires_in: 60,
+            scope: 'identify',
+          })
+        : Response.json({ user: { id: '42' } }),
+    ),
+  );
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const cookiesOf = (response: Response) =>
+    response.headers
+      .getSetCookie()
+      .map((value) => value.split(';')[0])
+      .join('; ');
 
   beforeAll(async () => {
     const db = testDb();
@@ -57,7 +86,12 @@ describe.skipIf(noDatabase)('web UI', () => {
     app = createWebApp({
       guildId,
       timezone: 'Europe/Tallinn',
-      auth: localOperator(async () => actor({ guildId, administrator: true })),
+      signIn: {
+        clientId: 'client',
+        clientSecret: 'secret',
+        publicUrl: 'http://localhost',
+        sessionSecret: 'x'.repeat(32),
+      },
       directory,
       log: silentLog,
       services: {
@@ -96,7 +130,8 @@ describe.skipIf(noDatabase)('web UI', () => {
     });
   });
 
-  const get = (path: string) => app.request(`http://localhost${path}`);
+  const get = (path: string) =>
+    app.request(`http://localhost${path}`, { headers: { Cookie: cookie } });
 
   const post = (
     path: string,
@@ -114,9 +149,32 @@ describe.skipIf(noDatabase)('web UI', () => {
     return app.request(`http://localhost${path}`, {
       method: 'POST',
       body,
-      headers: { Origin: origin },
+      headers: { Origin: origin, Cookie: cookie },
     });
   };
+
+  it('sends visitors to Discord and signs members in', async () => {
+    expect((await get('/')).headers.get('location')).toBe('/login');
+
+    const start = await get('/login');
+    const authorize = new URL(start.headers.get('location') ?? '');
+    const state = authorize.searchParams.get('state') ?? '';
+    const forged = await app.request(
+      'http://localhost/login?code=c&state=forged',
+      { headers: { Cookie: cookiesOf(start) } },
+    );
+    const done = await app.request(
+      `http://localhost/login?code=c&state=${state}`,
+      { headers: { Cookie: cookiesOf(start) } },
+    );
+
+    expect(authorize.host).toBe('discord.com');
+    expect(forged.status).toBe(401);
+    expect(done.headers.get('location')).toBe('/');
+
+    cookie = cookiesOf(done);
+    expect((await get('/')).status).toBe(200);
+  });
 
   it('renders the PSA composer with channels and mentionable roles', async () => {
     const response = await get('/psa');

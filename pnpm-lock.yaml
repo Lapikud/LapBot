@@ -14,6 +14,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.8
         version: 2.1.8(hono@4.13.18)
+      '@hono/oauth-providers':
+        specifier: ^0.9.1
+        version: 0.9.1(hono@4.13.18)
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -654,6 +657,12 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
+
+  '@hono/oauth-providers@0.9.1':
+    resolution: {integrity: sha512-dpnw9xJbYMyHsmlv+jYHB6jk4BY2FlwiRNVMiM7h0y19eprq11+7XaSBrBoTApHgY7sB0XpilH9VEVuY52aqnw==}
+    engines: {node: '>=18.4.0'}
+    peerDependencies:
+      hono: '>=3.0.0'
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3345,6 +3354,10 @@ snapshots:
       levn: 0.4.1
 
   '@hono/node-server@2.1.8(hono@4.13.18)':
+    dependencies:
+      hono: 4.13.18
+
+  '@hono/oauth-providers@0.9.1(hono@4.13.18)':
     dependencies:
       hono: 4.13.18
 

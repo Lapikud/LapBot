@@ -48,6 +48,15 @@ export function Layout({
                 </li>
               ))}
             </ul>
+            <ul>
+              <li>
+                <form method="post" action="/logout">
+                  <button type="submit" class="secondary outline">
+                    Sign out
+                  </button>
+                </form>
+              </li>
+            </ul>
           </nav>
         </header>
         <main class="container">

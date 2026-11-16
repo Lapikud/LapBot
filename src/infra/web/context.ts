@@ -1,12 +1,7 @@
 import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
-import type {
-  Authenticator,
-  ChannelInfo,
-  Directory,
-  Logger,
-} from '~/core/ports';
+import type { ChannelInfo, Directory, Logger } from '~/core/ports';
 import type {
   AnnouncementService,
   BirthdayService,
@@ -15,6 +10,7 @@ import type {
   PollService,
 } from '~/core/services';
 import type { Actor, RoleInfo } from '~/domain';
+import type { SignIn } from './auth';
 
 export type WebServices = {
   announcements: AnnouncementService;
@@ -27,7 +23,7 @@ export type WebServices = {
 export type WebDeps = {
   guildId: string;
   timezone: string;
-  auth: Authenticator;
+  signIn: SignIn;
   directory: Directory;
   services: WebServices;
   log: Logger;

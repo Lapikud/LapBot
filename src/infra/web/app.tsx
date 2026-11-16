@@ -6,6 +6,7 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/domain';
+import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
@@ -26,7 +27,7 @@ function Message({ title, text }: Readonly<{ title: string; text: string }>) {
 }
 
 export function createWebApp(deps: WebDeps) {
-  const { guildId, auth, directory, services, log } = deps;
+  const { guildId, signIn, directory, services, log } = deps;
   const app = new Hono<Env>();
 
   app.use(
@@ -52,15 +53,23 @@ export function createWebApp(deps: WebDeps) {
     }),
   );
   app.use(csrf());
+  app.route('/', signInPages(signIn));
   app.use(async (c, next) => {
-    const actor = await auth.authenticate({
-      headers: Object.fromEntries(c.req.raw.headers),
-    });
+    const userId = await signedInUser(c, signIn);
+
+    if (userId === undefined) {
+      return c.redirect('/login', 303);
+    }
+
+    const actor = await directory.member(guildId, userId);
 
     if (!actor) {
       return c.html(
-        <Message title="Sign in required" text="Sign-in is not set up." />,
-        401,
+        <Message
+          title="Not a member"
+          text="Your Discord account is not a member of the server."
+        />,
+        403,
       );
     }
 
@@ -111,10 +120,24 @@ export function createWebApp(deps: WebDeps) {
     c.html(<Message title="Not found" text="There is no such page." />, 404),
   );
   app.onError((error, c) => {
+    if (error instanceof UserError && c.req.method === 'GET') {
+      return c.html(<Message title="Not allowed" text={error.message} />, 403);
+    }
+
     if (error instanceof UserError) {
       const section = `/${c.req.path.split('/')[1] ?? ''}`;
 
       return back(c, section, { error: error.message });
+    }
+
+    if (error instanceof HTTPException && c.req.path === '/login') {
+      return c.html(
+        <Message
+          title="Sign-in failed"
+          text="Discord did not confirm the sign-in. Open the page again to retry."
+        />,
+        error.status,
+      );
     }
 
     if (error instanceof HTTPException && error.status === 403) {

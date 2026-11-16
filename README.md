@@ -75,10 +75,19 @@ The UI uses the same services as the slash commands, so the same rules apply:
 it only posts where the bot can post, and only mentionable roles can be pinged
 unless the bot may mention everyone.
 
-**There is no sign-in yet.** Whoever can open the page acts as a server
-administrator, which is why it listens on `127.0.0.1` only (Compose publishes
-it on the host's loopback). Reach it from elsewhere through an SSH tunnel, not
-a public proxy. Sign-in plugs in through the `Authenticator` port.
+**Sign-in is with Discord.** Members sign in with their Discord account and
+act as themselves, with their own bot permissions, so an event created here
+is organized by whoever created it. To set it up:
+
+1. In the Discord developer portal, open the application → **OAuth2**, copy
+   the **Client Secret** into `DISCORD_CLIENT_SECRET`, and add the redirect
+   `<WEB_URL>/login` (for example `http://localhost:3000/login`).
+2. Set `WEB_URL` if the UI is not opened at `http://localhost:<WEB_PORT>`.
+3. Set `SESSION_SECRET` (`openssl rand -hex 32`) so sign-ins survive restarts;
+   without it everyone signs in again after each restart.
+
+Without `DISCORD_CLIENT_SECRET` the web UI stays off. It listens on
+`127.0.0.1` by default; reach it from elsewhere through an SSH tunnel.
 
 The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 [Pico.css](https://picocss.com) (classless, so plain form markup looks right),

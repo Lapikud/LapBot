@@ -34,6 +34,11 @@ const envSchema = z.object({
 
   WEB_PORT: optional(z.coerce.number().int().min(1).max(65_535)),
   WEB_HOST: z.string().default('127.0.0.1'),
+  WEB_URL: optional(z.url()),
+  DISCORD_CLIENT_SECRET: optional(z.string().min(1)),
+  SESSION_SECRET: optional(
+    z.string().min(32, 'must be at least 32 characters'),
+  ),
 });
 
 export type Config = z.infer<typeof envSchema>;
