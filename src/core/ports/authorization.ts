@@ -16,6 +16,13 @@ export type GrantRepository = {
   ) => Promise<boolean>;
   grant: (change: GrantChange & { grantedBy: string }) => Promise<boolean>;
   revoke: (change: GrantChange) => Promise<boolean>;
+  apply: (input: {
+    guildId: string;
+    roleId: string;
+    grantedBy: string;
+    grant: readonly Permission[];
+    revoke: readonly Permission[];
+  }) => Promise<void>;
   list: (guildId: string, roleId?: string) => Promise<Grant[]>;
 };
 

@@ -120,3 +120,40 @@ describe.skipIf(noDatabase)('authorizer', () => {
     ).rejects.toBeInstanceOf(UserError);
   });
 });
+
+describe.skipIf(noDatabase)('atomic permission replacement', () => {
+  it('rolls back revocations when a grant fails', async () => {
+    const repo = createGrantRepository(testDb());
+    const guildId = snowflake();
+    const roleId = snowflake();
+
+    await repo.grant({
+      guildId,
+      roleId,
+      permission: 'event:create',
+      grantedBy: 'u',
+    });
+    await expect(
+      repo.apply({
+        guildId,
+        roleId,
+        grantedBy: null as unknown as string,
+        grant: ['poll:create'],
+        revoke: ['event:create'],
+      }),
+    ).rejects.toThrow();
+    expect(await repo.list(guildId, roleId)).toEqual([
+      { roleId, permission: 'event:create' },
+    ]);
+    await repo.apply({
+      guildId,
+      roleId,
+      grantedBy: 'u',
+      grant: ['poll:create'],
+      revoke: ['event:create'],
+    });
+    expect(await repo.list(guildId, roleId)).toEqual([
+      { roleId, permission: 'poll:create' },
+    ]);
+  });
+});

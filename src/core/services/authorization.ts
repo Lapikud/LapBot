@@ -12,7 +12,6 @@ import type {
   GrantRepository,
   Logger,
 } from '~/core/ports';
-import { sequential } from '~/lib';
 import { guard } from './guard';
 
 export function createAuthorizer(grants: GrantRepository): Authorizer {
@@ -109,8 +108,40 @@ export function createPermissionService(deps: Deps) {
           (p) => current.has(p) && !target.has(p),
         );
 
-        await sequential(toGrant, (p) => grant(actor, roleId, p));
-        await sequential(toRevoke, (p) => revoke(actor, roleId, p));
+        const role = await directory.role(actor.guildId, roleId);
+
+        if (!role) {
+          throw new UserError('That role does not exist.');
+        }
+
+        await Promise.all(
+          [...toGrant, ...toRevoke].map(async (permission) => {
+            checkDelegation({
+              actor,
+              rolePosition: role.position,
+              permission,
+              actorHolds: await authz.can(actor, permission),
+            });
+          }),
+        );
+
+        await grants.apply({
+          guildId: actor.guildId,
+          roleId,
+          grantedBy: actor.userId,
+          grant: toGrant,
+          revoke: toRevoke,
+        });
+        log.info(
+          {
+            guildId: actor.guildId,
+            roleId,
+            actorId: actor.userId,
+            granted: toGrant,
+            revoked: toRevoke,
+          },
+          'Permission replacement',
+        );
 
         return { granted: toGrant.length, revoked: toRevoke.length };
       },

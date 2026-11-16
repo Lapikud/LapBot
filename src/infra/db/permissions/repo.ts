@@ -91,6 +91,34 @@ export function createGrantRepository(db: Db): GrantRepository {
       hasGrant(db, guildId, roleIds, permission),
     grant: (change) => grant(db, change),
     revoke: (change) => revoke(db, change),
+    apply: (input) =>
+      db.transaction(async (tx) => {
+        if (input.revoke.length > 0) {
+          await tx
+            .delete(rolePermissions)
+            .where(
+              and(
+                eq(rolePermissions.guildId, input.guildId),
+                eq(rolePermissions.roleId, input.roleId),
+                inArray(rolePermissions.permission, [...input.revoke]),
+              ),
+            );
+        }
+
+        if (input.grant.length > 0) {
+          await tx
+            .insert(rolePermissions)
+            .values(
+              input.grant.map((permission) => ({
+                guildId: input.guildId,
+                roleId: input.roleId,
+                grantedBy: input.grantedBy,
+                permission,
+              })),
+            )
+            .onConflictDoNothing();
+        }
+      }),
     list: (guildId, roleId) => listGrants(db, guildId, roleId),
   };
 }
