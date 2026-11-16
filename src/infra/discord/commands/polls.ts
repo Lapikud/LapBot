@@ -217,7 +217,7 @@ export function pollCommands(polls: PollService): Feature {
 
             await respond(
               interaction,
-              [`**${poll.question}**`, ...lines, winner]
+              [`# ${poll.question}`, ...lines, winner]
                 .join('\n')
                 .slice(0, 2000),
             );

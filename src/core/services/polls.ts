@@ -62,13 +62,13 @@ export function pollView(poll: PollWithOptions, results: PollResults): Message {
   const showCounts = poll.showResults === 'live' || !open;
   const lines = results.options.map((option) =>
     showCounts
-      ? `**${option.label}**\n${bar(option.votes, results.voters)} ${option.votes}`
+      ? `${bar(option.votes, results.voters)} ${option.votes} · **${option.label}**`
       : `• ${option.label}`,
   );
   const outcome =
     !open && results.winners.length > 0
-      ? `\n\n${describeOutcome(results, 'Winner')}`
-      : '';
+      ? [describeOutcome(results, 'Winner')]
+      : [];
   const footer = [
     `Poll #${poll.id}`,
     poll.multiple ? 'multiple choice' : 'single choice',
@@ -78,13 +78,9 @@ export function pollView(poll: PollWithOptions, results: PollResults): Message {
   ].join(' · ');
 
   return {
-    embeds: [
-      {
-        title: poll.question,
-        description: `${lines.join('\n')}${outcome}`,
-        footer,
-      },
-    ],
+    content: [`# ${poll.question}`, ...lines, ...outcome, `-# ${footer}`].join(
+      '\n',
+    ),
     controls: open
       ? [
           [

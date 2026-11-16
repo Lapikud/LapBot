@@ -1,4 +1,5 @@
 import {
+  maxOptionLength,
   movieLabel,
   parseFutureWhen,
   parseWhen,
@@ -114,7 +115,7 @@ export function createMovieService(deps: Deps) {
           creatorId: actor.userId,
           question: '🎬 What should we watch next?',
           options: candidates.map((m) => ({
-            label: movieLabel(m).slice(0, 100),
+            label: movieLabel(m).slice(0, maxOptionLength),
             ref: String(m.id),
           })),
           closesAt,

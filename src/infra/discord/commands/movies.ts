@@ -5,7 +5,7 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import type { MovieService } from '~/core/services';
-import { discordTime, movieLabel, userMention } from '~/domain';
+import { discordTime, maxPollOptions, movieLabel, userMention } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';
 import type { Feature } from '../module';
@@ -58,7 +58,7 @@ const data = new SlashCommandBuilder()
           .setName('count')
           .setDescription('How many movies (default 10)')
           .setMinValue(2)
-          .setMaxValue(25),
+          .setMaxValue(maxPollOptions),
       )
       .addStringOption((o) =>
         o.setName('closes').setDescription('When voting ends (default 2d)'),

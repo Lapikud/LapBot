@@ -1,6 +1,8 @@
 import { UserError } from './errors';
 
-export const maxPollOptions = 25;
+export const maxPollOptions = 10;
+
+export const maxOptionLength = 55;
 
 export type Tally<O> = {
   options: Array<O & { votes: number }>;
@@ -43,8 +45,8 @@ export function validatePollOptions(labels: readonly string[]): string[] {
     );
   }
 
-  if (trimmed.some((label) => label === '' || label.length > 100)) {
-    throw new UserError('Options must be 1–100 characters.');
+  if (trimmed.some((label) => label === '' || label.length > maxOptionLength)) {
+    throw new UserError(`Options must be 1–${maxOptionLength} characters.`);
   }
 
   if (

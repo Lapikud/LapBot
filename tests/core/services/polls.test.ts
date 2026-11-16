@@ -130,7 +130,7 @@ describe.skipIf(noDatabase)('poll service', () => {
       [poll.options[0]?.id ?? 0],
     );
 
-    expect(JSON.stringify(view.embeds)).not.toContain('█');
+    expect(view.content).not.toContain('█');
   });
 
   it('closes on schedule, shows the winner and removes controls', async () => {
@@ -155,7 +155,7 @@ describe.skipIf(noDatabase)('poll service', () => {
     if (closed) {
       const view = pollView(closed, await repository.results(closed));
 
-      expect(JSON.stringify(view.embeds)).toContain('Winner');
+      expect(view.content).toContain('Winner');
       expect(view.controls).toEqual([]);
     }
 
