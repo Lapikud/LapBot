@@ -29,6 +29,13 @@
       "when": 1794822022773,
       "tag": "0003_drop_redmine_links",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794823786228,
+      "tag": "0004_drop_scheduled_jobs",
+      "breakpoints": true
     }
   ]
 }

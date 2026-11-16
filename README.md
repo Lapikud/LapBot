@@ -189,7 +189,7 @@ src/
     db/<area>/        drizzle model and repository adapters
     discord/          discord.js client, router, outbound adapters and the
                       thin slash-command adapters in commands/
-    scheduler/        job queue (Scheduler port) and the job runner
+    scheduler/        pg-boss adapter for the Scheduler port
     redmine/          Redmine adapter for the IssueTracker port
     logging/          pino
     web/              server-rendered web UI and its Authenticator adapter
@@ -208,9 +208,10 @@ drizzle/              SQL migrations
   mentions and controls. `infra/discord/render.ts` turns them into discord.js
   payloads.
 - **Cross-service use is explicit**: movies get the poll and event services.
-- **Scheduler:** jobs live in `scheduled_jobs`. The runner claims due jobs
-  with `FOR UPDATE SKIP LOCKED` and a lease, so a crash mid-job leads to a
-  retry after the lease expires. Delivery is at-least-once, and handlers
+- **Scheduler:** jobs run on [pg-boss](https://github.com/timgit/pg-boss) in
+  the `pgboss` schema, one queue per job type with one queued job per key.
+  A failed job is retried up to 4 times with backoff, and a crash mid-job
+  leads to a retry once the job expires. Delivery is at-least-once, and handlers
   re-check current state. Where a duplicate message would be worse than a
   missed one (announcements, birthdays, Redmine notifications), the handler
   records the send before posting. Each handler decides what lateness means:
