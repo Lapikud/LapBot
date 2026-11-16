@@ -6,6 +6,7 @@ import {
   channelMention,
   nextDailyRun,
   PermanentError,
+  selfAssignProblem,
   UserError,
   userMention,
   type Actor,
@@ -172,6 +173,20 @@ export function createBirthdayService(deps: Deps) {
     },
   });
 
+  const requireBirthdayRole = async (actor: Actor, roleId: string) => {
+    const role = await directory.role(actor.guildId, roleId);
+
+    if (!role || selfAssignProblem(role) !== undefined || role.administrator) {
+      throw new UserError(
+        'Choose a non-privileged birthday role I can manage.',
+      );
+    }
+
+    if (!actor.administrator && role.position >= actor.highestRolePosition) {
+      throw new UserError('That role is not below your highest role.');
+    }
+  };
+
   const resolveSettings = async (
     actor: Actor,
     change: BirthdayConfiguration,
@@ -183,19 +198,21 @@ export function createBirthdayService(deps: Deps) {
       throw new UserError('Choose an announcement channel.');
     }
 
-    if (typeof change.roleId === 'string') {
-      const role = await directory.role(actor.guildId, change.roleId);
+    if (!(await directory.canPost(actor, channelId))) {
+      throw new UserError('You cannot post in that birthday channel yourself.');
+    }
 
-      if (!role || role.managed || !role.botCanAssign) {
-        throw new UserError('I cannot manage that role.');
-      }
+    const roleId =
+      change.roleId === undefined ? (current?.roleId ?? null) : change.roleId;
+
+    if (roleId !== null) {
+      await requireBirthdayRole(actor, roleId);
     }
 
     return {
       guildId: actor.guildId,
       channelId,
-      roleId:
-        change.roleId === undefined ? (current?.roleId ?? null) : change.roleId,
+      roleId,
       hour: change.hour ?? current?.hour ?? 9,
     };
   };
