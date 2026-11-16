@@ -85,7 +85,6 @@ export function compose(config: Config, log: Logger) {
     panels: createRolePanelRepository(database.db),
     directory,
     messenger,
-    authz,
     log: log.child({ service: 'roles' }),
     legacy: legacyPanel(config),
   });

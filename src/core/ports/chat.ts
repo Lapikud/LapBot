@@ -23,8 +23,6 @@ export type Messenger = {
   react: (channelId: string, messageId: string, emoji: string) => Promise<void>;
 };
 
-export type NewRole = { name: string; color?: number; mentionable: boolean };
-
 export type Directory = {
   guildOf: (channelId: string) => Promise<string | undefined>;
   channels: (guildId: string) => Promise<ChannelInfo[]>;
@@ -40,16 +38,6 @@ export type Directory = {
   removeRoles: (
     member: { guildId: string; userId: string },
     roleIds: readonly string[],
-    reason: string,
-  ) => Promise<void>;
-  createRole: (
-    guildId: string,
-    role: NewRole,
-    reason: string,
-  ) => Promise<RoleInfo>;
-  deleteRole: (
-    guildId: string,
-    roleId: string,
     reason: string,
   ) => Promise<void>;
 };

@@ -50,18 +50,16 @@ environment-only.
 
 ## Commands
 
-| Command                                                                    | Who                                                            |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `/role list`, role panels (button + select menu)                           | everyone                                                       |
-| `/role create`, `delete`, `assign`, `remove`, `panel create/update/remove` | `role:create`, `role:manage`, `role:assign`                    |
-| `/remindme`, `/reminders list/edit/cancel`                                 | everyone; `channel:` needs `reminder:channel`                  |
-| `/announce create/preview/publish/schedule/edit/cancel`                    | `announcement:create`, `:publish`, `:schedule`                 |
-| `/event create/edit/cancel/list/view/attendees`, RSVP buttons              | create needs `event:create`; organizer or `event:manage` edits |
-| `/birthday set/remove/view/upcoming`, `/birthday settings`                 | everyone; settings need `birthday:manage`                      |
-| `/poll create/list/results/close/cancel`                                   | create needs `poll:create`; creator or `poll:manage` manages   |
-| `/movie suggest/suggestions/remove/vote/night/watched/history`             | vote, night, watched need `movie:manage`                       |
-| `/redmine subscribe/unsubscribe`                                           | `redmine:subscription:manage`                                  |
-| `/permissions grant/revoke/list/check`                                     | `permissions:manage`                                           |
+| Command                                                        | Who                                                            |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| `/remindme`, `/reminders list/edit/cancel`                     | everyone; `channel:` needs `reminder:channel`                  |
+| `/announce create/preview/publish/schedule/edit/cancel`        | `announcement:create`, `:publish`, `:schedule`                 |
+| `/event create/edit/cancel/list/view/attendees`, RSVP buttons  | create needs `event:create`; organizer or `event:manage` edits |
+| `/birthday set/remove/view/upcoming`, `/birthday settings`     | everyone; settings need `birthday:manage`                      |
+| `/poll create/list/results/close/cancel`                       | create needs `poll:create`; creator or `poll:manage` manages   |
+| `/movie suggest/suggestions/remove/vote/night/watched/history` | vote, night, watched need `movie:manage`                       |
+| `/redmine subscribe/unsubscribe`                               | `redmine:subscription:manage`                                  |
+| `/permissions grant/revoke/list/check`                         | `permissions:manage`                                           |
 
 ## Web UI
 
@@ -100,26 +98,19 @@ The bot has its own action-based permissions (`event:create`, `poll:manage`,
   the message was created. Discord role hierarchy always applies on top.
 - Every grant and revoke is logged.
 
-## Role panels and migrating from reactions
+## Role selection
+
+Members pick their own roles through Discord's **Server Settings → Onboarding**
+(customization questions) and the **Channels & Roles** page. The bot has no
+role commands.
 
 The original reaction message (`Valige endale rolli: …` with 1️⃣ 2️⃣ 3️⃣) still
 works when `ROLE_SELECTION_CHANNEL_ID` and the role IDs are set. On first start
 the bot finds the message it posted before, or posts it once, and stores its
 ID. It no longer reposts or searches on later starts, and reactions on any
-other message are ignored.
-
-Select-menu panels are the replacement. Members press **Choose roles** and get
-a private menu showing the roles they already have. To migrate:
-
-1. `/role panel create channel:#rollid title:Vali endale roll`
-2. `/role panel update panel:<id> add:@Tarkvara`, then do the same for each role.
-3. Announce the new panel. Members who reacted keep their roles.
-4. When ready, an administrator runs `/role panel remove` on the legacy
-   panel and clears `ROLE_SELECTION_CHANNEL_ID`. The bot never deletes the
-   legacy message on its own.
-
-Roles that grant moderator permissions, are managed by integrations, or sit
-above the bot cannot be put on a panel.
+other message are ignored. Roles that grant moderator permissions, are managed
+by integrations, or sit above the bot are never handed out. To retire it,
+clear `ROLE_SELECTION_CHANNEL_ID` and delete the message yourself.
 
 ## Redmine
 

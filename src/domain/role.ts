@@ -33,20 +33,6 @@ export function selfAssignProblem(role: RoleInfo): string | undefined {
   return undefined;
 }
 
-export function requireSelfAssignable(role: RoleInfo): void {
-  const problem = selfAssignProblem(role);
-
-  if (problem !== undefined) {
-    throw new UserError(`${role.name} cannot be self-assigned: it ${problem}.`);
-  }
-}
-
-export function requireAbove(actor: Actor, role: RoleInfo): void {
-  if (!actor.owner && actor.highestRolePosition <= role.position) {
-    throw new UserError(`${role.name} is not below your highest role.`);
-  }
-}
-
 export function requireManageable(role: RoleInfo): void {
   if (role.managed || !role.botCanAssign) {
     throw new UserError(

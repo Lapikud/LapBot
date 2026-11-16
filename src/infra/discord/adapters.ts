@@ -185,25 +185,6 @@ export function createDiscordDirectory(client: Client): Directory {
 
       await permanent(() => member.roles.remove([...roleIds], reason));
     },
-    createRole: async (guildId, role, reason) => {
-      const found = await guild(guildId);
-      const created = await found.roles.create({
-        name: role.name,
-        permissions: [],
-        mentionable: role.mentionable,
-        reason,
-        ...(role.color !== undefined && {
-          colors: { primaryColor: role.color },
-        }),
-      });
-
-      return toRoleInfo(created);
-    },
-    deleteRole: async (guildId, roleId, reason) => {
-      const found = await guild(guildId);
-
-      await found.roles.delete(roleId, reason);
-    },
   };
 }
 
