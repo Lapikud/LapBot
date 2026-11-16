@@ -100,6 +100,22 @@ function fieldsOf(form: Form) {
   };
 }
 
+function changesOf(form: Form) {
+  const capacity = field(form, 'capacity');
+
+  return {
+    ...fieldsOf(form),
+    ...(form.has('description') && {
+      description: field(form, 'description') ?? null,
+    }),
+    ...(form.has('location') && { location: field(form, 'location') ?? null }),
+    ...(form.has('end') && { end: field(form, 'end') ?? null }),
+    ...(form.has('capacity') && {
+      capacity: capacity === undefined ? null : Number(capacity),
+    }),
+  };
+}
+
 export function eventPages({
   guildId,
   services,
@@ -262,7 +278,7 @@ export function eventPages({
       await services.events.edit(
         c.var.actor,
         id,
-        fieldsOf(await c.req.formData()),
+        changesOf(await c.req.formData()),
       );
 
       return back(c, '/events', { notice: `Event #${id} updated.` });

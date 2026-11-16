@@ -227,6 +227,40 @@ describe.skipIf(noDatabase)('event service', () => {
     expect(view.content).toContain('1 / 5');
   });
 
+  it('clears nullable fields while leaving omitted changes unchanged', async () => {
+    const { service, organizer } = setup();
+    const event = await service.create(organizer, {
+      title: 'Quiz',
+      start: '3h',
+      end: '4h',
+      channelId: 'c',
+      description: 'Details',
+      location: 'Room',
+      capacity: 5,
+    });
+
+    await service.edit(organizer, event.id, { title: 'New quiz' });
+    expect(await service.get(organizer, event.id)).toMatchObject({
+      description: 'Details',
+      location: 'Room',
+      capacity: 5,
+      endsAt: event.endsAt,
+    });
+    await service.edit(organizer, event.id, {
+      description: null,
+      location: null,
+      capacity: null,
+      end: null,
+    });
+    expect(await service.get(organizer, event.id)).toMatchObject({
+      title: 'New quiz',
+      description: null,
+      location: null,
+      capacity: null,
+      endsAt: null,
+    });
+  });
+
   it('denies direct reads and edits after channel visibility is lost', async () => {
     const { service, organizer, directory } = setup();
     const event = await service.create(organizer, {

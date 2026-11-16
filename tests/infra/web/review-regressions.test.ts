@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import type { WebDeps, Env } from '~/infra/web/context';
 import { serverOf, visibleRecords } from '~/infra/web/context';
 import { eventPages } from '~/infra/web/events';
@@ -71,3 +71,32 @@ it('hides private event and poll records from dashboard lists', async () => {
   expect(await visibleRecords(directory, member, records)).toHaveLength(1);
 });
 
+it('submits explicit nulls when event fields are cleared', async () => {
+  const edit = vi.fn(async () => undefined);
+  const deps = {
+    guildId: 'g',
+    timezone: 'UTC',
+    services: { events: { edit } },
+  } as unknown as WebDeps;
+
+  await appFor(eventPages(deps)).request('/1', {
+    method: 'POST',
+    body: new URLSearchParams({
+      title: 'Event',
+      description: '',
+      location: '',
+      capacity: '',
+      end: '',
+    }),
+  });
+  expect(edit).toHaveBeenCalledWith(
+    member,
+    1,
+    expect.objectContaining({
+      description: null,
+      location: null,
+      capacity: null,
+      end: null,
+    }),
+  );
+});

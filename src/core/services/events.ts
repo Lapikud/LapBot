@@ -56,22 +56,18 @@ export type EventRequest = {
 };
 
 export type EventChanges = Partial<
-  Pick<
-    EventRequest,
-    | 'title'
-    | 'start'
-    | 'end'
-    | 'description'
-    | 'location'
-    | 'capacity'
-    | 'icons'
-  >
->;
+  Pick<EventRequest, 'title' | 'start' | 'icons'>
+> & {
+  end?: string | null;
+  description?: string | null;
+  location?: string | null;
+  capacity?: number | null;
+};
 
 const maxTitleLength = 200;
 const maxDescriptionLength = 1500;
 
-function requireText(title: string, description?: string) {
+function requireText(title: string, description?: string | null) {
   if (title.trim() === '' || title.length > maxTitleLength) {
     throw new UserError(`Give a title of 1–${maxTitleLength} characters.`);
   }
@@ -442,10 +438,14 @@ export function createEventService(deps: Deps) {
         changes.start === undefined
           ? event.startsAt
           : parseFutureWhen(changes.start, event.timezone);
-      const endsAt =
-        changes.end === undefined
-          ? event.endsAt
-          : parseWhen(changes.end, event.timezone, startsAt);
+      let endsAt = event.endsAt;
+
+      if (changes.end !== undefined) {
+        endsAt =
+          changes.end === null
+            ? null
+            : parseWhen(changes.end, event.timezone, startsAt);
+      }
 
       if (endsAt && endsAt <= startsAt) {
         throw new UserError('The end must be after the start.');
@@ -455,9 +455,14 @@ export function createEventService(deps: Deps) {
 
       let updated = await events.update(event.id, {
         title: changes.title ?? event.title,
-        description: changes.description ?? event.description,
-        location: changes.location ?? event.location,
-        capacity: changes.capacity ?? event.capacity,
+        description:
+          changes.description === undefined
+            ? event.description
+            : changes.description,
+        location:
+          changes.location === undefined ? event.location : changes.location,
+        capacity:
+          changes.capacity === undefined ? event.capacity : changes.capacity,
         icons: changes.icons ?? event.icons,
         startsAt,
         endsAt,
