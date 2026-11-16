@@ -6,6 +6,12 @@ export const birthdayVisibilities = ['public', 'announce', 'private'] as const;
 
 export type BirthdayVisibility = (typeof birthdayVisibilities)[number];
 
+export const birthdayVisibilityLabels: Record<BirthdayVisibility, string> = {
+  public: 'Announce it and show it in upcoming birthdays',
+  announce: 'Announce it, but keep the date unlisted',
+  private: 'Keep it private: no announcement',
+};
+
 export function validateBirthday(month: number, day: number): void {
   const date = new Date(2024, month - 1, day);
 

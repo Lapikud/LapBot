@@ -93,15 +93,6 @@ export function createPermissionService(deps: Deps) {
     list: guard(authz, managePermissions, (actor, roleId?: string) =>
       grants.list(actor.guildId, roleId),
     ),
-    check: guard(
-      authz,
-      managePermissions,
-      async (actor, userId: string, value: string) => {
-        const member = await directory.member(actor.guildId, userId);
-
-        return member !== undefined && authz.can(member, definition(value).id);
-      },
-    ),
   };
 }
 

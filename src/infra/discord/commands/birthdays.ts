@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { describeBirthday, type BirthdayService } from '~/core/services';
-import { birthdayVisibilities } from '~/domain';
+import { birthdayVisibilities, birthdayVisibilityLabels } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand } from '../define';
 import type { Feature } from '../module';
@@ -37,10 +37,13 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName('visibility')
-          .setDescription(
-            'public: announced and listed; announce: announced only; private: neither',
-          )
-          .addChoices(birthdayVisibilities.map((v) => ({ name: v, value: v }))),
+          .setDescription('Who gets to know (default: announce and list it)')
+          .addChoices(
+            birthdayVisibilities.map((v) => ({
+              name: birthdayVisibilityLabels[v],
+              value: v,
+            })),
+          ),
       ),
   )
   .addSubcommand((sub) =>
@@ -112,7 +115,10 @@ export function birthdayCommands(birthdays: BirthdayService): Feature {
                 ? ' In non-leap years it is celebrated on 28 February.'
                 : '';
 
-            await respond(interaction, `Saved (${visibility}).${leap}`);
+            await respond(
+              interaction,
+              `Saved. ${birthdayVisibilityLabels[visibility]}.${leap}`,
+            );
           },
           remove: async (interaction) => {
             const removed = await birthdays.remove(toActor(interaction.member));

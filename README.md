@@ -59,7 +59,7 @@ environment-only.
 | `/poll create/list/results/close/cancel`                                        | create needs `poll:create`; creator or `poll:manage` manages   |
 | `/movie suggest/suggestions/remove/vote/night/watched/history`                  | vote, night, watched need `movie:manage`                       |
 | `/redmine subscribe/unsubscribe`                                                | `redmine:subscription:manage`                                  |
-| `/permissions grant/revoke/list/check`                                          | `permissions:manage`                                           |
+| `/permissions grant/revoke/list`                                                | `permissions:manage`                                           |
 
 ## Web UI
 

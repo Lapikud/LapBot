@@ -4,7 +4,7 @@ import {
   type SlashCommandStringOption,
 } from 'discord.js';
 import type { PermissionService } from '~/core/services';
-import { managePermissions, roleMention, userMention } from '~/domain';
+import { managePermissions, roleMention } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';
 import type { Feature } from '../module';
@@ -44,15 +44,6 @@ const data = new SlashCommandBuilder()
       .setName('list')
       .setDescription('List granted permissions')
       .addRoleOption((o) => o.setName('role').setDescription('Only this role')),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('check')
-      .setDescription('Check whether a member holds a permission')
-      .addUserOption((o) =>
-        o.setName('member').setDescription('Member').setRequired(true),
-      )
-      .addStringOption(permissionOption),
   );
 
 export function permissionCommands(permissions: PermissionService): Feature {
@@ -106,23 +97,6 @@ export function permissionCommands(permissions: PermissionService): Feature {
                 : lines.join('\n').slice(0, 2000),
             );
           },
-          check: deferred(async (interaction) => {
-            const user = interaction.options.getUser('member', true);
-            const permission = interaction.options.getString(
-              'permission',
-              true,
-            );
-            const holds = await permissions.check(
-              toActor(interaction.member),
-              user.id,
-              permission,
-            );
-
-            await respond(
-              interaction,
-              `${userMention(user.id)} ${holds ? 'holds' : 'does not hold'} "${permission}".`,
-            );
-          }),
         }),
         autocomplete: async (interaction) => {
           const query = interaction.options.getFocused().toLowerCase();
