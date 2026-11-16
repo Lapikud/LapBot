@@ -56,7 +56,7 @@ const data = new SlashCommandBuilder()
           ),
       )
       .addStringOption((o) =>
-        o.setName('closes').setDescription('e.g. 1d, 2h, 2026-11-20 18:00'),
+        o.setName('closes').setDescription('e.g. 2h, 1d, fri 18:00'),
       )
       .addChannelOption((o) =>
         o

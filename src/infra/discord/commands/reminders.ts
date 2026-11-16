@@ -27,7 +27,7 @@ const remindme = new SlashCommandBuilder()
   .addStringOption((o) =>
     o
       .setName('when')
-      .setDescription('e.g. 30m, 2h, 1d, 18:30, 2026-11-20 18:00')
+      .setDescription('e.g. 30m, 2h, tomorrow 9:00, fri 18:00, 20.11 9:00')
       .setRequired(true),
   )
   .addStringOption((o) =>
@@ -48,9 +48,6 @@ const remindme = new SlashCommandBuilder()
       .setName('repeat')
       .setDescription('Repeat the reminder')
       .addChoices(recurrences.map((r) => ({ name: r, value: r }))),
-  )
-  .addStringOption((o) =>
-    o.setName('timezone').setDescription('IANA timezone for absolute times'),
   );
 
 const idOption = (o: SlashCommandIntegerOption) =>
@@ -72,7 +69,9 @@ const manage = new SlashCommandBuilder()
       .setName('edit')
       .setDescription('Change a reminder')
       .addIntegerOption(idOption)
-      .addStringOption((o) => o.setName('when').setDescription('New time'))
+      .addStringOption((o) =>
+        o.setName('when').setDescription('e.g. 2h, tomorrow 9:00'),
+      )
       .addStringOption((o) =>
         o.setName('message').setDescription('New message').setMaxLength(1000),
       ),
@@ -98,13 +97,11 @@ export function reminderCommands(reminders: ReminderService): Feature {
             ChannelType.GuildText,
           ]);
           const repeat = interaction.options.getString('repeat');
-          const timezone = interaction.options.getString('timezone');
           const reminder = await reminders.create(toActor(interaction.member), {
             when: interaction.options.getString('when', true),
             message: interaction.options.getString('message', true),
             ...(channel && { channelId: channel.id }),
             ...(repeat !== null && { repeat }),
-            ...(timezone !== null && { timezone }),
           });
           const note = channel
             ? ''

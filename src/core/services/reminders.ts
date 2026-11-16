@@ -5,7 +5,6 @@ import {
   parseFutureWhen,
   PermanentError,
   recurrences,
-  requireZone,
   UserError,
   userMention,
   type Actor,
@@ -29,7 +28,6 @@ export type ReminderRequest = {
   message: string;
   channelId?: string;
   repeat?: string;
-  timezone?: string;
 };
 
 type Deps = {
@@ -143,10 +141,6 @@ export function createReminderService(deps: Deps) {
         }
       }
 
-      const zone =
-        request.timezone === undefined
-          ? timezone
-          : requireZone(request.timezone);
       const recurrence: Recurrence | null =
         recurrences.find((r) => r === request.repeat) ?? null;
 
@@ -155,9 +149,9 @@ export function createReminderService(deps: Deps) {
         userId: actor.userId,
         channelId: request.channelId ?? null,
         message: request.message,
-        runAt: parseFutureWhen(request.when, zone),
+        runAt: parseFutureWhen(request.when, timezone),
         recurrence,
-        timezone: zone,
+        timezone,
       });
     },
     list: (actor: Actor) => reminders.active(actor.guildId, actor.userId),

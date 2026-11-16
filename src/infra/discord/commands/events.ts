@@ -42,7 +42,7 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName('start')
-          .setDescription('e.g. 2026-11-20 18:00')
+          .setDescription('e.g. fri 18:00, tomorrow 19:00, 20.11 18:00')
           .setRequired(true),
       )
       .addStringOption((o) =>
@@ -103,7 +103,9 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o.setName('title').setDescription('Title').setMaxLength(200),
       )
-      .addStringOption((o) => o.setName('start').setDescription('Start time'))
+      .addStringOption((o) =>
+        o.setName('start').setDescription('e.g. fri 18:00 or 20.11 18:00'),
+      )
       .addStringOption((o) => o.setName('end').setDescription('End time'))
       .addStringOption((o) =>
         o

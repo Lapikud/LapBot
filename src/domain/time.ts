@@ -1,5 +1,13 @@
 import { TZDate, tz } from '@date-fns/tz';
-import { addDays, addMonths, addWeeks, isValid, parse, set } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  isValid,
+  parse,
+  set,
+} from 'date-fns';
 import { UserError } from './errors';
 
 const unitMs: Partial<Record<string, number>> = {
@@ -15,6 +23,18 @@ const absoluteFormats = [
   'd.M.yyyy H:mm',
   'yyyy-MM-dd',
   'd.M.yyyy',
+];
+
+const dayMonthFormats = ['d.M H:mm', 'd.M'];
+
+const weekdays = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
 ];
 
 const steps = { daily: addDays, weekly: addWeeks, monthly: addMonths };
@@ -90,6 +110,69 @@ function parseClock(input: string, zone: string, now: Date): Date | undefined {
   return today <= now ? addDays(today, 1, { in: tz(zone) }) : today;
 }
 
+function dayOffset(name: string, now: Date, zone: string): number | undefined {
+  if (name === 'today') {
+    return 0;
+  }
+
+  if (name === 'tomorrow') {
+    return 1;
+  }
+
+  const index = weekdays.findIndex(
+    (day) => name.length >= 3 && day.startsWith(name),
+  );
+
+  return index === -1
+    ? undefined
+    : (index - new TZDate(now, zone).getDay() + 7) % 7;
+}
+
+function parseNamedDay(
+  input: string,
+  zone: string,
+  now: Date,
+): Date | undefined {
+  const match = /^([a-z]+)\s+(\d{1,2}):(\d{2})$/i.exec(input);
+  const offset = match && dayOffset(match[1]?.toLowerCase() ?? '', now, zone);
+
+  if (!match || offset === undefined || offset === null) {
+    return undefined;
+  }
+
+  const date = set(
+    addDays(now, offset, { in: tz(zone) }),
+    {
+      hours: Number(match[2]),
+      minutes: Number(match[3]),
+      seconds: 0,
+      milliseconds: 0,
+    },
+    { in: tz(zone) },
+  );
+  const weekday = match[1]?.toLowerCase() !== 'today';
+
+  return weekday && offset === 0 && date <= now
+    ? addDays(date, 7, { in: tz(zone) })
+    : date;
+}
+
+function parseDayMonth(
+  input: string,
+  zone: string,
+  now: Date,
+): Date | undefined {
+  const date = dayMonthFormats
+    .map((format) => parse(input, format, now, { in: tz(zone) }))
+    .find((candidate) => isValid(candidate));
+
+  if (date === undefined) {
+    return undefined;
+  }
+
+  return date < now ? addYears(date, 1, { in: tz(zone) }) : date;
+}
+
 function parseAbsolute(
   input: string,
   zone: string,
@@ -99,6 +182,8 @@ function parseAbsolute(
 
   return (
     parseClock(trimmed, zone, now) ??
+    parseNamedDay(trimmed, zone, now) ??
+    parseDayMonth(trimmed, zone, now) ??
     absoluteFormats
       .map((format) => parse(trimmed, format, now, { in: tz(zone) }))
       .find((date) => isValid(date))
@@ -111,7 +196,7 @@ export function parseWhen(input: string, zone: string, now = new Date()): Date {
 
   if (date === undefined) {
     throw new UserError(
-      `I could not read "${input}". Try "30m", "2h", "1d", "18:30" or "2026-11-20 18:00".`,
+      `I could not read "${input}". Try "30m", "2h", "18:30", "tomorrow 9:00", "fri 18:00" or "20.11 18:00".`,
     );
   }
 

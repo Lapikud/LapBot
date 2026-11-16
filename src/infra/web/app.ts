@@ -158,7 +158,7 @@ ${draft.content}</textarea>
       ${mentionPicker(context, draft.mentionRoleIds)}
       <label
         >Publish later
-        <input name="when" placeholder="e.g. 2h or 2026-11-20 18:00"
+        <input name="when" placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
       /></label>
       <div>
         <button name="action" value="preview">Preview</button>

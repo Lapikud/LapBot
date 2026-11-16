@@ -41,6 +41,28 @@ describe('parseWhen', () => {
     );
   });
 
+  it('reads days by name and day.month without a year', () => {
+    const at = (input: string) => parseWhen(input, zone, now).toISOString();
+
+    expect(at('tomorrow 9:00')).toBe('2026-03-11T07:00:00.000Z');
+    expect(at('today 18:00')).toBe('2026-03-10T16:00:00.000Z');
+    expect(at('fri 18:00')).toBe('2026-03-13T16:00:00.000Z');
+    expect(at('Tuesday 11:00')).toBe('2026-03-17T09:00:00.000Z');
+    expect(at('20.11 18:00')).toBe('2026-11-20T16:00:00.000Z');
+    expect(at('1.2 10:00')).toBe('2027-02-01T08:00:00.000Z');
+  });
+
+  it('reads an end time relative to the start', () => {
+    const start = new Date('2026-11-20T16:00:00Z');
+
+    expect(parseWhen('21:00', zone, start).toISOString()).toBe(
+      '2026-11-20T19:00:00.000Z',
+    );
+    expect(parseWhen('3h', zone, start).toISOString()).toBe(
+      '2026-11-20T19:00:00.000Z',
+    );
+  });
+
   it('rejects nonsense, invalid zones and past times', () => {
     expect(() => parseWhen('next tuesday-ish', zone, now)).toThrow(UserError);
     expect(() => parseWhen('2026-01-01 10:00', 'Mars/Base', now)).toThrow(

@@ -79,7 +79,7 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName('start')
-          .setDescription('e.g. 2026-11-20 19:00')
+          .setDescription('e.g. fri 19:00 or 20.11 19:00')
           .setRequired(true),
       )
       .addIntegerOption(movieOption)
