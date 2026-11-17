@@ -1,3 +1,4 @@
+import { eventCalendarEntry } from '~/core/calendar';
 import { eventView, reminderText } from '~/core/presentation';
 import { z } from 'zod';
 import {
@@ -25,7 +26,6 @@ import {
 import { defineJob } from './jobs';
 
 const maxReminders = 3;
-const defaultDurationMs = 2 * 60 * 60 * 1000;
 const reminderKey = (id: number, minutes: number) =>
   `event:${id}:remind:${minutes}`;
 
@@ -222,15 +222,11 @@ export function createEventService(deps: Deps) {
         return null;
       }
 
-      return await calendar.upsert(event.guildId, event.discordEventId, {
-        title: event.title,
-        description: event.description ?? '',
-        location: event.location ?? 'See the event post',
-        startsAt: event.startsAt,
-        endsAt:
-          event.endsAt ??
-          new Date(event.startsAt.getTime() + defaultDurationMs),
-      });
+      return await calendar.upsert(
+        event.guildId,
+        event.discordEventId,
+        eventCalendarEntry(event),
+      );
     } catch (error) {
       log.warn(
         { err: error, eventId: event.id },

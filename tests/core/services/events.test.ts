@@ -196,6 +196,33 @@ describe.skipIf(noDatabase)('event service', () => {
     expect(calendar.upsert).toHaveBeenCalledOnce();
   });
 
+  it('keeps event edits and cancellation working when calendar synchronization fails', async () => {
+    const { service, calendar, messenger, organizer } = setup();
+    const event = await service.create(organizer, {
+      title: 'Quiz',
+      start: '3h',
+      channelId: 'c',
+      native: true,
+    });
+
+    calendar.upsert.mockRejectedValueOnce(new Error('Calendar unavailable'));
+    const edited = await service.edit(organizer, event.id, {
+      title: 'Updated quiz',
+    });
+
+    expect(edited.title).toBe('Updated quiz');
+    expect(edited.discordEventId).toBe('native');
+    expect(messenger.edit).toHaveBeenCalledOnce();
+    calendar.remove.mockRejectedValueOnce(new Error('Calendar unavailable'));
+    const cancelled = await service.cancel(organizer, event.id);
+
+    expect(cancelled.status).toBe('cancelled');
+    expect((await service.get(organizer, event.id)).discordEventId).toBe(
+      'native',
+    );
+    expect(messenger.edit).toHaveBeenCalledTimes(2);
+  });
+
   it('skips reminders for cancelled events and lets only organizers manage', async () => {
     const { service, messenger, organizer } = setup();
     const event = await service.create(organizer, {

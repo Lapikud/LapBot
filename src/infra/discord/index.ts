@@ -9,3 +9,4 @@ export * from './actor';
 export * from './adapters';
 export * from './render';
 export * from './commands';
+export * from './calendar';
