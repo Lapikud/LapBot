@@ -1,3 +1,6 @@
+Current physical ownership and verification are recorded in the
+[capability locality follow-up](2026-11-17-local-reasoning.md).
+
 # Foundation consolidation verification
 
 Initial extraction implemented on `fix/consolidate-foundation`, starting from `61879f9`.

@@ -79,37 +79,25 @@ const qualityRules: Linter.RulesRecord = {
   'sonarjs/no-redundant-optional': 'error',
 };
 
-const transportFreeFiles = [
-  'src/config/**/*.ts',
-  'src/domain/**/*.ts',
-  'src/lib/**/*.ts',
-  'src/core/**/*.ts',
-  'src/infra/db/**/*.ts',
-  'src/infra/redmine/**/*.ts',
-  'src/infra/tmdb/**/*.ts',
-  'src/infra/crypto/**/*.ts',
-  'src/infra/logging/**/*.ts',
-  'src/infra/scheduler/**/*.ts',
-  'src/infra/web/**/*.{ts,tsx}',
-  'src/features/*/service.ts',
-  'src/features/*/schema.ts',
-];
-
 const noDiscordImport = {
   name: 'discord.js',
-  message: 'Only the Discord adapter may use discord.js.',
+  message: 'Only Discord adapters may use discord.js.',
 };
 
-const modulePatterns = [
-  {
-    regex: '^~/(config|domain/[a-z-]+|lib|core/[a-z-]+|infra/[a-z-]+)/',
-    message: 'Import from the module barrel, not a file inside it.',
-  },
-  {
-    regex: String.raw`^(\.\./)+(config|domain|lib|core|infra|features|app)(/|$)`,
-    message: 'Import other modules through their ~/ barrel.',
-  },
-];
+const featureLogic = [
+  'model.ts',
+  'rules.ts',
+  'form.ts',
+  'service.ts',
+  'message.ts',
+  'calendar.ts',
+].map((file) => `./src/features/*/${file}`);
+const featureAdapters = [
+  'table.ts',
+  'repository.ts',
+  'discord.ts',
+  'web.tsx',
+].map((file) => `./src/features/*/${file}`);
 
 const unicornRules: Linter.RulesRecord = {
   'unicorn/prefer-set-has': 'error',
@@ -358,37 +346,41 @@ export default defineConfig(
         {
           zones: [
             {
-              target: './src/domain',
+              target: './src/foundation',
               from: [
-                './src/core',
-                './src/infra',
-                './src/config',
                 './src/features',
+                './src/integrations',
+                './src/config',
                 './src/app.ts',
               ],
-              message: 'The domain depends on nothing but itself and lib.',
+              message:
+                'Foundation primitives cannot depend on features or their adapters.',
             },
             {
-              target: './src/core',
-              from: ['./src/infra', './src/features', './src/app.ts'],
-              message: 'Ports and services must not know their adapters.',
+              target: featureLogic,
+              from: featureAdapters,
+              message: 'Feature logic uses contracts, never concrete adapters.',
             },
             {
-              target: './src/lib',
+              target: featureLogic,
               from: [
-                './src/domain',
-                './src/core',
-                './src/infra',
                 './src/config',
-                './src/features',
                 './src/app.ts',
+                './src/integrations/db',
+                './src/integrations/discord',
+                './src/integrations/web',
+                './src/integrations/scheduler',
+                './src/integrations/logging',
+                './src/integrations/tmdb/catalog.ts',
+                './src/integrations/redmine/client.ts',
               ],
-              message: 'lib is generic and depends on nothing in the app.',
+              message: 'Feature logic uses contracts, never concrete adapters.',
             },
             {
-              target: ['./src/infra', './src/features'],
+              target: ['./src/features', './src/integrations'],
               from: ['./src/app.ts', './src/index.ts'],
-              message: 'Adapters must not import the composition root.',
+              message:
+                'Features and adapters must not import the composition root.',
             },
           ],
         },
@@ -398,17 +390,45 @@ export default defineConfig(
 
   {
     files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/app.ts',
+      'src/integrations/discord/**',
+      'src/features/*/discord.ts',
+      '**/*.test.ts',
+    ],
     rules: {
-      'no-restricted-imports': ['error', { patterns: modulePatterns }],
+      'no-restricted-imports': ['error', { paths: [noDiscordImport] }],
     },
   },
 
   {
-    files: transportFreeFiles,
+    files: [
+      ...featureLogic.map((file) => file.slice(2)),
+      'src/foundation/**/*.ts',
+    ],
+    ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
-        { paths: [noDiscordImport], patterns: modulePatterns },
+        {
+          paths: [noDiscordImport],
+          patterns: [
+            {
+              group: [
+                'drizzle-orm',
+                'drizzle-orm/*',
+                'postgres',
+                'pg-boss',
+                'hono',
+                'hono/*',
+                'tmdb-ts',
+                'pino',
+              ],
+              message:
+                'Pure rules and operations use contracts, not platform libraries.',
+            },
+          ],
+        },
       ],
     },
   },
@@ -427,7 +447,7 @@ export default defineConfig(
   },
 
   {
-    files: ['src/lib/async.ts', 'src/infra/scheduler/runner.ts'],
+    files: ['src/foundation/async.ts', 'src/integrations/scheduler/runner.ts'],
     rules: { 'no-await-in-loop': 'off' },
   },
 

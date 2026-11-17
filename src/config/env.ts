@@ -1,4 +1,4 @@
-import { isZone } from '~/domain';
+import { isZone } from '~/foundation/time';
 import { z } from 'zod';
 
 const optional = <T extends z.ZodType>(schema: T) =>

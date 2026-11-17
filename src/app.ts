@@ -1,62 +1,58 @@
 import { randomBytes } from 'node:crypto';
 import { Events, type Client } from 'discord.js';
-import type { Config } from '~/config';
-import {
-  announcementCommands,
-  birthdayCommands,
-  createClient,
-  redmineCommands,
-  createDiscordCalendar,
-  eventCommands,
-  movieCommands,
-  pollCommands,
-  createInteractionHandler,
-  buildRegistry,
-  createDiscordDirectory,
-  createDiscordMessenger,
-  reminderCommands,
-  roleCommands,
-  permissionCommands,
-} from '~/infra/discord';
-import { createPostService } from '~/core/posts';
+import type { Config } from '~/config/env';
+import { announcementCommands } from '~/features/announcements/discord';
+import { birthdayCommands } from '~/features/birthdays/discord';
+import { createClient } from '~/integrations/discord/client';
+import { redmineCommands } from '~/features/redmine/discord';
+import { createDiscordCalendar } from '~/integrations/discord/calendar';
+import { eventCommands } from '~/features/events/discord';
+import { movieCommands } from '~/features/movies/discord';
+import { pollCommands } from '~/features/polls/discord';
+import { createInteractionHandler } from '~/integrations/discord/router';
+import { buildRegistry, type Registry } from '~/integrations/discord/registry';
+import { createDiscordDirectory } from '~/integrations/discord/directory';
+import { createDiscordMessenger } from '~/integrations/discord/messenger';
+import { reminderCommands } from '~/features/reminders/discord';
+import { roleCommands } from '~/features/roles/discord';
+import { permissionCommands } from '~/features/permissions/discord';
+import { createAnnouncementService } from '~/features/announcements/service';
 import {
   createAuthorizer,
   createPermissionService,
-} from '~/core/authorization';
-import { createRedmineService } from '~/core/redmine';
-import { createBirthdayService } from '~/core/birthdays';
-import { createEventService } from '~/core/events';
-import { createMovieService } from '~/core/movies';
-import { createPollService } from '~/core/polls';
-import { createReminderService } from '~/core/reminders';
-import { createRoleService, type LegacyPanel } from '~/core/roles';
-import type { AppContext, Feature, Registry } from '~/infra/discord';
-import type { Logger, LogStore } from '~/infra/logging';
+} from '~/features/permissions/service';
+import { createRedmineService } from '~/features/redmine/service';
+import { createBirthdayService } from '~/features/birthdays/service';
+import { createEventService } from '~/features/events/service';
+import { createMovieService } from '~/features/movies/service';
+import { createPollService } from '~/features/polls/service';
+import { createReminderService } from '~/features/reminders/service';
+import { createRoleService, type LegacyPanel } from '~/features/roles/service';
+import type { AppContext, Feature } from '~/integrations/discord/module';
+import type { Logger } from 'pino';
+import type { LogStore } from '~/integrations/logging/store';
 import { PgBoss } from 'pg-boss';
-import { createJobQueue, startJobs } from '~/infra/scheduler';
-import {
-  systemClock,
-  type Authorizer,
-  type Directory,
-  type Job,
-} from '~/core/ports';
-import { webAccess } from '~/domain';
-import { createWebApp, startWebServer, type WebServices } from '~/infra/web';
-import {
-  connectDatabase,
-  createPostRepository,
-  createEventRepository,
-  createBirthdayRepository,
-  createGrantRepository,
-  createTrackerRepository,
-  createMovieRepository,
-  createPollRepository,
-  createReminderRepository,
-  createRolePanelRepository,
-  runMigrations,
-} from '~/infra/db';
-import { RedmineClient } from '~/infra/redmine';
-import { createTmdbCatalog } from '~/infra/tmdb';
+import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
+import { systemClock } from '~/foundation/clock';
+import type { Authorizer } from '~/foundation/authorization';
+import type { Directory } from '~/foundation/directory';
+import type { Job } from '~/foundation/scheduler';
+import { webAccess } from '~/foundation/permission';
+import { createWebApp } from '~/integrations/web/app';
+import { startWebServer } from '~/integrations/web/server';
+import type { WebServices } from '~/integrations/web/context';
+import { connectDatabase, runMigrations } from '~/integrations/db/client';
+import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createEventRepository } from '~/features/events/repository';
+import { createBirthdayRepository } from '~/features/birthdays/repository';
+import { createGrantRepository } from '~/features/permissions/repository';
+import { createTrackerRepository } from '~/features/redmine/repository';
+import { createMovieRepository } from '~/features/movies/repository';
+import { createPollRepository } from '~/features/polls/repository';
+import { createReminderRepository } from '~/features/reminders/repository';
+import { createRolePanelRepository } from '~/features/roles/repository';
+import { RedmineClient } from '~/integrations/redmine/client';
+import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
   const channelId = config.ROLE_SELECTION_CHANNEL_ID;
@@ -101,8 +97,8 @@ export function compose(config: Config, log: Logger) {
     authz,
     timezone,
   });
-  const announcements = createPostService({
-    posts: createPostRepository(database.db),
+  const announcements = createAnnouncementService({
+    posts: createAnnouncementRepository(database.db),
     scheduler,
     messenger,
     directory,

@@ -96,7 +96,7 @@ The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 [Pico.css](https://picocss.com) (classless, so plain form markup looks right),
 loaded from jsDelivr. Our own styles are in `public/app.css`; every file in
 `public/` is served as is.
-Each section is one file in `src/infra/web/` that returns a small Hono app;
+Each section is a `web.tsx` file in its `src/features/<name>/` directory that returns a small Hono app;
 to add a page, write one and mount it with `app.route()` in `app.tsx`. Forms
 post back to the same path, so there is no client-side JavaScript.
 
@@ -226,197 +226,137 @@ Storage failures are reported to stderr while stdout logging continues.
 
 ## Architecture
 
-Ports and adapters. Business logic never imports discord.js, drizzle or an
-HTTP client; it talks to ports, and adapters implement them.
+Organized by capability, with three logical boundaries. Open a feature directory
+to find its rules, operations, adapters, and tests together.
 
-```
+```text
 src/
-  index.ts              entry point: config, logging, signals
-  app.ts                composition root
-  config/               validated environment
-  domain/
-    forms/              semantic input definitions and validation
-    posts/              post records and lifecycle state types
-    events/             event and RSVP records
-    polls/              poll records, rules, and response definition
-    birthdays/          birthday records, rules, and fixed input definition
-    movies/, roles/, reminders/, issues/
-    actor.ts, message.ts, permission.ts, time.ts, errors.ts
-  core/
-    posts/              service.ts, ports.ts, message.ts
-    events/             service.ts, ports.ts, message.ts, calendar.ts
-    polls/              service.ts, ports.ts, message.ts
-    birthdays/, movies/, roles/, reminders/, redmine/
-    authorization/      service, grant repository contract, guards, visibility
-    ports/              shared external capabilities: messaging, directory,
-                        calendar, catalogs, issue tracker, scheduling, logging
-    jobs.ts             shared validated job definition helper
-  infra/
-    db/<capability>/    database model and repository adapter
-    discord/            calendar.ts, messenger.ts, directory.ts, commands/
-    web/                application, auth, layout, context, selectors
-      pages/            feature route implementations
-      ui/               accessible controls and actions
-    scheduler/, tmdb/, redmine/, logging/
-  lib/                  generic helpers
-tests/                  mirrors capability ownership; mixed regressions explicit
-drizzle/                SQL migrations
+  index.ts, app.ts          startup and explicit composition
+  config/env.ts            validated environment
+  foundation/              reusable primitives, no feature dependencies
+    forms/                 semantic fields and submission validation
+    posts.ts               content, heading, explicit mentions, pure rendering
+    message.ts             transport-neutral message values and controls
+    actor.ts, roles.ts, permission.ts, time.ts, errors.ts
+    authorization.ts, directory.ts, messenger.ts, calendar.ts
+    scheduler.ts, clock.ts, logger.ts, async.ts
+    ui/                    accessible HTML controls and actions
+  features/
+    birthdays/             model.ts, rules.ts, form.ts, service.ts,
+                           table.ts, repository.ts, discord.ts, web.tsx,
+                           rules.test.ts, service.test.ts
+    announcements/         publication lifecycle composing foundation Post
+    events/                events, RSVP, messages, calendar mapping and adapters
+    polls/, movies/, permissions/, redmine/, reminders/, roles/
+  integrations/            shared platform/provider implementations
+    db/client.ts           connection and migrations
+    discord/               SDK, messaging, directory, calendar, routing
+    web/                   HTTP host, sign-in, layout, context and selectors
+    tmdb/                  catalog contract and provider client
+    redmine/               issue tracker contract, provider data and client
+    scheduler/, logging/
+tests/                     shared fixtures, platform tests, cross-feature regressions
+drizzle/                   unchanged SQL migrations
 ```
 
-- **Boundaries are linted.** Modules import each other only through their
-  barrel (`~/core/events`, never `~/core/events/service`). The domain
-  depends on nothing, core depends only on the domain, and only
-  `infra/discord` may import discord.js.
-- **Services take an `Actor`** (server, user, roles, administrator), not a
-  Discord member, and enforce permissions themselves. Any adapter that can
-  produce an actor (Discord now, a web UI later) gets the same rules.
-- **Messages are transport-neutral** (`domain/message.ts`): content, embeds,
-  mentions and controls. `infra/discord/render.ts` turns them into discord.js
-  payloads.
-- **Cross-service use is explicit**: movies get the poll and event services.
-- **Scheduler:** jobs run on [pg-boss](https://github.com/timgit/pg-boss) in
-  the `pgboss` schema, one queue per job type with one queued job per key.
-  A failed job is retried up to 4 times with backoff, and a crash mid-job
-  leads to a retry once the job expires. Delivery is at-least-once, and handlers
-  re-check current state. Where a duplicate message would be worse than a
-  missed one (announcements, birthdays, Redmine notifications), the handler
-  records the send before posting. Each handler decides what lateness means:
-  late reminders are still delivered, overdue polls close, and announcements
-  more than an hour late are skipped. Permanent delivery failures (closed DMs,
-  deleted channels) are not retried.
+A feature's `model.ts` contains its records and repository contract. Other files
+exist for actual responsibilities; there is no mandatory set to scaffold. Rules
+and input definitions are pure; services orchestrate; `repository.ts`, `table.ts`,
+`discord.ts`, and `web.tsx` are feature-owned adapters. Single-feature tests live
+beside the code, including database tests. Shared regression/platform tests stay
+under `tests/`.
+
+**Imports name their source.** Within a feature use `./model` or `./rules`;
+across features use direct paths such as `~/features/events/service`. There are
+no re-export-only barrels hiding ownership. `app.ts` connects services,
+repositories, platform adapters and credentials.
+
+**Dependency boundaries are linted at the file level.** Foundation code cannot
+import features or integrations. Feature models, rules, input definitions,
+renderers and services cannot import concrete adapters. They may depend on shared
+foundation capabilities and provider contracts. Only Discord adapters and the
+composition root use discord.js. Colocation grants no permission to reverse those
+dependencies.
 
 ### Composing features
 
-Input, presentation, publication, and external access are separate building
-blocks. A feature composes the parts it needs; it does not inherit a generic
-feature lifecycle.
-
-**Input definitions.** `src/domain/forms/` uses the existing Zod dependency for
-semantic fields and structured validation. `birthdayForm` is a fixed definition;
-`parseBirthdaySubmission` applies the existing visibility fallback and validates
-real calendar dates. `pollResponseForm(options, multiple)` defines numeric option
-choices, while `validatePollResponse` preserves vote deduplication and clearing.
-Poll state and eligibility checks still run inside the repository transaction.
-The form layer neither stores responses nor renders HTML.
+**Forms validate input.** `foundation/forms` uses Zod for semantic field definitions
+and structured issues. Birthday's fixed form and real-calendar validation live
+in `features/birthdays`; poll response choices and eligibility live in
+`features/polls`. Adapters decode transport input; forms do not store responses,
+coerce all values, or render HTML. Poll eligibility and state checks still run
+inside the repository transaction.
 
 ```ts
-import { parseBirthdaySubmission } from '~/domain/birthdays';
-import { validatePollResponse } from '~/domain/polls';
+import { parseBirthdaySubmission } from '~/features/birthdays/form';
+import { validatePollResponse } from '~/features/polls/form';
 
-const birthday = parseBirthdaySubmission({ day: 29, month: 2 });
+parseBirthdaySubmission({ day: 29, month: 2 });
 // { day: 29, month: 2, visibility: 'public' }
-const choices = validatePollResponse(
-  [
-    { id: 11, label: 'Pizza' },
-    { id: 22, label: 'Sushi' },
-  ],
-  false,
-  [22, 22],
-);
-// [22]; [] clears the vote. IDs remain numbers.
+validatePollResponse([{ id: 11, label: 'Pizza' }], false, [11, 11]);
+// [11]; [] clears a vote.
 ```
 
-Transport adapters decode their own inputs. The shared validator preserves
-omission, empty strings, explicit null, and empty arrays; it does not introduce
-universal coercion or defaults. Feature adapters translate field issues into
-the existing public errors. Configurable forms and shared response tables are
-outside the current foundation.
-
-**Web controls.** Pages compose `Input`, `Textarea`, `Select`, `Checkbox`,
-`MultiSelect`, `FormActions`, and `ActionButton` from `src/infra/web/ui/`.
-Labels, help, and errors are associated with the control ID. Give explicit,
-distinct IDs when the same name occurs more than once on a page. Channel
-selectors in `selectors.tsx` compose these controls using already-loaded server
-data. Generic controls perform no service or directory lookups.
-
-```tsx
-import { Input } from '../ui';
-
-<Input
-  name="day"
-  id="birthday-day"
-  label="Day"
-  type="number"
-  min={1}
-  max={31}
-  required
-  help="Your birthday day, without the year"
-/>;
-```
-
-Keep request parsing in the page adapter and authoritative authorization in the
-service. Native HTML remains appropriate for specialized tables, role editor
-rows, and unusual layouts.
-
-**Managed posts.** `createPostService` owns draft, edit, immediate/scheduled
-publication, cancellation, and delivery claims. It uses `PostRepository`, backed
-by the existing `announcements` table; there are no new tables or migrations.
-User operations take an Actor and enforce the existing `announcement:*`
-permissions, author visibility, destination access, and mention restrictions.
-Announcement commands and pages use PostService directly. Internal announcement
-aliases have been removed; public terminology and the physical SQL names stay
-compatible. The adapter lives under `infra/db/posts/` even though it maps to the
-existing `announcements` table.
+**Posts describe content.** A foundation Post is content with an optional heading
+and explicit mention choices. It has no database ID, lifecycle, permission policy
+or job scheduler. Pure `renderPost` constructs a Message; it does not perform I/O
+or impose announcement-specific limits.
 
 ```ts
-// With the composed PostService and authenticated Actor:
-const draft = await posts.draft(actor, {
-  channelId: 'general',
-  content: 'Hello',
-});
-await posts.publish(actor, draft.id);
-// Or: await posts.schedule(actor, draft.id, 'tomorrow 9:00');
+import { renderPost } from '~/foundation/posts';
+
+const message = renderPost({ title: 'Update', content: 'Hello' });
+await messenger.send(channelId, message);
 ```
 
-Publication jobs retain `announcements.publish`, `{ announcementId }`, and
-`announcement:<id>` keys so queued work remains compatible. Their existing
-one-hour lateness policy and claim-before-send tradeoff are unchanged.
+**Announcements compose posts and publication.** The announcement feature owns
+its drafts, edits, scheduled publication, cancellation, repository, author/channel
+visibility, mention permissions and delivery claims. Its model extends Post;
+`announcementView` uses `renderPost` and enforces the existing error/length policy.
+Use `createAnnouncementService` from `features/announcements/service` for that
+workflow. This is a concrete consumer, not a universal lifecycle for every post.
 
-**Message presentation and ordinary delivery.** Pure constructors in
-`src/core/<capability>/message.ts` return Message values. `postView`, `eventView`,
-`renderPoll`, and `pollDetails` contain formatting, not I/O. Feature services keep
-state and orchestration. The pure poll renderer takes an explicit `now`; the
-`pollView` service helper supplies current time for existing callers. Event/poll posts project their feature records, so
-there is no second editable copy of event details or poll options. Birthday
-greetings, reminders, and issue notifications use Messenger directly; they do
-not need managed Post records.
+SQL still uses `announcements` and `announcement_status`. Existing permissions,
+commands, URLs, messages, queued `announcements.publish` jobs, `{ announcementId }`
+payloads, `announcement:<id>` keys and one-hour lateness handling are unchanged.
+No migration or command registration is required for this reorganization.
 
-```ts
-await messenger.send(channelId, { content: 'A one-time notification' });
-```
+**Messages project feature data.** Event and poll message constructors live beside
+their respective models and services. They project current feature records, so
+there is no second editable copy of an event or poll. `renderPoll` takes explicit
+time; its service helper supplies the current time. Birthday greetings, reminders
+and issue notifications use Messenger directly. Text still uses Discord mention
+and timestamp syntax; transport-neutral values do not imply portable text.
 
-Text still contains Discord mentions and timestamps. The Message structure and
-SDK adapter are separate, but these renderers are not yet portable text
-renderers for arbitrary chat providers.
+**UI primitives stay small.** Feature pages compose `foundation/ui/controls`,
+`choices`, `field`, and `actions`. Labels, help and errors are linked to control
+IDs. Supply distinct IDs for repeated names. Shared channel selectors in
+`integrations/web/selectors.tsx` use already-loaded server data. Controls perform
+no service or directory lookups. Keep parsing in `web.tsx` and authoritative
+permissions in the service.
 
-**External capabilities.** Calendar has its own shared port; `eventCalendarEntry` in `core/events/calendar.ts` maps
-event data into it, and `createDiscordCalendar` owns SDK calls and payload limits.
-The event service decides when to sync and retains warning-and-continue failure
-handling. MovieCatalog/TMDB and IssueTracker/Redmine follow the same capability
-boundary. Wire concrete adapters and credentials in `src/app.ts`.
+**Integrations implement capabilities.** The event feature maps its model into the
+Calendar contract; the Discord calendar adapter owns SDK payloads and limits.
+Events retain warning-and-continue synchronization behavior. TMDB and Redmine
+contracts live with their provider integrations and are injected into feature
+services. Movies explicitly compose poll and event services. Supporting several
+calendar destinations still requires persisted links and a separate migration;
+one injected Calendar does not provide simultaneous multi-calendar support.
 
-Supporting multiple calendar destinations later needs persisted
-provider/destination links, per-link external IDs, opt-in state, and a reviewed
-backfill. Existing `native` and `discordEventId` remain compatible; injecting
-one Calendar does not provide simultaneous multi-calendar support.
+**Background work keeps its existing guarantees.** `defineJob` validates payloads;
+Scheduler is implemented by pg-boss. Delivery is at-least-once with retries and
+state checks. Announcement, birthday and Redmine handlers claim before sending;
+reminder handlers may duplicate a send after a crash. Permanent delivery failures
+are not retried. Each feature owns its lateness policy.
 
-### Adding a feature or integration
+### Adding a capability
 
-1. Put records, pure rules, and input definitions in `src/domain/<capability>/`.
-   Keep only shared primitives in the root domain module.
-2. Keep use cases, repository contracts, message constructors, and mappings
-   together in `src/core/<capability>/`. Shared external contracts belong in
-   `src/core/ports/`; cross-capability imports use the owning module's barrel.
-3. User operations accept Actor and enforce authorization. Use the Post service
-   for managed publication, Messenger for ordinary delivery, and `defineJob`
-   with Scheduler for background work.
-4. Put web routes in `src/infra/web/pages/`, composing `../ui` controls. Keep
-   request parsing in the adapter and feature rules in their domain/core owner.
-5. Add concrete provider/database/command adapters and wire them in `src/app.ts`.
-   Generate migrations or register commands only if those contracts change.
-6. Place tests beside the corresponding capability under `tests/domain/` or
-   `tests/core/`. Cross-feature regressions live in `tests/core/regressions/`.
-   Database tests use the dedicated disposable PostgreSQL.
+Start with one directory under `features/` and the operation you need. Keep its
+model, rules and tests there. Add adapters as required and wire them in `app.ts`.
+Extract a primitive only when it has a useful independent contract; use an existing
+foundation capability first. Do not create model/service/ports/index files just
+to satisfy a template. Generate migrations or register commands only when those
+external contracts actually change.
 
 ## Known limitations
 

@@ -1,6 +1,7 @@
 import { startApp } from './app';
-import { loadConfig } from '~/config';
-import { createLogger, createLogStore } from '~/infra/logging';
+import { loadConfig } from '~/config/env';
+import { createLogger } from '~/integrations/logging/logger';
+import { createLogStore } from '~/integrations/logging/store';
 
 let config: ReturnType<typeof loadConfig>;
 

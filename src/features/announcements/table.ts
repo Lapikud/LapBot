@@ -1,0 +1,41 @@
+import {
+  boolean,
+  index,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+
+export const postStatus = pgEnum('announcement_status', [
+  'draft',
+  'scheduled',
+  'published',
+  'cancelled',
+]);
+
+export const posts = pgTable(
+  'announcements',
+  {
+    id: serial('id').primaryKey(),
+    guildId: text('guild_id').notNull(),
+    authorId: text('author_id').notNull(),
+    channelId: text('channel_id').notNull(),
+    title: text('title'),
+    content: text('content').notNull(),
+    mentionRoleIds: text('mention_role_ids').array().notNull().default([]),
+    mentionEveryone: boolean('mention_everyone').notNull().default(false),
+    status: postStatus('status').notNull().default('draft'),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    messageId: text('message_id'),
+    failure: text('failure'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('announcements_guild_idx').on(table.guildId, table.status)],
+);
+
+export type AnnouncementRow = typeof posts.$inferSelect;

@@ -5,7 +5,7 @@ import type {
 import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 import { compose, createRegistry } from '~/app';
-import type { Config } from '~/config';
+import type { Config } from '~/config/env';
 
 const config = {
   DEFAULT_TIMEZONE: 'Europe/Tallinn',

@@ -1,5 +1,8 @@
 # Foundation physical layout
 
+Historical execution record. Its physical layout is superseded by the approved
+[capability locality follow-up](2026-11-17-local-reasoning.md).
+
 Approved in chat after the foundation implementation. Execute inline on
 `fix/consolidate-foundation`; baseline is `f96291f` with 234 tests passing.
 Use the safe-refactor workflow: preserve runtime behavior, verify before and

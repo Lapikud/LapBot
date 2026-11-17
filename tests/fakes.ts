@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 import { vi } from 'vitest';
-import type { Directory, Messenger } from '~/core/ports';
-import { UserError, type Actor } from '~/domain';
-import { type RoleInfo } from '~/domain/roles';
+import type { Directory } from '~/foundation/directory';
+import type { Messenger } from '~/foundation/messenger';
+import { UserError } from '~/foundation/errors';
+import type { Actor } from '~/foundation/actor';
+import type { RoleInfo } from '~/foundation/roles';
 
 export const silentLog = pino({ level: 'silent' });
 

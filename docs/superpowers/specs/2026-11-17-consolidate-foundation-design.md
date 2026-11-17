@@ -293,3 +293,15 @@ Discord messenger and directory adapters have dedicated files; web route
 implementations live under web/pages. Internal announcement aliases are removed
 once all callers are migrated. Tests and public import boundaries follow the
 same ownership. See [layout execution record](../plans/2026-11-17-foundation-layout.md).
+
+## 10. Capability locality refinement
+
+Approved in chat: logical boundaries must support local reasoning. The physical
+layer-first structure in section 9 is superseded by the capability-first layout
+in `../plans/2026-11-17-local-reasoning.md`. Each feature owns its model, repository
+contract, rules, operations, concrete feature adapters and tests. Shared reusable
+foundation code and provider/platform integration code remain separate. Direct
+imports replace mandatory barrels. Announcement orchestration is explicitly
+feature-owned and composes pure Post content; Post itself owns no announcement
+permissions, SQL record lifecycle or scheduling. Existing observable behavior and
+compatibility requirements remain binding.
