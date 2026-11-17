@@ -17,6 +17,7 @@ import { NewEventPage } from './create';
 import { EditEventPage } from './edit';
 import { EventPage } from './index';
 import { changesOf, fieldsOf } from './submission';
+import { entryLabel } from '~/features/events/message';
 
 export function eventRoutes({
   guildId,
@@ -46,10 +47,29 @@ export function eventRoutes({
         />,
       );
     })
-    .get('/new', (c) => {
+    .get('/new', async (c) => {
       if (!allows(c, 'event:create')) {
         throw new UserError('You need the "event:create" permission.');
       }
+
+      const start = c.req.query('day')?.trim() ?? '';
+      const day =
+        start === ''
+          ? undefined
+          : await services.events.sameDay(c.var.actor, start).then(
+              ({ startsAt, entries }) => ({
+                start,
+                heading: date(startsAt),
+                entries: entries.map((entry) => entryLabel(entry, timezone)),
+              }),
+              (error: unknown) => {
+                if (error instanceof UserError) {
+                  return { start, error: error.message };
+                }
+
+                throw error;
+              },
+            );
 
       return c.html(
         <NewEventPage
@@ -57,6 +77,8 @@ export function eventRoutes({
           server={c.var.server}
           can={c.var.can}
           flash={flashOf(c)}
+          calendar={services.events.calendarEnabled}
+          {...(day && { day })}
         />,
       );
     })
@@ -68,7 +90,7 @@ export function eventRoutes({
         start: '',
         ...fieldsOf(form),
         channelId: field(form, 'channelId') ?? '',
-        native: checked(form, 'native'),
+        calendar: checked(form, 'calendar'),
         ...(reminders !== undefined && { reminders }),
       });
 

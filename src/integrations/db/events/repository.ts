@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, ne } from 'drizzle-orm';
+import { and, asc, count, eq, gte, lt, ne } from 'drizzle-orm';
 import type {
   EventRepository,
   NewEvent,
@@ -45,6 +45,26 @@ export async function listUpcoming(
     )
     .orderBy(asc(events.startsAt))
     .limit(limit);
+}
+
+export async function listBetween(
+  db: Db,
+  guildId: string,
+  from: Date,
+  to: Date,
+): Promise<Event[]> {
+  return await db
+    .select()
+    .from(events)
+    .where(
+      and(
+        eq(events.guildId, guildId),
+        eq(events.status, 'scheduled'),
+        gte(events.startsAt, from),
+        lt(events.startsAt, to),
+      ),
+    )
+    .orderBy(asc(events.startsAt));
 }
 
 export async function updateEvent(
@@ -147,6 +167,7 @@ export function createEventRepository(db: Db): EventRepository {
     insert: (event) => insertEvent(db, event),
     find: (id) => getEvent(db, id),
     upcoming: (guildId, limit) => listUpcoming(db, guildId, limit),
+    between: (guildId, from, to) => listBetween(db, guildId, from, to),
     update: (id, changes) => updateEvent(db, id, changes),
     setRsvp: (eventId, userId, status) => setRsvp(db, eventId, userId, status),
     counts: (eventId) => rsvpCounts(db, eventId),

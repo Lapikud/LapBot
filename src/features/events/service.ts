@@ -1,8 +1,15 @@
 import { eventCalendarEntry } from './calendar';
-import { eventView, reminderText } from './message';
+import { eventView, reminderText, type DayEntry } from './message';
 import { z } from 'zod';
 import { channelMention, maxContentLength, roleMention } from '~/core/message';
-import { parseFutureWhen, parseWhen } from '~/core/helpers/time';
+import {
+  addCalendarDays,
+  calendarDay,
+  parseFutureWhen,
+  parseWhen,
+  zonedTime,
+} from '~/core/helpers/time';
+import { visibleRecords } from '~/core/helpers/visibility';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { requireMentionable } from '~/core/helpers/roles';
@@ -29,7 +36,7 @@ export interface EventRequest {
   capacity?: number;
   mentionRoleId?: string;
   reminders?: string;
-  native?: boolean;
+  calendar?: boolean;
   icons?: boolean;
 }
 
@@ -73,7 +80,7 @@ function requirePublishable(input: NewEvent, mention = false) {
       ...input,
       id: 2_147_483_647,
       messageId: null,
-      discordEventId: null,
+      calendarEventId: null,
       status: 'cancelled',
       createdAt: new Date(),
     },
@@ -126,7 +133,7 @@ interface Deps {
   events: EventRepository;
   scheduler: Scheduler;
   messenger: Messenger;
-  calendar: Calendar;
+  calendar?: Calendar;
   directory: Directory;
   authz: Authorizer;
   log: Logger;
@@ -211,32 +218,44 @@ export function createEventService(deps: Deps) {
     );
   };
 
-  const syncNative = async (event: Event): Promise<string | null> => {
+  const syncCalendar = async (event: Event): Promise<string | null> => {
+    if (calendar === undefined) {
+      return event.calendarEventId;
+    }
+
     try {
       if (event.status === 'cancelled') {
-        if (event.discordEventId !== null) {
-          await calendar.remove(event.guildId, event.discordEventId);
+        if (event.calendarEventId !== null) {
+          await calendar.remove(event.calendarEventId);
         }
 
         return null;
       }
 
       return await calendar.upsert(
-        event.guildId,
-        event.discordEventId,
+        event.calendarEventId,
         eventCalendarEntry(event),
       );
     } catch (error) {
-      log.warn(
-        { error, eventId: event.id },
-        'Could not sync native Discord event',
-      );
+      log.warn({ error, eventId: event.id }, 'Could not sync Google Calendar');
 
-      return event.discordEventId;
+      return event.calendarEventId;
     }
   };
 
-  const publish = async (input: NewEvent, native = false) => {
+  const requireCalendarChannel = async (actor: Actor, channelId: string) => {
+    if (calendar === undefined) {
+      throw new UserError('The club Google Calendar is not set up.');
+    }
+
+    if (!(await directory.isPublic(actor.guildId, channelId))) {
+      throw new UserError(
+        'Only events in channels everyone can see can go to the club calendar.',
+      );
+    }
+  };
+
+  const publish = async (input: NewEvent, synced = false) => {
     requirePublishable(input, true);
 
     let event = await events.insert(input);
@@ -254,7 +273,7 @@ export function createEventService(deps: Deps) {
 
     event = await events.update(event.id, {
       messageId: sent.messageId,
-      discordEventId: native ? await syncNative(event) : null,
+      calendarEventId: synced ? await syncCalendar(event) : null,
     });
     await scheduleReminders(event);
 
@@ -294,6 +313,7 @@ export function createEventService(deps: Deps) {
 
   return {
     jobs: [remindJob],
+    calendarEnabled: calendar !== undefined,
     get: requireEvent,
     view: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
@@ -301,6 +321,42 @@ export function createEventService(deps: Deps) {
       return eventView(event, await events.counts(event.id));
     },
     upcoming: (guildId: string) => events.upcoming(guildId),
+    sameDay: async (actor: Actor, start: string) => {
+      const { timezone } = deps;
+      const startsAt = parseFutureWhen(start, timezone);
+      const day = calendarDay(startsAt, timezone);
+      const from = zonedTime(day, 0, timezone);
+      const to = zonedTime(addCalendarDays(day, 1), 0, timezone);
+      const local = await visibleRecords(
+        directory,
+        actor,
+        await events.between(actor.guildId, from, to),
+      );
+      const linked = new Set(local.map((event) => event.calendarEventId));
+      const external =
+        calendar === undefined
+          ? []
+          : await calendar.between(from, to).catch((error: unknown) => {
+              log.warn({ error }, 'Could not read Google Calendar');
+
+              return [];
+            });
+      const entries: DayEntry[] = [
+        ...local.map((event) => ({
+          title: event.title,
+          startsAt: event.startsAt,
+          allDay: false,
+        })),
+        ...external.filter((entry) => !linked.has(entry.id)),
+      ];
+
+      return {
+        startsAt,
+        entries: entries.toSorted(
+          (a, b) => a.startsAt.getTime() - b.startsAt.getTime(),
+        ),
+      };
+    },
     attendees: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
 
@@ -314,6 +370,10 @@ export function createEventService(deps: Deps) {
     create: async (actor: Actor, request: EventRequest) => {
       await authz.require(actor, 'event:create');
       await requirePostable(actor, request.channelId);
+
+      if (request.calendar === true) {
+        await requireCalendarChannel(actor, request.channelId);
+      }
 
       if (request.mentionRoleId !== undefined) {
         const role = await directory.role(actor.guildId, request.mentionRoleId);
@@ -355,7 +415,7 @@ export function createEventService(deps: Deps) {
           reminderMinutes: parseReminderMinutes(request.reminders),
           icons: request.icons ?? true,
         },
-        request.native ?? false,
+        request.calendar ?? false,
       );
 
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event created');
@@ -408,9 +468,9 @@ export function createEventService(deps: Deps) {
 
       let updated = await events.update(event.id, updates);
 
-      if (updated.discordEventId !== null) {
+      if (updated.calendarEventId !== null) {
         updated = await events.update(event.id, {
-          discordEventId: await syncNative(updated),
+          calendarEventId: await syncCalendar(updated),
         });
       }
 
@@ -428,17 +488,17 @@ export function createEventService(deps: Deps) {
       }
 
       const cancelled = await events.update(event.id, { status: 'cancelled' });
-      const [, , discordEventId] = await Promise.all([
+      const [, , calendarEventId] = await Promise.all([
         refresh(cancelled),
         scheduleReminders(cancelled, event.reminderMinutes),
-        syncNative(cancelled),
+        syncCalendar(cancelled),
       ]);
 
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event cancelled');
 
-      return discordEventId === cancelled.discordEventId
+      return calendarEventId === cancelled.calendarEventId
         ? cancelled
-        : await events.update(event.id, { discordEventId });
+        : await events.update(event.id, { calendarEventId });
     },
     rsvp: async (actor: Actor, id: number, status: RsvpStatus) => {
       const event = await requireEvent(actor, id);

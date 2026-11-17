@@ -65,7 +65,7 @@ CREATE TABLE "events" (
 	"mention_role_id" text,
 	"reminder_minutes" integer[] DEFAULT '{}' NOT NULL,
 	"icons" boolean DEFAULT true NOT NULL,
-	"discord_event_id" text,
+	"calendar_event_id" text,
 	"status" "event_status" DEFAULT 'scheduled' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );

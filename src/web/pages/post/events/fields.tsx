@@ -4,7 +4,12 @@ import { Input, Textarea } from '~/web/components/controls';
 export function EventFields({
   event,
   time,
-}: Readonly<{ event?: Event; time: (date: Date | null) => string }>) {
+  start,
+}: Readonly<{
+  event?: Event;
+  time: (date: Date | null) => string;
+  start?: string;
+}>) {
   return (
     <>
       <Input
@@ -20,7 +25,7 @@ export function EventFields({
           name="start"
           required
           placeholder="e.g. fri 18:00"
-          value={time(event?.startsAt ?? null)}
+          value={start ?? time(event?.startsAt ?? null)}
         />
         <Input
           label="End"

@@ -96,6 +96,17 @@ export function createDiscordDirectory(client: Client): Directory {
           PermissionFlagsBits.SendMessages,
         ]);
     },
+    isPublic: async (guildId, channelId) => {
+      const found = await guild(guildId);
+      const channel = await found.channels.fetch(channelId).catch(() => null);
+
+      return (
+        !!channel &&
+        channel
+          .permissionsFor(found.roles.everyone)
+          .has(PermissionFlagsBits.ViewChannel)
+      );
+    },
     addRoles: async ({ guildId, userId }, roleIds, reason) => {
       const found = await guild(guildId);
       const member = await permanent(() => found.members.fetch(userId));

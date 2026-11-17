@@ -32,6 +32,7 @@ import {
 } from './fakes';
 import { pino } from 'pino';
 import { UserError } from '~/core/errors';
+import type { Calendar } from '~/core/ports/calendar';
 import type {
   AppContext,
   Feature,
@@ -584,7 +585,6 @@ describe('dashboard access', () => {
       const events = createEventService({
         ...shared,
         events: createEventRepository(db),
-        calendar: { upsert: async () => 'n', remove: async () => undefined },
       });
       const polls = createPollService({
         ...shared,
@@ -900,6 +900,7 @@ describe('private records in Discord', () => {
       eventCommands(
         { upcoming: async () => records } as unknown as EventService,
         directory,
+        'UTC',
       ),
       pollCommands(
         { open: async () => records } as unknown as PollService,
@@ -930,6 +931,7 @@ describe('private records in Discord', () => {
         options: {
           getSubcommandGroup: () => null,
           getSubcommand: () => 'list',
+          getFocused: () => ({ name: 'id', value: '' }),
         },
         reply,
         respond,
@@ -949,6 +951,88 @@ describe('private records in Discord', () => {
       );
       expect(respond).toHaveBeenCalledWith([{ name: '#0 public', value: 0 }]);
     }
+  });
+});
+
+describe('club calendar privacy', () => {
+  describe.skipIf(noDatabase)('event service', () => {
+    const setup = () => {
+      const directory = fakeDirectory();
+      const calendar = {
+        upsert: vi.fn<Calendar['upsert']>(async () => 'linked'),
+        remove: vi.fn<Calendar['remove']>(async () => undefined),
+        between: vi.fn<Calendar['between']>(async () => []),
+      };
+      const { messenger } = fakeMessenger();
+      const service = createEventService({
+        events: createEventRepository(testDb()),
+        scheduler: {
+          schedule: async () => undefined,
+          cancel: async () => undefined,
+        },
+        messenger,
+        calendar,
+        directory,
+        authz: allowAll,
+        log: silentLog,
+        timezone: 'UTC',
+      });
+
+      return {
+        service,
+        directory,
+        calendar,
+        messenger,
+        member: actor({ guildId: snowflake() }),
+      };
+    };
+
+    it('refuses to put private-channel events on the club calendar', async () => {
+      const { service, directory, calendar, messenger, member } = setup();
+
+      directory.isPublic.mockResolvedValue(false);
+      await expect(
+        service.create(member, {
+          title: 'Board meeting',
+          start: '3h',
+          channelId: 'private',
+          calendar: true,
+        }),
+      ).rejects.toBeInstanceOf(UserError);
+      expect(calendar.upsert).not.toHaveBeenCalled();
+      expect(messenger.send).not.toHaveBeenCalled();
+    });
+
+    it('lists only visible events for the day, once each', async () => {
+      const { service, directory, calendar, member } = setup();
+      const startsAt = new Date('2030-11-20T18:00:00Z');
+
+      await service.create(member, {
+        title: 'Quiz',
+        start: '20.11.2030 18:00',
+        channelId: 'public',
+        calendar: true,
+      });
+      await service.create(member, {
+        title: 'Secret',
+        start: '20.11.2030 19:00',
+        channelId: 'private',
+      });
+      directory.canView.mockImplementation(
+        async (_actor, id) => id === 'public',
+      );
+      calendar.between.mockResolvedValue([
+        { id: 'linked', title: 'Quiz', startsAt, allDay: false },
+        { id: 'sauna', title: 'Sauna', startsAt, allDay: true },
+      ]);
+
+      const day = await service.sameDay(member, '20.11.2030 12:00');
+
+      const titles = day.entries.map((entry) => entry.title);
+
+      expect(titles).toHaveLength(2);
+      expect(titles).toEqual(expect.arrayContaining(['Quiz', 'Sauna']));
+    });
   });
 });
 

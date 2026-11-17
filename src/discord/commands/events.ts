@@ -8,7 +8,7 @@ import {
 import { rsvpStatuses, type RsvpStatus } from '~/features/events/model';
 import type { Directory } from '~/core/ports/directory';
 import { reminderChoices, type EventService } from '~/features/events/service';
-import { rsvpLabels } from '~/features/events/message';
+import { dayChoice, dayOverview, rsvpLabels } from '~/features/events/message';
 import { channelMention, userMention } from '~/core/message';
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
@@ -48,7 +48,8 @@ const data = new SlashCommandBuilder()
         o
           .setName('start')
           .setDescription('e.g. fri 18:00, tomorrow 19:00, 20/11 18:00')
-          .setRequired(true),
+          .setRequired(true)
+          .setAutocomplete(true),
       )
       .addStringOption((o) =>
         o
@@ -93,8 +94,8 @@ const data = new SlashCommandBuilder()
       )
       .addBooleanOption((o) =>
         o
-          .setName('native')
-          .setDescription('Also create a Discord scheduled event'),
+          .setName('calendar')
+          .setDescription('Also add it to the club Google Calendar'),
       )
       .addBooleanOption((o) =>
         o.setName('icons').setDescription('Show 🗓️ 🕐 📍 icons (default yes)'),
@@ -158,6 +159,7 @@ function optional(interaction: CommandInteraction, name: string) {
 export function eventCommands(
   events: EventService,
   directory: Directory,
+  timezone: string,
 ): Feature {
   const rsvp: ComponentHandler = {
     prefix: 'events:rsvp',
@@ -214,14 +216,17 @@ export function eventCommands(
                 return value === undefined ? [] : [[name, value]];
               }),
             );
-            const event = await events.create(toActor(interaction.member), {
+            const actor = toActor(interaction.member);
+            const start = interaction.options.getString('start', true);
+            const day = await events.sameDay(actor, start).catch(() => null);
+            const event = await events.create(actor, {
               ...extras,
               title: interaction.options.getString('title', true),
-              start: interaction.options.getString('start', true),
+              start,
               channelId:
                 interaction.options.getChannel('channel')?.id ??
                 interaction.channelId,
-              native: interaction.options.getBoolean('native') ?? false,
+              calendar: interaction.options.getBoolean('calendar') ?? false,
               ...(capacity !== null && { capacity }),
               ...(icons !== null && { icons }),
               ...(mention && { mentionRoleId: mention.id }),
@@ -229,7 +234,12 @@ export function eventCommands(
 
             await respond(
               interaction,
-              `Created event #${event.id} in ${channelMention(event.channelId)}.`,
+              [
+                `Created event #${event.id} in ${channelMention(event.channelId)}.`,
+                ...(day && day.entries.length > 0
+                  ? [`That day ${dayOverview(day.entries, timezone)}.`]
+                  : []),
+              ].join('\n'),
             );
           }),
           edit: deferred(async (interaction) => {
@@ -319,6 +329,31 @@ export function eventCommands(
           },
         }),
         autocomplete: async (interaction) => {
+          const focused = interaction.options.getFocused(true);
+
+          if (focused.name === 'start') {
+            const typed = focused.value.trim();
+            const day =
+              typed === ''
+                ? null
+                : await events
+                    .sameDay(toActor(interaction.member), typed)
+                    .catch(() => null);
+
+            await interaction.respond(
+              day && typed.length <= 100
+                ? [
+                    {
+                      name: dayChoice(day.startsAt, day.entries, timezone),
+                      value: typed,
+                    },
+                  ]
+                : [],
+            );
+
+            return;
+          }
+
           const upcoming = await visibleRecords(
             directory,
             toActor(interaction.member),

@@ -221,8 +221,9 @@ describe('events', () => {
         cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
       };
       const calendar = {
-        upsert: vi.fn<Calendar['upsert']>(async () => 'native'),
+        upsert: vi.fn<Calendar['upsert']>(async () => 'google'),
         remove: vi.fn<Calendar['remove']>(async () => undefined),
+        between: vi.fn<Calendar['between']>(async () => []),
       };
       const directory = fakeDirectory();
       const service = createEventService({
@@ -284,6 +285,35 @@ describe('events', () => {
       }
 
       expect((await service.get(organizer, event.id)).capacity).toBe(5);
+    });
+
+    it('keeps the club calendar in step with the event', async () => {
+      const { service, organizer, calendar } = setup();
+
+      await service.create(organizer, {
+        title: 'Not synced',
+        start: '3h',
+        channelId: 'c',
+      });
+      const event = await service.create(organizer, {
+        title: 'Quiz',
+        start: '3h',
+        channelId: 'c',
+        calendar: true,
+      });
+
+      expect(event.calendarEventId).toBe('google');
+      await service.edit(organizer, event.id, { title: 'Pub quiz' });
+      expect(calendar.upsert).toHaveBeenLastCalledWith(
+        'google',
+        expect.objectContaining({ title: 'Pub quiz' }),
+      );
+      expect(calendar.upsert).toHaveBeenCalledTimes(2);
+
+      const cancelled = await service.cancel(organizer, event.id);
+
+      expect(calendar.remove).toHaveBeenCalledWith('google');
+      expect(cancelled.calendarEventId).toBeNull();
     });
 
     it('clears nullable fields while leaving omitted changes unchanged', async () => {
@@ -350,10 +380,6 @@ describe('movies', () => {
         schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
         cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
       };
-      const calendar = {
-        upsert: vi.fn<Calendar['upsert']>(async () => 'n'),
-        remove: vi.fn<Calendar['remove']>(async () => undefined),
-      };
       const shared = {
         scheduler,
         messenger,
@@ -367,7 +393,6 @@ describe('movies', () => {
       const events = createEventService({
         ...shared,
         events: createEventRepository(testDb()),
-        calendar,
       });
       const movies = createMovieService({
         catalog: undefined,

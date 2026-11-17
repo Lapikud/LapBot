@@ -4,7 +4,7 @@ import type { Config } from '~/config/env';
 import { announcementCommands } from '~/discord/commands/announcements';
 import { birthdayCommands } from '~/discord/commands/birthdays';
 import { createClient } from '~/integrations/discord/client';
-import { createDiscordCalendar } from '~/integrations/discord/calendar';
+import { createGoogleCalendar } from '~/integrations/google/calendar';
 import { eventCommands } from '~/discord/commands/events';
 import { movieCommands } from '~/discord/commands/movies';
 import { pollCommands } from '~/discord/commands/polls';
@@ -76,12 +76,13 @@ export function compose(config: Config, log: Logger) {
   const authz = createAuthorizer(grants);
   const directory = createDiscordDirectory(client);
   const messenger = createDiscordMessenger(client);
+  const legacy = legacyPanel(config);
   const roles = createRoleService({
     panels: createRolePanelRepository(database.db),
     directory,
     messenger,
     log: log.child({ service: 'roles' }),
-    legacy: legacyPanel(config),
+    ...(legacy && { legacy }),
   });
   const timezone = config.DEFAULT_TIMEZONE;
   const boss = new PgBoss({ connectionString: config.DATABASE_URL });
@@ -108,7 +109,13 @@ export function compose(config: Config, log: Logger) {
     events: createEventRepository(database.db),
     scheduler,
     messenger,
-    calendar: createDiscordCalendar(client),
+    ...(config.GOOGLE_CALENDAR_ID !== undefined &&
+      config.GOOGLE_SERVICE_ACCOUNT_KEY !== undefined && {
+        calendar: createGoogleCalendar(
+          config.GOOGLE_CALENDAR_ID,
+          config.GOOGLE_SERVICE_ACCOUNT_KEY,
+        ),
+      }),
     directory,
     authz,
     log: log.child({ service: 'events' }),
@@ -162,7 +169,7 @@ export function compose(config: Config, log: Logger) {
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),
-    eventCommands(events, directory),
+    eventCommands(events, directory, timezone),
     birthdayCommands(birthdays),
     pollCommands(polls, directory),
     movieCommands(movies),
@@ -284,7 +291,9 @@ export async function startApp(
     await registerCommands(registry, {
       token: config.DISCORD_TOKEN,
       applicationId: ready.application.id,
-      guildId: config.DISCORD_GUILD_ID,
+      ...(config.DISCORD_GUILD_ID !== undefined && {
+        guildId: config.DISCORD_GUILD_ID,
+      }),
     });
 
     const ctx: AppContext = { log, authz };

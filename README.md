@@ -26,9 +26,8 @@ Migrations and command registration run when the bot starts.
 2. No privileged intents are needed.
 3. Invite it with the `bot` and `applications.commands` scopes and these
    permissions: View Channels, Send Messages, Embed Links, Read Message
-   History, Add Reactions, Manage Messages, Manage Roles, plus Manage Events
-   for native Discord events and Mention Everyone for pinging unmentionable
-   roles.
+   History, Add Reactions, Manage Messages, Manage Roles, plus Mention
+   Everyone for pinging unmentionable roles.
 4. Move the bot's role above every role it should hand out.
 
 ### Configuration
@@ -57,6 +56,21 @@ Times use `DEFAULT_TIMEZONE` and accept input like `30m`, `18:30`,
   `ROLE_SELECTION_CHANNEL_ID` and the role IDs; after that the database owns it.
   Moderator, managed and higher roles can't be offered.
 - **Movies** are looked up on TMDB when `TMDB_ACCESS_TOKEN` is set.
+- **Events** can also go to the club Google Calendar (`calendar` option or
+  checkbox), and edits and cancellations follow. Only events in channels
+  everyone can see are allowed. When picking the start (suggestions in Discord,
+  **Check day** on the dashboard), the bot lists what is already on that day,
+  from both the bot and the calendar.
+
+### Google Calendar
+
+1. In Google Cloud, enable the Calendar API, create a service account and
+   download its JSON key.
+2. Share the club calendar (`lapikud@gmail.com`, shown on
+   <https://lapikud.ee/kalender>) with the service account's email, with
+   **Make changes to events**.
+3. Set `GOOGLE_CALENDAR_ID=lapikud@gmail.com` and
+   `GOOGLE_SERVICE_ACCOUNT_KEY` (the key file's contents on one line).
 
 ### Permissions
 

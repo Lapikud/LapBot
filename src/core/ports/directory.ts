@@ -15,6 +15,7 @@ export interface Directory {
   displayName: (guildId: string, userId: string) => Promise<string | undefined>;
   canView: (actor: Actor, channelId: string) => Promise<boolean>;
   canPost: (actor: Actor, channelId: string) => Promise<boolean>;
+  isPublic: (guildId: string, channelId: string) => Promise<boolean>;
   addRoles: (
     member: { guildId: string; userId: string },
     roleIds: readonly string[],

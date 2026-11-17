@@ -4,6 +4,9 @@ import {
   userMention,
   type Message,
 } from '~/core/message';
+import { tz } from '@date-fns/tz';
+import { format } from 'date-fns';
+import type { CalendarEntry } from '~/core/ports/calendar';
 import { discordTime, sameCalendarDay } from '~/core/helpers/time';
 import {
   rsvpStatuses,
@@ -92,4 +95,35 @@ export function reminderText(
       .join('\n'),
     pinged,
   };
+}
+
+export type DayEntry = Omit<CalendarEntry, 'id'>;
+
+export function dayOverview(
+  entries: readonly DayEntry[],
+  timezone: string,
+): string {
+  if (entries.length === 0) {
+    return 'nothing else that day';
+  }
+
+  return `also: ${entries.map((entry) => entryLabel(entry, timezone)).join(', ')}`;
+}
+
+export function entryLabel(entry: DayEntry, timezone: string): string {
+  const time = entry.allDay
+    ? 'all day'
+    : format(entry.startsAt, 'HH:mm', { in: tz(timezone) });
+
+  return `${entry.title} ${time}`;
+}
+
+export function dayChoice(
+  startsAt: Date,
+  entries: readonly DayEntry[],
+  timezone: string,
+): string {
+  const when = format(startsAt, 'EEE d MMM HH:mm', { in: tz(timezone) });
+
+  return `${when} · ${dayOverview(entries, timezone)}`.slice(0, 100);
 }

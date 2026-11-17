@@ -20,20 +20,21 @@ export interface Event {
   mentionRoleId: string | null;
   reminderMinutes: number[];
   icons: boolean;
-  discordEventId: string | null;
+  calendarEventId: string | null;
   status: 'scheduled' | 'cancelled';
   createdAt: Date;
 }
 
 export type NewEvent = Omit<
   Event,
-  'id' | 'messageId' | 'discordEventId' | 'status' | 'createdAt'
+  'id' | 'messageId' | 'calendarEventId' | 'status' | 'createdAt'
 >;
 
 export interface EventRepository {
   insert: (event: NewEvent) => Promise<Event>;
   find: (id: number) => Promise<Event | undefined>;
   upcoming: (guildId: string, limit?: number) => Promise<Event[]>;
+  between: (guildId: string, from: Date, to: Date) => Promise<Event[]>;
   update: (
     id: number,
     changes: Partial<Omit<Event, 'id' | 'guildId'>>,

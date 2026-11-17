@@ -6,11 +6,15 @@ export interface CalendarEvent {
   endsAt: Date;
 }
 
+export interface CalendarEntry {
+  id: string;
+  title: string;
+  startsAt: Date;
+  allDay: boolean;
+}
+
 export interface Calendar {
-  upsert: (
-    guildId: string,
-    id: string | null,
-    event: CalendarEvent,
-  ) => Promise<string>;
-  remove: (guildId: string, id: string) => Promise<void>;
+  upsert: (id: string | null, event: CalendarEvent) => Promise<string>;
+  remove: (id: string) => Promise<void>;
+  between: (from: Date, to: Date) => Promise<CalendarEntry[]>;
 }
