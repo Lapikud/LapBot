@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import type { RolePanelRepository } from '~/features/roles/model';
-import { createRoleService } from '~/features/roles/service';
+import { createRoleService, legacyMessage } from '~/features/roles/service';
 import {
   actor,
   fakeDirectory,
@@ -212,4 +212,33 @@ it('clears obsolete reactions before replacing choices on an existing panel', as
   expect(
     messenger.clearReactionsExcept.mock.invocationCallOrder[0],
   ).toBeLessThan(panels.replaceRoles.mock.invocationCallOrder[0] ?? 0);
+});
+
+it('imports the original role message without replacing its reactions', async () => {
+  const { panels, messenger, directory } = setup();
+  const roles = [
+    { emoji: '1️⃣', roleId: 'tarkvara', label: 'Tarkvara' },
+    { emoji: '2️⃣', roleId: 'helpdesk', label: 'Helpdesk' },
+    { emoji: '3️⃣', roleId: 'kultuur', label: 'Kultuur' },
+  ];
+
+  messenger.findOwn.mockResolvedValue('original-message');
+  messenger.ownReactions.mockResolvedValue(roles.map(({ emoji }) => emoji));
+  const service = createRoleService({
+    panels,
+    messenger,
+    directory,
+    log: silentLog,
+    legacy: { channelId: 'c', roles },
+  });
+
+  await service.syncLegacyPanel();
+
+  expect(messenger.findOwn).toHaveBeenCalledWith('c', legacyMessage);
+  expect(panels.setMessage).toHaveBeenCalledWith(1, 'original-message');
+  expect(panels.replaceRoles).toHaveBeenCalledWith(1, roles);
+  expect(messenger.send).not.toHaveBeenCalled();
+  expect(messenger.edit).not.toHaveBeenCalled();
+  expect(messenger.react).not.toHaveBeenCalled();
+  expect(messenger.clearReactionsExcept).not.toHaveBeenCalled();
 });

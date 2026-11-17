@@ -80,8 +80,7 @@ Set `WEB_PORT` (and `DISCORD_GUILD_ID`) to start a small web UI next to the bot:
 - **Roles:** role selection and assignment.
 - **Settings:** permissions and logs.
 
-Post, Forms, and Settings open their first accessible subpage. Existing feature
-URLs redirect to their grouped locations, preserving form methods and query strings.
+Post, Forms, and Settings open their first accessible subpage.
 
 The UI uses the same services as the slash commands, so the same rules apply:
 it only posts where the bot can post, and only mentionable roles can be pinged

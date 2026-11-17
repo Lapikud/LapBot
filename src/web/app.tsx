@@ -120,32 +120,6 @@ export function createWebApp(deps: WebDeps) {
     return next();
   });
 
-  const legacyRoutes = [
-    ['/psa', '/post/announcements'],
-    ['/events', '/post/events'],
-    ['/polls', '/post/polls'],
-    ['/birthdays', '/forms/birthdays'],
-    ['/movies', '/forms/movies'],
-    ['/permissions', '/settings/permissions'],
-    ['/logs', '/settings/logs'],
-  ] as const;
-
-  app.use(async (c, next) => {
-    const legacy = legacyRoutes.find(([old]) => containsPath(old, c.req.path));
-
-    if (legacy === undefined) {
-      return next();
-    }
-
-    const [old, current] = legacy;
-    const url = new URL(c.req.url);
-
-    return c.redirect(
-      `${current}${c.req.path.slice(old.length)}${url.search}`,
-      307,
-    );
-  });
-
   for (const section of sections.filter(({ pages }) => pages !== undefined)) {
     app.get(section.href, (c) => {
       const allowed = visibleLinks([section], c.var.can)[0];

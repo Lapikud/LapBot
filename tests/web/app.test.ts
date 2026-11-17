@@ -221,14 +221,20 @@ describe.skipIf(noDatabase)('web UI', () => {
     }
   });
 
-  it('preserves legacy paths, query strings and form methods when redirecting', async () => {
-    const page = await get('/events/new?notice=saved');
-    const form = await post('/psa/12/publish', {});
+  it('does not expose obsolete feature URLs', async () => {
+    for (const path of [
+      '/psa',
+      '/events',
+      '/polls',
+      '/birthdays',
+      '/movies',
+      '/permissions',
+      '/logs',
+    ]) {
+      expect((await get(path)).status).toBe(404);
+    }
 
-    expect(page.status).toBe(307);
-    expect(page.headers.get('location')).toBe('/post/events/new?notice=saved');
-    expect(form.status).toBe(307);
-    expect(form.headers.get('location')).toBe('/post/announcements/12/publish');
+    expect((await post('/psa/12/publish', {})).status).toBe(404);
   });
 
   it('renders the PSA composer with channels and mentionable roles', async () => {
