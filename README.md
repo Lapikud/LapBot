@@ -235,9 +235,11 @@ src/
   app.ts              composition root: builds adapters, services, commands
   config/             validated environment
   domain/             pure types and rules: actors, permissions, messages,
-                      time, polls, birthdays, issues
+                      time, input definitions, polls, birthdays, issues
   lib/                generic helpers
   core/
+    presentation/     pure post/event/poll message construction
+    calendar/         pure event-to-calendar mapping
     ports/            contracts: Messenger, Directory, Calendar, Scheduler,
                       IssueTracker and one repository per area
     services/         use cases (roles, reminders, events, polls, ...), each
@@ -249,7 +251,8 @@ src/
     scheduler/        pg-boss adapter for the Scheduler port
     redmine/          Redmine adapter for the IssueTracker port
     logging/          pino
-    web/              Hono + Pico web UI and its Authenticator adapter
+    web/              Hono + Pico pages, ui/ controls, server-aware selectors,
+                      and its Authenticator adapter
 tests/                mirrors src/
 drizzle/              SQL migrations
 ```
@@ -276,22 +279,132 @@ drizzle/              SQL migrations
   more than an hour late are skipped. Permanent delivery failures (closed DMs,
   deleted channels) are not retried.
 
+### Composing features
+
+Input, presentation, publication, and external access are separate building
+blocks. A feature composes the parts it needs; it does not inherit a generic
+feature lifecycle.
+
+**Input definitions.** `src/domain/forms/` uses the existing Zod dependency for
+semantic fields and structured validation. `birthdayForm` is a fixed definition;
+`parseBirthdaySubmission` applies the existing visibility fallback and validates
+real calendar dates. `pollResponseForm(options, multiple)` defines numeric option
+choices, while `validatePollResponse` preserves vote deduplication and clearing.
+Poll state and eligibility checks still run inside the repository transaction.
+The form layer neither stores responses nor renders HTML.
+
+```ts
+import { parseBirthdaySubmission, validatePollResponse } from '~/domain';
+
+const birthday = parseBirthdaySubmission({ day: 29, month: 2 });
+// { day: 29, month: 2, visibility: 'public' }
+const choices = validatePollResponse(
+  [
+    { id: 11, label: 'Pizza' },
+    { id: 22, label: 'Sushi' },
+  ],
+  false,
+  [22, 22],
+);
+// [22]; [] clears the vote. IDs remain numbers.
+```
+
+Transport adapters decode their own inputs. The shared validator preserves
+omission, empty strings, explicit null, and empty arrays; it does not introduce
+universal coercion or defaults. Feature adapters translate field issues into
+the existing public errors. Configurable forms and shared response tables are
+outside the current foundation.
+
+**Web controls.** Pages compose `Input`, `Textarea`, `Select`, `Checkbox`,
+`MultiSelect`, `FormActions`, and `ActionButton` from `src/infra/web/ui/`.
+Labels, help, and errors are associated with the control ID. Give explicit,
+distinct IDs when the same name occurs more than once on a page. Channel
+selectors in `selectors.tsx` compose these controls using already-loaded server
+data. Generic controls perform no service or directory lookups.
+
+```tsx
+import { Input } from './ui';
+
+<Input
+  name="day"
+  id="birthday-day"
+  label="Day"
+  type="number"
+  min={1}
+  max={31}
+  required
+  help="Your birthday day, without the year"
+/>;
+```
+
+Keep request parsing in the page adapter and authoritative authorization in the
+service. Native HTML remains appropriate for specialized tables, role editor
+rows, and unusual layouts.
+
+**Managed posts.** `createPostService` owns draft, edit, immediate/scheduled
+publication, cancellation, and delivery claims. It uses `PostRepository`, backed
+by the existing `announcements` table; there are no new tables or migrations.
+User operations take an Actor and enforce the existing `announcement:*`
+permissions, author visibility, destination access, and mention restrictions.
+The old announcement service/repository names are compatibility facades over
+this single implementation.
+
+```ts
+// With the composed PostService and authenticated Actor:
+const draft = await posts.draft(actor, {
+  channelId: 'general',
+  content: 'Hello',
+});
+await posts.publish(actor, draft.id);
+// Or: await posts.schedule(actor, draft.id, 'tomorrow 9:00');
+```
+
+Publication jobs retain `announcements.publish`, `{ announcementId }`, and
+`announcement:<id>` keys so queued work remains compatible. Their existing
+one-hour lateness policy and claim-before-send tradeoff are unchanged.
+
+**Message presentation and ordinary delivery.** Pure constructors in
+`src/core/presentation/` return Message values. `postView`, `eventView`,
+`pollView`, and `pollDetails` contain formatting, not I/O. Feature services keep
+state and orchestration. Event/poll posts project their feature records, so
+there is no second editable copy of event details or poll options. Birthday
+greetings, reminders, and issue notifications use Messenger directly; they do
+not need managed Post records.
+
+```ts
+await messenger.send(channelId, { content: 'A one-time notification' });
+```
+
+Text still contains Discord mentions and timestamps. The Message structure and
+SDK adapter are separate, but these renderers are not yet portable text
+renderers for arbitrary chat providers.
+
+**External capabilities.** Calendar has its own port; `eventCalendarEntry` maps
+event data into it, and `createDiscordCalendar` owns SDK calls and payload limits.
+The event service decides when to sync and retains warning-and-continue failure
+handling. MovieCatalog/TMDB and IssueTracker/Redmine follow the same capability
+boundary. Wire concrete adapters and credentials in `src/app.ts`.
+
+Supporting multiple calendar destinations later needs persisted
+provider/destination links, per-link external IDs, opt-in state, and a reviewed
+backfill. Existing `native` and `discordEventId` remain compatible; injecting
+one Calendar does not provide simultaneous multi-calendar support.
+
 ### Adding a feature or integration
 
-1. Domain rules go in `src/domain/<area>.ts`.
-2. The contracts it needs go in `src/core/ports/<area>.ts`. Reuse `Messenger`,
-   `Directory` and `Scheduler` where they fit.
-3. The use cases go in `src/core/services/<area>.ts` as
-   `create<Area>Service(deps)`, guarded with `guard(authz, 'area:action', ...)`.
-   Background work is a `defineJob` in the service's `jobs`.
-4. Adapters: a drizzle repository in `src/infra/db/<area>/`, plus
-   `src/infra/discord/commands/<area>.ts` for slash commands. A new external
-   system (another tracker, a calendar, a chat platform) is a new adapter
-   implementing an existing port.
-5. Wire it in `src/app.ts`, then run `pnpm db:generate` and
-   `pnpm commands:register`.
-6. Tests: `tests/domain`, `tests/core/services` (real Postgres plus the fakes in
-   `tests/fakes.ts`) and `tests/infra`.
+1. Put pure feature rules in `src/domain/`. Reuse semantic input definitions
+   where there is actual shared validation; do not invent a schema engine.
+2. Add only the contracts the feature needs under `src/core/ports/`. Reuse
+   Messenger, Directory, Calendar, and Scheduler when they fit.
+3. Implement actor-authorized use cases in `src/core/services/`. Use the Post
+   service for managed publication and Messenger for ordinary delivery. Jobs
+   use the existing `defineJob` and Scheduler contracts.
+4. Put pure message construction in `src/core/presentation/`; compose web
+   controls from `src/infra/web/ui/` without moving feature policy into them.
+5. Add provider/database/command adapters and wire them in `src/app.ts`.
+   Generate migrations or register commands only if those contracts change.
+6. Verify the relevant domain, service, adapter, and web behaviors. Database
+   tests use the dedicated disposable PostgreSQL; see Development above.
 
 ## Known limitations
 
