@@ -18,10 +18,12 @@ export function isPermanentDiscordError(error: unknown): boolean {
 }
 
 export function isUnknownObject(error: unknown): boolean {
+  const source = error instanceof PermanentError ? error.cause : error;
+
   return (
-    error instanceof DiscordAPIError &&
-    (error.code === RESTJSONErrorCodes.UnknownMessage ||
-      error.code === RESTJSONErrorCodes.UnknownChannel)
+    source instanceof DiscordAPIError &&
+    (source.code === RESTJSONErrorCodes.UnknownMessage ||
+      source.code === RESTJSONErrorCodes.UnknownChannel)
   );
 }
 
@@ -30,7 +32,7 @@ export async function permanent<T>(action: () => Promise<T>): Promise<T> {
     return await action();
   } catch (error) {
     if (isPermanentDiscordError(error) && error instanceof Error) {
-      throw new PermanentError(error.message);
+      throw new PermanentError(error.message, { cause: error });
     }
 
     throw error;

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import { UserError } from '~/core/errors';
+import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import type { Scheduler } from '~/core/ports/scheduler';
 import type { NewPoll } from '~/features/polls/model';
 import { createPollRepository } from '~/features/polls/repository';
@@ -394,5 +396,30 @@ describe('movies', () => {
 
       expect(updated.links).toHaveLength(2);
     });
+  });
+});
+
+describe('deleted Discord messages', () => {
+  it('treats a deleted channel as a missing message', async () => {
+    const gone = new DiscordAPIError(
+      { code: RESTJSONErrorCodes.UnknownChannel, message: 'Unknown Channel' },
+      RESTJSONErrorCodes.UnknownChannel,
+      404,
+      'GET',
+      '/channels/c',
+      {},
+    );
+    const client = {
+      channels: {
+        fetch: async () => {
+          throw gone;
+        },
+      },
+    } as unknown as Client;
+    const messenger = createDiscordMessenger(client);
+
+    expect(await messenger.edit('c', 'm', { content: 'x' })).toBe(false);
+    expect(await messenger.remove('c', 'm')).toBe(false);
+    expect(await messenger.exists('c', 'm')).toBe(false);
   });
 });
