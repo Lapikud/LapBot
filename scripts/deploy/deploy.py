@@ -120,7 +120,7 @@ def switch_to(release):
     staged.unlink(missing_ok=True)
     staged.symlink_to(release)
     staged.replace(current_link)
-    print(f"release: current is {release}")
+    print(f"release: current_link is {release}")
 
 
 def restart():
@@ -142,7 +142,6 @@ def ready(started):
 
         if '"msg":"Ready"' in entries:
             print(f"health: {service} is ready")
-
             return True
 
         if subprocess.run(["systemctl", "is-active", "--quiet", service]).returncode:
@@ -159,7 +158,6 @@ def ready(started):
 def roll_back(previous):
     if previous is None:
         print("rollback: no previous release", file=sys.stderr)
-
         return
 
     switch_to(previous)
