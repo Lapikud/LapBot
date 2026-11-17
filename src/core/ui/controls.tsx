@@ -25,7 +25,10 @@ function describedBy(
       help === undefined ? undefined : `${id}-help`,
       error === undefined ? undefined : `${id}-error`,
     ]
-      .filter(Boolean)
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' && value.length > 0,
+      )
       .join(' ') || undefined
   );
 }
