@@ -14,7 +14,7 @@ import { AnnouncementPage } from './index';
 import { AnnouncementPreviewPage } from './preview';
 import { draftOf } from './submission';
 
-export function announcementRoutes({ guildId, services, timezone }: WebDeps) {
+export function announcementRoutes({ services, timezone }: WebDeps) {
   const date = formatter(timezone);
 
   return new Hono<Env>()
@@ -58,15 +58,6 @@ export function announcementRoutes({ guildId, services, timezone }: WebDeps) {
         const view = services.announcements.view({
           ...draft,
           title: draft.title === '' ? null : draft.title,
-          id: 0,
-          guildId,
-          authorId: actor.userId,
-          status: 'draft',
-          scheduledAt: null,
-          publishedAt: null,
-          messageId: null,
-          failure: null,
-          createdAt: new Date(),
         });
 
         return c.html(

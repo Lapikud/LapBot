@@ -216,6 +216,19 @@ describe('announcement lifecycle', () => {
       };
     };
 
+    it('rejects an over-long announcement without saving a draft', async () => {
+      const { service, author, posts } = await setup();
+
+      await expect(
+        service.draft(author, {
+          channelId: 'c',
+          title: 'T'.repeat(200),
+          content: 'x'.repeat(1900),
+        }),
+      ).rejects.toThrow('2000 characters');
+      expect(await posts.list(author.guildId)).toEqual([]);
+    });
+
     it('uses the post lifecycle directly and never repeats mentions on edits', async () => {
       const { service, author, posts, messenger, draft } = await setup();
       const post = await draft();

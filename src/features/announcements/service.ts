@@ -217,19 +217,21 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         await checkTargets(actor, draft);
 
         const title = draft.title?.trim() ?? '';
-        const created = await posts.insert({
-          guildId: actor.guildId,
-          authorId: actor.userId,
-          channelId: draft.channelId,
+        const post = {
           title: title === '' ? null : title,
           content: draft.content,
           mentionRoleIds: [...(draft.mentionRoleIds ?? [])],
           mentionEveryone: draft.mentionEveryone ?? false,
+        };
+
+        announcementView(post);
+
+        return await posts.insert({
+          ...post,
+          guildId: actor.guildId,
+          authorId: actor.userId,
+          channelId: draft.channelId,
         });
-
-        announcementView(created);
-
-        return created;
       },
     ),
     edit: async (

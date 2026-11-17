@@ -1,9 +1,8 @@
-import type { Announcement } from './model';
 import { maxContentLength, type Message } from '~/core/message';
 import { UserError } from '~/core/errors';
-import { renderPost } from '~/core/posts';
+import { renderPost, type Post } from '~/core/posts';
 
-export function announcementView(post: Announcement): Message {
+export function announcementView(post: Post): Message {
   const message = renderPost(post);
 
   if ((message.content?.length ?? 0) > maxContentLength) {
