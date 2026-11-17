@@ -2,7 +2,7 @@ import { createLogger } from '~/integrations/logging/logger';
 import { createLogStore } from '~/integrations/logging/store';
 import { createRegistry } from '~/app';
 import { loadConfig } from '~/config/env';
-import { registerCommands } from '~/presentation/discord/registration';
+import { registerCommands } from '~/discord/registration';
 
 const config = loadConfig();
 

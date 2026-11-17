@@ -5,7 +5,7 @@ import {
   createEventService,
   parseReminderMinutes,
 } from '~/features/events/service';
-import { eventView, reminderText } from '~/presentation/messages/events';
+import { eventView, reminderText } from '~/features/events/message';
 import { UserError } from '~/core/errors';
 import { createEventRepository } from '~/features/events/repository';
 import { noDatabase, snowflake, testDb } from '../../db';

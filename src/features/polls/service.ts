@@ -1,4 +1,4 @@
-import { renderPoll, pollDetails } from '~/presentation/messages/polls';
+import { renderPoll, pollDetails } from './message';
 import { z } from 'zod';
 import { channelMention, type Message } from '~/core/message';
 import { parseFutureWhen } from '~/core/helpers/time';

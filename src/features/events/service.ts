@@ -1,5 +1,5 @@
 import { eventCalendarEntry } from './calendar';
-import { eventView, reminderText } from '~/presentation/messages/events';
+import { eventView, reminderText } from './message';
 import { z } from 'zod';
 import { channelMention, maxContentLength, roleMention } from '~/core/message';
 import { parseFutureWhen, parseWhen } from '~/core/helpers/time';

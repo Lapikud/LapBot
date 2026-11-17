@@ -18,7 +18,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
-COPY src/presentation/web/public ./src/presentation/web/public
+COPY src/web/public ./src/web/public
 COPY package.json ./
 RUN mkdir -p /app/logs && chown node:node /app/logs
 USER node

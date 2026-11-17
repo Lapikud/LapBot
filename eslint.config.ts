@@ -89,6 +89,7 @@ const featureLogic = [
   'rules.ts',
   'form.ts',
   'service.ts',
+  'message.ts',
   'calendar.ts',
 ].map((file) => `./src/features/*/${file}`);
 const featureAdapters = ['table.ts', 'repository.ts'].map(
@@ -346,7 +347,8 @@ export default defineConfig(
               from: [
                 './src/features',
                 './src/integrations',
-                './src/presentation',
+                './src/web',
+                './src/discord',
                 './src/config',
                 './src/app.ts',
               ],
@@ -359,14 +361,14 @@ export default defineConfig(
               message: 'Feature logic uses contracts, never concrete adapters.',
             },
             {
-              target: [...featureLogic, './src/presentation/messages'],
+              target: featureLogic,
               from: [
                 './src/config',
                 './src/app.ts',
                 './src/integrations/db',
                 './src/integrations/discord',
-                './src/presentation/web',
-                './src/presentation/discord',
+                './src/web',
+                './src/discord',
                 './src/integrations/scheduler',
                 './src/integrations/logging',
                 './src/integrations/tmdb/catalog.ts',
@@ -378,7 +380,8 @@ export default defineConfig(
               target: [
                 './src/features',
                 './src/integrations',
-                './src/presentation',
+                './src/web',
+                './src/discord',
               ],
               from: ['./src/app.ts', './src/index.ts'],
               message:
@@ -395,7 +398,7 @@ export default defineConfig(
     ignores: [
       'src/app.ts',
       'src/integrations/discord/**',
-      'src/presentation/discord/**',
+      'src/discord/**',
       '**/*.test.ts',
     ],
     rules: {
@@ -404,11 +407,7 @@ export default defineConfig(
   },
 
   {
-    files: [
-      ...featureLogic.map((file) => file.slice(2)),
-      'src/core/**/*.ts',
-      'src/presentation/messages/**/*.ts',
-    ],
+    files: [...featureLogic.map((file) => file.slice(2)), 'src/core/**/*.ts'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [

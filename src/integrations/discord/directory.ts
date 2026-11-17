@@ -5,7 +5,7 @@ import {
   type Guild,
 } from 'discord.js';
 import type { Directory } from '~/core/ports/directory';
-import { toActor, toRoleInfo } from '~/presentation/discord/interactions/actor';
+import { toActor, toRoleInfo } from '~/discord/interactions/actor';
 import { permanent } from './errors';
 
 export function createDiscordDirectory(client: Client): Directory {
