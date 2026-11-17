@@ -35,14 +35,13 @@ export function describeBirthday(birthday: Birthday): string {
 }
 
 export const birthdaySignup: Message = {
-  content:
-    '# 🎂 Birthdays\nAdd your birthday and the server will celebrate with you. No year needed.',
+  content: '# 🎂 Sünnipäevad\nLisa oma sünnipäeva kuupäev!',
   controls: [
     [
       {
         kind: 'button',
         id: 'birthdays:add',
-        label: 'Add my birthday',
+        label: 'Lisa oma sünnipäev',
         style: 'primary',
       },
     ],
@@ -120,7 +119,7 @@ export function createBirthdayService(deps: Deps) {
   ) => {
     try {
       await messenger.send(settings.channelId, {
-        content: `🎉 Palju õnne! Happy birthday ${userIds.map((id) => userMention(id)).join(', ')}!`,
+        content: `🎉 Palju õnne sünnipäevaks, ${userIds.map((id) => userMention(id)).join(', ')}!`,
         mentions: { users: userIds },
       });
     } catch (error) {
