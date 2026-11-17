@@ -359,7 +359,6 @@ export default defineConfig(
                 './src/integrations/scheduler',
                 './src/integrations/logging',
                 './src/integrations/tmdb/catalog.ts',
-                './src/integrations/redmine/client.ts',
               ],
               message: 'Feature logic uses contracts, never concrete adapters.',
             },

@@ -32,9 +32,6 @@ const envSchema = z.object({
 
   TMDB_ACCESS_TOKEN: optional(z.string().min(1)),
 
-  REDMINE_BASE_URL: optional(z.url()),
-  REDMINE_API_KEY: optional(z.string().min(1)),
-
   WEB_PORT: optional(z.coerce.number().int().min(1).max(65_535)),
   WEB_HOST: z.string().default('127.0.0.1'),
   WEB_URL: optional(z.url()),
@@ -52,14 +49,6 @@ const checkedSchema = envSchema
     {
       message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
       path: ['DISCORD_GUILD_ID'],
-    },
-  )
-  .refine(
-    (env) =>
-      env.REDMINE_BASE_URL === undefined || env.REDMINE_API_KEY !== undefined,
-    {
-      message: 'REDMINE_API_KEY is required when REDMINE_BASE_URL is set',
-      path: ['REDMINE_API_KEY'],
     },
   );
 

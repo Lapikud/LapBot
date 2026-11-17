@@ -141,24 +141,6 @@ CREATE TABLE "polls" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "redmine_notifications" (
-	"subscription_id" integer NOT NULL,
-	"key" text NOT NULL,
-	"sent_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "redmine_notifications_subscription_id_key_pk" PRIMARY KEY("subscription_id","key")
-);
---> statement-breakpoint
-CREATE TABLE "redmine_subscriptions" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"guild_id" text NOT NULL,
-	"channel_id" text NOT NULL,
-	"project_id" integer NOT NULL,
-	"project_name" text NOT NULL,
-	"created_by" text NOT NULL,
-	"checkpoint" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "redmine_subscriptions_unique" UNIQUE("channel_id","project_id")
-);
---> statement-breakpoint
 CREATE TABLE "reminders" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"guild_id" text NOT NULL,
@@ -199,7 +181,6 @@ ALTER TABLE "movie_screenings" ADD CONSTRAINT "movie_screenings_suggestion_id_mo
 ALTER TABLE "poll_options" ADD CONSTRAINT "poll_options_poll_id_polls_id_fk" FOREIGN KEY ("poll_id") REFERENCES "public"."polls"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "poll_votes" ADD CONSTRAINT "poll_votes_poll_id_polls_id_fk" FOREIGN KEY ("poll_id") REFERENCES "public"."polls"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "poll_votes" ADD CONSTRAINT "poll_votes_option_id_poll_options_id_fk" FOREIGN KEY ("option_id") REFERENCES "public"."poll_options"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "redmine_notifications" ADD CONSTRAINT "redmine_notifications_subscription_id_redmine_subscriptions_id_fk" FOREIGN KEY ("subscription_id") REFERENCES "public"."redmine_subscriptions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "role_panel_roles" ADD CONSTRAINT "role_panel_roles_panel_id_role_panels_id_fk" FOREIGN KEY ("panel_id") REFERENCES "public"."role_panels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "announcements_guild_idx" ON "announcements" USING btree ("guild_id","status");--> statement-breakpoint
 CREATE INDEX "birthdays_date_idx" ON "birthdays" USING btree ("guild_id","month","day");--> statement-breakpoint

@@ -1,7 +1,7 @@
 # LAPbot
 
 The Lapikud Discord bot: role selection, events with RSVPs, reminders,
-birthdays, announcements, polls, movie nights and Redmine.
+birthdays, announcements, polls and movie nights.
 
 TypeScript (strict, ESM) on Node.js 24, discord.js 14, PostgreSQL with
 Drizzle ORM, one process with a persistent job scheduler.
@@ -65,7 +65,6 @@ The server's IANA timezone and DST rules apply to local appointments.
 | `/birthday set/remove/view/upcoming`, the **Add my birthday** button, `/birthday post/settings` | everyone; post and settings need `birthday:manage`                                             |
 | `/poll create/list/results/close/cancel`                                                        | create needs `poll:create`; creator or `poll:manage` manages                                   |
 | `/movie suggest/suggestions/link/remove/vote/night/watched/history`                             | vote, night, watched need `movie:manage`; link and remove need the suggester or `movie:manage` |
-| `/redmine subscribe/unsubscribe`                                                                | `redmine:subscription:manage`                                                                  |
 | `/permissions grant/revoke/list`                                                                | `permissions:manage`                                                                           |
 
 ## Web UI
@@ -162,20 +161,6 @@ year, the synopsis, the poster and the YouTube trailer. Members can add their
 own links (Letterboxd, IMDb, …) with `/movie link` or on the web Movies page.
 Without a token, suggestions keep only what members type.
 
-## Redmine
-
-Set `REDMINE_BASE_URL` and `REDMINE_API_KEY` (a dedicated, restricted service
-account) to enable it.
-
-`/redmine subscribe project:<identifier>` posts new issues, status changes,
-assignments and comments to a channel, plus a daily "due tomorrow" digest
-(`/redmine unsubscribe` stops it; both need `redmine:subscription:manage`).
-The bot polls every two minutes and asks only for issues updated since each
-subscription's stored checkpoint. Private issues and private notes are never
-posted. Anyone who can read the channel sees the updates, so subscribe only
-channels whose audience may see the project. Standard Redmine has no
-webhooks, so polling is the mechanism.
-
 ## Development
 
 | Script                                             | Purpose                                                     |
@@ -256,7 +241,7 @@ src/
   integrations/            implementations of external capabilities
     db/                    connection and migrations
     discord/               SDK client, messaging, directory, calendar and API errors
-    tmdb/, redmine/, scheduler/, logging/
+    tmdb/, scheduler/, logging/
   web/
     overview/, forms/, post/, roles/, settings/
       <flow>/              routes.tsx, index.tsx, forms and local components
@@ -344,8 +329,8 @@ No migration or command registration is required for this reorganization.
 **Messages project feature data.** Event and poll message constructors live beside
 their respective models and services. They project current feature records, so
 there is no second editable copy of an event or poll. `renderPoll` takes explicit
-time; its service helper supplies the current time. Birthday greetings, reminders
-and issue notifications use Messenger directly. Text still uses Discord mention
+time; its service helper supplies the current time. Birthday greetings and reminders
+use Messenger directly. Text still uses Discord mention
 and timestamp syntax; transport-neutral values do not imply portable text.
 
 **UI primitives stay small.** Feature pages compose `web/components/controls`,
@@ -357,14 +342,14 @@ permissions in the service.
 
 **Integrations implement capabilities.** The event feature maps its model into the
 Calendar contract; the Discord calendar adapter owns SDK payloads and limits.
-Events retain warning-and-continue synchronization behavior. TMDB and Redmine
-contracts live in `core/ports` and are injected into feature services. Movies explicitly compose poll and event services. Supporting several
+Events retain warning-and-continue synchronization behavior. The TMDB
+contract lives in `core/ports` and are injected into feature services. Movies explicitly compose poll and event services. Supporting several
 calendar destinations still requires persisted links and a separate migration;
 one injected Calendar does not provide simultaneous multi-calendar support.
 
 **Background work keeps its existing guarantees.** `defineJob` validates payloads;
 Scheduler is implemented by pg-boss. Delivery is at-least-once with retries and
-state checks. Announcement, birthday and Redmine handlers claim before sending;
+state checks. Announcement and birthday handlers claim before sending;
 reminder handlers may duplicate a send after a crash. Permanent delivery failures
 are not retried. Each feature owns its lateness policy.
 
@@ -384,12 +369,9 @@ external contracts actually change.
 - Anonymous polls hide voters in Discord, but the database stores who voted
   (needed to change votes), so database administrators can see votes.
 - If the process dies between posting a reminder or event reminder and
-  recording it, that message can be sent twice (at-least-once). Announcements,
-  birthday wishes and Redmine notifications go the other way and can be lost
+  recording it, that message can be sent twice (at-least-once). Announcements
+  and birthday wishes go the other way and can be lost
   instead.
-- Redmine changes and deadlines are fetched in pages until all matching
-  issues have been processed. Failed sends are retried on subsequent runs;
-  a process crash after claiming a notification can still lose that message.
 - Birthday announcements are not sent for days the bot was entirely offline.
 - User-facing text is English (the legacy panel and birthday wishes are
   Estonian).

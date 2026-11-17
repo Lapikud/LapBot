@@ -4,7 +4,6 @@ import type { Config } from '~/config/env';
 import { announcementCommands } from '~/discord/commands/announcements';
 import { birthdayCommands } from '~/discord/commands/birthdays';
 import { createClient } from '~/integrations/discord/client';
-import { redmineCommands } from '~/discord/commands/redmine';
 import { createDiscordCalendar } from '~/integrations/discord/calendar';
 import { eventCommands } from '~/discord/commands/events';
 import { movieCommands } from '~/discord/commands/movies';
@@ -22,7 +21,6 @@ import {
   createAuthorizer,
   createPermissionService,
 } from '~/features/permissions/service';
-import { createRedmineService } from '~/features/redmine/service';
 import { createBirthdayService } from '~/features/birthdays/service';
 import { createEventService } from '~/features/events/service';
 import { createMovieService } from '~/features/movies/service';
@@ -47,12 +45,10 @@ import { createAnnouncementRepository } from '~/features/announcements/repositor
 import { createEventRepository } from '~/features/events/repository';
 import { createBirthdayRepository } from '~/features/birthdays/repository';
 import { createGrantRepository } from '~/features/permissions/repository';
-import { createTrackerRepository } from '~/features/redmine/repository';
 import { createMovieRepository } from '~/features/movies/repository';
 import { createPollRepository } from '~/features/polls/repository';
 import { createReminderRepository } from '~/features/reminders/repository';
 import { createRolePanelRepository } from '~/features/roles/repository';
-import { RedmineClient } from '~/integrations/redmine/client';
 import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
@@ -175,29 +171,6 @@ export function compose(config: Config, log: Logger) {
       permissions: [{ id: webAccess, description: 'Open the web dashboard' }],
     },
   ];
-
-  if (
-    config.REDMINE_BASE_URL !== undefined &&
-    config.REDMINE_API_KEY !== undefined
-  ) {
-    const redmine = createRedmineService({
-      baseUrl: config.REDMINE_BASE_URL,
-      client: new RedmineClient(
-        config.REDMINE_BASE_URL,
-        config.REDMINE_API_KEY,
-      ),
-      tracker: createTrackerRepository(database.db),
-      scheduler,
-      messenger,
-      authz,
-      log,
-      timezone,
-    });
-
-    // Temporarily disable Redmine commands while keeping subscription jobs running.
-    features.push({ ...redmineCommands(redmine), commands: [] });
-    jobs.push(...redmine.jobs);
-  }
 
   const registry = buildRegistry(features);
 
