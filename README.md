@@ -48,11 +48,12 @@ Times are read and shown in `DEFAULT_TIMEZONE`. Birthday settings and
 self-selection role panels live in the database. Connection settings come
 from the environment.
 
-Relative times use `parse-duration`: `30 min`, `2 hrs`, `1 week`,
-`1 hour 30 minutes`, `1.5 hours`, and second/millisecond aliases are accepted.
-Months and years use fixed average durations (365.25 days per year), not calendar
-arithmetic. Duration expressions are limited to 100 characters. Clock times and
-calendar dates keep their existing timezone behavior.
+Relative times use `parse-duration` directly: aliases, compound expressions,
+fractions, exponents and implicit smaller units follow the library's grammar.
+The library tolerates extra text rather than enforcing our own strict tokenizer.
+Months and years use fixed averages (365.25 days per year), not calendar arithmetic.
+Duration expressions are limited to 100 characters. Clock times and calendar dates
+keep their existing timezone behavior; scheduling still requires a future time.
 
 ## Commands
 

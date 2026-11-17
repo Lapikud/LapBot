@@ -46,6 +46,12 @@ describe('parseWhen', () => {
     ['1.5 hours', 5_400_000],
     ['.5 hours', 1_800_000],
     ['0m', 0],
+    ['1e3 seconds', 1_000_000],
+    ['1 hr 30', 5_400_000],
+    ['1:30 h', 5_400_000],
+    ['1h:20min', 4_800_000],
+    ['1,500 ms', 1_500],
+    ['-1 hour', -3_600_000],
   ])('reads compound and fractional durations "%s"', (input, offset) => {
     expect(parseWhen(input, zone, now).getTime()).toBe(now.getTime() + offset);
   });
@@ -53,16 +59,24 @@ describe('parseWhen', () => {
   it.each([
     '1 minutely',
     '1 hourly',
-    '1 week junk',
-    '1hr 2garbage',
-    '-1 hour',
-    '1 hour -30 minutes',
-    '1 hr 30',
     '1000000000000 years',
     'Infinity hours',
     'NaN hours',
   ])('rejects invalid durations "%s"', (input) => {
     expect(() => parseWhen(input, zone, now)).toThrow(UserError);
+  });
+
+  it('uses the library duration grammar without its own strict tokenizer', () => {
+    expect(parseWhen('1 week junk', zone, now).getTime()).toBe(
+      now.getTime() + 604_800_000,
+    );
+    expect(parseWhen('1hr 2garbage', zone, now).getTime()).toBe(
+      now.getTime() + 3_600_000,
+    );
+  });
+
+  it.each(['-1 hour', '0m'])('rejects nonfuture scheduling "%s"', (input) => {
+    expect(() => parseFutureWhen(input, zone, now)).toThrow('in the past');
   });
 
   it('rejects oversized duration expressions', () => {

@@ -64,31 +64,13 @@ function parseRelative(input: string, now: Date): Date | undefined {
     return undefined;
   }
 
-  const text = input
-    .trim()
-    .replace(/^in\s+/i, '')
-    .replaceAll(/\band\b|,/gi, ' ')
-    .trim();
-  const parts = text.split(/(?<=\p{L})\s*(?=[\d.])/u);
+  const duration = parseDuration(input);
 
-  let total = 0;
-
-  for (const part of parts) {
-    // Consume the whole segment: the library also accepts noisy partial input.
-    if (!/^(?:\d+(?:\.\d+)?|\.\d+)\s*\p{L}+$/u.test(part)) {
-      return undefined;
-    }
-
-    const duration = parseDuration(part);
-
-    if (duration === null || !Number.isFinite(duration)) {
-      return undefined;
-    }
-
-    total += duration;
+  if (duration === null || !Number.isFinite(duration)) {
+    return undefined;
   }
 
-  const date = new Date(now.getTime() + total);
+  const date = new Date(now.getTime() + duration);
 
   return isValid(date) ? date : undefined;
 }
@@ -206,8 +188,13 @@ function parseAbsolute(
 }
 
 export function parseWhen(input: string, zone: string, now = new Date()): Date {
-  const date =
-    parseRelative(input, now) ?? parseAbsolute(input, requireZone(zone), now);
+  const trimmed = input.trim();
+  // Clock/date input keeps calendar semantics; unit-suffixed clocks are durations.
+  const calendarInput =
+    !/\p{L}$/u.test(trimmed) && /:|^\d{1,4}[.-]\d/u.test(trimmed);
+  const date = calendarInput
+    ? parseAbsolute(trimmed, requireZone(zone), now)
+    : parseRelative(trimmed, now);
 
   if (date === undefined) {
     throw new UserError(
