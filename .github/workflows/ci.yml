@@ -1,13 +1,15 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
 
 jobs:
   check:
+    name: Lint, test and build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     services:
       postgres:
         image: postgres:17-alpine
@@ -18,19 +20,44 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U lapbot" --health-interval 5s --health-timeout 3s --health-retries 10
+          --health-cmd "pg_isready -U lapbot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       TEST_DATABASE_URL: postgres://lapbot:lapbot@localhost:5432/lapbot_test
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm test
-      - run: pnpm build
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check types
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Test the deploy script
+        run: scripts/ci/deploy-test.sh
+
+      - name: Build
+        run: pnpm build

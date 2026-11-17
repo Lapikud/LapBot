@@ -8,12 +8,13 @@ Drizzle ORM, one process with a persistent job scheduler.
 
 ## Setup
 
-Requirements: Node.js 24+, pnpm (`corepack enable`), Docker (for PostgreSQL).
+Requirements: Node.js 24+, pnpm (`corepack enable`), Docker (for local
+PostgreSQL only).
 
 ```sh
 pnpm install
 cp .env.example .env          # fill in DISCORD_TOKEN and the role IDs
-docker compose -f compose.yaml -f compose.dev.yaml up -d postgres
+docker compose up -d
 pnpm dev
 ```
 
@@ -196,18 +197,110 @@ boundaries. `eslint-plugin-n` was left out because TypeScript and the
 was left out because its rules are mostly false positives on this kind of
 code.
 
-## Production
+## Deploying
 
-```sh
-cp .env.example .env     # set DISCORD_TOKEN, POSTGRES_PASSWORD, …
-docker compose up -d --build
-docker compose logs -f bot
+[`ci.yml`](.github/workflows/ci.yml) runs on every pull request: format check,
+lint, typecheck, tests against a throwaway PostgreSQL, a test of `deploy.sh`
+against a scratch folder ([`deploy-test.sh`](scripts/ci/deploy-test.sh)) and a
+production build.
+
+The LXC container can't be reached from the internet, so GitHub never connects
+to it:
+
+1. On every push to `main`, [`deploy.yml`](.github/workflows/deploy.yml) runs
+   the same checks and, if they pass, pushes `main` to `git.lapikud.ee`.
+2. That push starts [`.gitea/workflows/deploy.yml`](.gitea/workflows/deploy.yml)
+   on a Gitea runner inside the container, which runs the pushed
+   [`deploy.sh`](scripts/deploy/deploy.sh).
+
+Everything lives in `/opt/lapbot`:
+
+```text
+.env            production settings, kept only on the server
+logs/           the SQLite log archive, shared by every release
+repo/           clone of the Gitea repo; releases are built from it
+releases/<id>/  one built copy of the bot per deploy
+current         symlink to the release systemd runs
 ```
 
-The image runs as a non-root user, applies migrations on start, logs JSON to
-stdout, and shuts down gracefully on `SIGTERM`: it stops taking interactions,
-finishes running jobs, then closes Discord and the database. PostgreSQL is not
-published outside the Compose network. Back up the `pgdata` volume.
+`deploy.sh` resets `repo/` to `main`, builds a new release next to the live
+one, points `current` at it and restarts the service. The bot applies
+migrations on start, and the deploy passes once it logs `Ready`, meaning it is
+logged in to Discord. If it doesn't within 90 seconds, `current` goes back to
+the previous release and the service restarts. The last three releases are
+kept.
+
+- **Migrations can't be undone.** A rollback only changes the code, so each
+  migration must also work with the release before it.
+- **Deploys wait for each other.** If `main` moves during a deploy, the next
+  one picks up the newest commit that passed CI.
+
+### Server setup
+
+As root, once, with PostgreSQL already running on the container:
+
+1. Install Node 24, git and curl, then `corepack enable`.
+2. Create the user and layout:
+
+   ```sh
+   useradd --system --create-home --home-dir /home/lapbot --shell /bin/bash lapbot
+   usermod -aG systemd-journal lapbot
+   install -d -o lapbot -g lapbot /opt/lapbot
+   sudo -u lapbot git clone https://git.lapikud.ee/<owner>/lapbot.git /opt/lapbot/repo
+   ```
+
+3. Put the production settings, based on `.env.example`, in `/opt/lapbot/.env`,
+   owned by `lapbot` and `chmod 600`.
+4. Create `/etc/systemd/system/lapbot.service` and let `lapbot` restart it:
+
+   ```ini
+   [Unit]
+   Description=LAPbot
+   After=network-online.target postgresql.service
+   Wants=network-online.target
+
+   [Service]
+   User=lapbot
+   WorkingDirectory=/opt/lapbot/current
+   EnvironmentFile=/opt/lapbot/.env
+   Environment=NODE_ENV=production
+   ExecStart=/usr/bin/node --enable-source-maps dist/index.mjs
+   Restart=on-failure
+   TimeoutStopSec=30
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+   ```sh
+   systemctl daemon-reload
+   systemctl enable lapbot
+   echo 'lapbot ALL=(root) NOPASSWD: /usr/bin/systemctl restart lapbot' > /etc/sudoers.d/lapbot
+   chmod 440 /etc/sudoers.d/lapbot
+   ```
+
+5. Deploy once by hand: `sudo -u lapbot /opt/lapbot/repo/scripts/deploy/deploy.sh`.
+6. Install [act_runner](https://docs.gitea.com/usage/actions/act-runner) and
+   register it with the Gitea repo as `lapbot`, in host mode, with the `lapbot`
+   label:
+
+   ```sh
+   sudo -u lapbot act_runner register --no-interactive \
+     --instance https://git.lapikud.ee --token <registration token> \
+     --name lapbot-lxc --labels lapbot:host
+   ```
+
+   Run it from `/home/lapbot` with a systemd unit (`User=lapbot`,
+   `ExecStart=/usr/local/bin/act_runner daemon`). Anyone who can push to the
+   Gitea repo can run code on the container as `lapbot`.
+
+On GitHub, create a `production` environment with a `GITEA_REMOTE` secret:
+`https://<user>:<token>@git.lapikud.ee/<owner>/lapbot.git`, using a token with
+the `write:repository` scope.
+
+The bot logs JSON to stdout (read it with `journalctl -u lapbot`) and shuts down
+gracefully on `SIGTERM`: it stops taking interactions, finishes running jobs,
+then closes Discord and the database.
 
 Server administrators can open **Logs** in the dashboard to filter recent
 entries by minimum level or search messages, sources and details. The page
@@ -215,8 +308,8 @@ refreshes every 10 seconds and can be paused while inspecting an entry.
 All emitted entries are saved in full to SQLite at `LOG_DATABASE_PATH`
 (default `logs/lapbot.sqlite`) and retained across restarts without automatic
 deletion. The UI shows 100 entries per page and searches the complete archive.
-Entries use the same `LOG_LEVEL` and field redaction as stdout. Docker Compose
-persists the archive in the `botlogs` volume; back it up alongside `pgdata`.
+Entries use the same `LOG_LEVEL` and field redaction as stdout. In production
+the archive lives in `/opt/lapbot/logs`; back it up alongside the database.
 Storage failures are reported to stderr while stdout logging continues.
 
 ## Architecture
