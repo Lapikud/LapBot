@@ -102,9 +102,9 @@ Without `DISCORD_CLIENT_SECRET` the web UI stays off. It listens on
 
 The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 [Pico.css](https://picocss.com) (classless, so plain form markup looks right),
-loaded from jsDelivr. Our own styles are in `public/app.css`; every file in
-`public/` is served as is.
-Each section is a `web.tsx` file in its `src/features/<name>/` directory that returns a small Hono app;
+loaded from jsDelivr. Our own styles are in `src/presentation/web/public/app.css`; every file in
+that directory is served as is.
+Each section is a page in `src/presentation/web/pages/` that returns a small Hono app;
 to add a page, write one and mount it with `app.route()` in `app.tsx`. Forms
 post back to the same path, so there is no client-side JavaScript.
 
@@ -234,8 +234,10 @@ Storage failures are reported to stderr while stdout logging continues.
 
 ## Architecture
 
-Organized by capability, with three logical boundaries. Open a feature directory
-to find its rules, operations and adapters. Tests mirror ownership under `tests/`.
+Core primitives, feature logic, integrations, and presentation have explicit homes.
+Feature directories contain rules, operations and persistence; presentation contains
+all web pages, controls, Discord commands, interaction handling and message views.
+Tests mirror ownership under `tests/`.
 
 ```text
 src/
@@ -249,34 +251,46 @@ src/
     helpers/               time, async, authorization, roles, visibility, jobs, clock
     ports/                 authorization, directory, messaging, calendar, clock,
                            logging, scheduling, movie catalog, issue tracker
-    ui/                    accessible HTML controls and actions
   features/
     birthdays/             model.ts, rules.ts, form.ts, service.ts,
-                           table.ts, repository.ts, discord.ts, web.tsx
+                           table.ts, repository.ts
     announcements/         publication lifecycle composing core Post
-    events/                events, RSVP, messages, calendar mapping and adapters
+    events/                events, RSVP, calendar mapping and persistence
     polls/, movies/, permissions/, redmine/, reminders/, roles/
   integrations/            shared platform/provider implementations
     db/client.ts           connection and migrations
-    discord/               SDK, messaging, directory, calendar, routing
-    web/                   HTTP host, sign-in, layout, context and selectors
+    discord/               SDK client, messaging, directory and calendar
     tmdb/                  catalog provider client
     redmine/               issue tracker provider client
     scheduler/, logging/
+  presentation/
+    web/
+      pages/               all feature pages and HTTP routes
+      components/          shared accessible controls and actions
+      public/              styles and other static assets
+      app.tsx, auth.ts     HTTP composition, middleware and sign-in
+      layout.tsx, context.ts, selectors.tsx, preview.tsx, logs.tsx, server.ts
+    discord/
+      commands/            all feature slash/context commands and components
+      actor.ts, define.ts, errors.ts, module.ts, registry.ts, router.ts
+      registration.ts, render.ts
+    messages/              pure message views shared by services and adapters
 tests/
-  features/<name>/         feature rules, services and adapter tests
+  features/<name>/         feature rules, services and persistence tests
   core/                    primitive tests
   integrations/            platform/provider tests
+  presentation/            web, Discord and message view tests
   regressions/             cross-feature regressions
 drizzle/                   unchanged SQL migrations
 ```
 
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
-and input definitions are pure; services orchestrate; `repository.ts`, `table.ts`,
-`discord.ts`, and `web.tsx` are feature-owned adapters. All tests live under
+and input definitions are pure; services orchestrate; `repository.ts` and `table.ts` own persistence.
+Web pages live in `presentation/web/pages`, and Discord commands live in
+`presentation/discord/commands`, named after their feature. All tests live under
 `tests/`: feature tests in `tests/features/<name>/`,
-primitive tests in `tests/core/` (helpers in `tests/core/helpers/`), and provider tests in `tests/integrations/`.
+primitive tests in `tests/core/` (helpers in `tests/core/helpers/`), provider tests in `tests/integrations/`, and presentation tests in `tests/presentation/`.
 Cross-feature regressions live in `tests/regressions/`.
 
 **Imports name their source.** Within a feature use `./model` or `./rules`;
@@ -341,11 +355,11 @@ time; its service helper supplies the current time. Birthday greetings, reminder
 and issue notifications use Messenger directly. Text still uses Discord mention
 and timestamp syntax; transport-neutral values do not imply portable text.
 
-**UI primitives stay small.** Feature pages compose `core/ui/controls`,
+**UI primitives stay small.** Feature pages compose `presentation/web/components/controls`,
 `choices`, `field`, and `actions`. Labels, help and errors are linked to control
 IDs. Supply distinct IDs for repeated names. Shared channel selectors in
-`integrations/web/selectors.tsx` use already-loaded server data. Controls perform
-no service or directory lookups. Keep parsing in `web.tsx` and authoritative
+`presentation/web/selectors.tsx` use already-loaded server data. Controls perform
+no service or directory lookups. Keep transport input decoding in the page and authoritative
 permissions in the service.
 
 **Integrations implement capabilities.** The event feature maps its model into the
@@ -364,8 +378,9 @@ are not retried. Each feature owns its lateness policy.
 ### Adding a capability
 
 Start with one directory under `features/` and the operation you need. Keep its
-model and rules there; put its tests in `tests/features/<name>/`. Add adapters as
-required and wire them in `app.ts`.
+model and rules there; put its tests in `tests/features/<name>/`. Add web pages
+and Discord commands to their shared presentation directories, persistence to the
+feature, and provider clients to integrations. Wire them in `app.ts`.
 Extract a primitive only when it has a useful independent contract; use an existing
 core capability first. Do not create model/service/ports/index files just
 to satisfy a template. Generate migrations or register commands only when those

@@ -89,15 +89,11 @@ const featureLogic = [
   'rules.ts',
   'form.ts',
   'service.ts',
-  'message.ts',
   'calendar.ts',
 ].map((file) => `./src/features/*/${file}`);
-const featureAdapters = [
-  'table.ts',
-  'repository.ts',
-  'discord.ts',
-  'web.tsx',
-].map((file) => `./src/features/*/${file}`);
+const featureAdapters = ['table.ts', 'repository.ts'].map(
+  (file) => `./src/features/*/${file}`,
+);
 
 const unicornRules: Linter.RulesRecord = {
   'unicorn/prefer-set-has': 'error',
@@ -350,6 +346,7 @@ export default defineConfig(
               from: [
                 './src/features',
                 './src/integrations',
+                './src/presentation',
                 './src/config',
                 './src/app.ts',
               ],
@@ -362,13 +359,14 @@ export default defineConfig(
               message: 'Feature logic uses contracts, never concrete adapters.',
             },
             {
-              target: featureLogic,
+              target: [...featureLogic, './src/presentation/messages'],
               from: [
                 './src/config',
                 './src/app.ts',
                 './src/integrations/db',
                 './src/integrations/discord',
-                './src/integrations/web',
+                './src/presentation/web',
+                './src/presentation/discord',
                 './src/integrations/scheduler',
                 './src/integrations/logging',
                 './src/integrations/tmdb/catalog.ts',
@@ -377,7 +375,11 @@ export default defineConfig(
               message: 'Feature logic uses contracts, never concrete adapters.',
             },
             {
-              target: ['./src/features', './src/integrations'],
+              target: [
+                './src/features',
+                './src/integrations',
+                './src/presentation',
+              ],
               from: ['./src/app.ts', './src/index.ts'],
               message:
                 'Features and adapters must not import the composition root.',
@@ -393,7 +395,7 @@ export default defineConfig(
     ignores: [
       'src/app.ts',
       'src/integrations/discord/**',
-      'src/features/*/discord.ts',
+      'src/presentation/discord/**',
       '**/*.test.ts',
     ],
     rules: {
@@ -402,7 +404,11 @@ export default defineConfig(
   },
 
   {
-    files: [...featureLogic.map((file) => file.slice(2)), 'src/core/**/*.ts'],
+    files: [
+      ...featureLogic.map((file) => file.slice(2)),
+      'src/core/**/*.ts',
+      'src/presentation/messages/**/*.ts',
+    ],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [

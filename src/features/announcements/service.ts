@@ -1,4 +1,4 @@
-import { announcementView } from './message';
+import { announcementView } from '~/presentation/messages/announcements';
 import { z } from 'zod';
 import { channelMention } from '~/core/message';
 import { parseFutureWhen } from '~/core/helpers/time';

@@ -5,8 +5,8 @@ import {
   type Guild,
 } from 'discord.js';
 import type { Directory } from '~/core/ports/directory';
-import { toActor, toRoleInfo } from './actor';
-import { permanent } from './errors';
+import { toActor, toRoleInfo } from '~/presentation/discord/actor';
+import { permanent } from '~/presentation/discord/errors';
 
 export function createDiscordDirectory(client: Client): Directory {
   const guild = (id: string): Promise<Guild> =>

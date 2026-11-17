@@ -5,8 +5,8 @@ import {
 } from 'discord.js';
 import { PermanentError, UserError } from '~/core/errors';
 import type { Messenger } from '~/core/ports/messenger';
-import { permanent, isUnknownObject } from './errors';
-import { render } from './render';
+import { permanent, isUnknownObject } from '~/presentation/discord/errors';
+import { render } from '~/presentation/discord/render';
 
 async function orFalse(action: () => Promise<unknown>): Promise<boolean> {
   try {
