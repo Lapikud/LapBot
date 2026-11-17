@@ -1,27 +1,13 @@
 services:
-  bot:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: postgres://lapbot:${POSTGRES_PASSWORD:-lapbot}@postgres:5432/lapbot
-      WEB_HOST: 0.0.0.0
-    ports:
-      - '127.0.0.1:${WEB_PORT:-3000}:${WEB_PORT:-3000}'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - botlogs:/app/logs
-    stop_grace_period: 30s
-
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: lapbot
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lapbot}
+      POSTGRES_PASSWORD: lapbot
       POSTGRES_DB: lapbot
+    ports:
+      - '127.0.0.1:5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,8 +15,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    # No published port: only the bot reaches the database.
 
 volumes:
-  botlogs:
   pgdata:
