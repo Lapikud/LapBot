@@ -143,9 +143,7 @@ export function eventPages({
           flash={flashOf(c)}
           actions={
             allows(c, 'event:create') ? (
-              <a href="/events/new" role="button">
-                New event
-              </a>
+              <a href="/events/new">New event</a>
             ) : null
           }
         >
@@ -169,11 +167,7 @@ export function eventPages({
                   <td>
                     {owns(c, e.organizerId, 'event:manage') ? (
                       <>
-                        <a
-                          href={`/events/${e.id}`}
-                          role="button"
-                          class="secondary outline"
-                        >
+                        <a href={`/events/${e.id}`} class="secondary outline">
                           Edit
                         </a>{' '}
                         <ActionButton

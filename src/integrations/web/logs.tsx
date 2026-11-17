@@ -66,11 +66,7 @@ export function logPages(timezone: string, logs: LogStore) {
         path="/logs"
         can={c.var.can}
         actions={
-          <a
-            href={`/logs?${toggle.toString()}`}
-            role="button"
-            class="secondary outline"
-          >
+          <a href={`/logs?${toggle.toString()}`} class="secondary outline">
             {live ? 'Pause refresh' : 'Resume refresh'}
           </a>
         }

@@ -219,11 +219,7 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
           title={title}
           path="/psa"
           flash={flashOf(c)}
-          actions={
-            <a href="/psa/new" role="button">
-              New PSA
-            </a>
-          }
+          actions={<a href="/psa/new">New PSA</a>}
         >
           <Recent
             list={list}

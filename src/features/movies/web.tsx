@@ -91,11 +91,7 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
           title="Movies"
           path="/movies"
           flash={flashOf(c)}
-          actions={
-            <a href="/movies/new" role="button">
-              Suggest a movie
-            </a>
-          }
+          actions={<a href="/movies/new">Suggest a movie</a>}
         >
           {list.length === 0 ? (
             <p>No suggestions yet. Be the first to suggest one.</p>

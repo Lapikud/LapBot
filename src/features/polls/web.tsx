@@ -36,11 +36,7 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
           path="/polls"
           flash={flashOf(c)}
           actions={
-            allows(c, 'poll:create') ? (
-              <a href="/polls/new" role="button">
-                New poll
-              </a>
-            ) : null
+            allows(c, 'poll:create') ? <a href="/polls/new">New poll</a> : null
           }
         >
           <table>
