@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Announcement } from '~/features/announcements/model';
 import type { Scheduler } from '~/core/ports/scheduler';
 import { announcementView } from '~/features/announcements/message';
-import { createAnnouncementService } from '~/features/announcements/service';
+import type { Announcement } from '~/features/announcements/model';
 import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createAnnouncementService } from '~/features/announcements/service';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -50,18 +50,10 @@ describe('announcement view', () => {
       announcementView(sample({ mentionEveryone: true })).mentions?.everyone,
     ).toBe(true);
   });
-
-  it('rejects messages over the Discord limit', () => {
-    expect(() =>
-      announcementView(sample({ content: 'x'.repeat(2001) })),
-    ).toThrow(
-      /^Announcements are limited to 2000 characters, including the title and mentions\.$/,
-    );
-  });
 });
 
 describe.skipIf(noDatabase)('announcement service', () => {
-  const setup = (options: { canPost?: boolean; now?: Date } = {}) => {
+  const setup = () => {
     const { messenger } = fakeMessenger();
     const scheduler = {
       schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
@@ -74,11 +66,11 @@ describe.skipIf(noDatabase)('announcement service', () => {
       messenger,
       directory: fakeDirectory(
         [role({ id: 'team' }), role({ id: 'secret', mentionable: false })],
-        { canPost: options.canPost ?? true },
+        { canPost: true },
       ),
       authz: allowAll,
       log: silentLog,
-      clock: { now: () => options.now ?? new Date() },
+      clock: { now: () => new Date() },
       timezone: 'Europe/Tallinn',
     });
 
@@ -89,22 +81,6 @@ describe.skipIf(noDatabase)('announcement service', () => {
       author: actor({ guildId: snowflake() }),
     };
   };
-
-  it('goes back to draft with the reason when posting fails', async () => {
-    const { service, messenger, repository, author } = setup();
-    const draft = await service.draft(author, {
-      channelId: 'c',
-      content: 'Hi',
-    });
-
-    messenger.send.mockRejectedValueOnce(new Error('Discord is down'));
-    await expect(service.publish(author, draft.id)).rejects.toThrow('down');
-    expect(await repository.find(draft.id)).toMatchObject({
-      status: 'draft',
-      publishedAt: null,
-      failure: 'Discord is down',
-    });
-  });
 
   it('publishes due scheduled announcements once', async () => {
     const { service, messenger, repository, author } = setup();

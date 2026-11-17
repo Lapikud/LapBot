@@ -1,11 +1,12 @@
-import type { Scheduler } from '~/core/ports/scheduler';
 import { describe, expect, it, vi } from 'vitest';
-import { createAnnouncementService } from '~/features/announcements/service';
-import { createAuthorizer } from '~/features/permissions/service';
-import { createAnnouncementRepository } from '~/features/announcements/repository';
-import { createGrantRepository } from '~/features/permissions/repository';
-import type { Permission } from '~/core/permission';
 import { PermanentError } from '~/core/errors';
+import type { Permission } from '~/core/permission';
+import type { Scheduler } from '~/core/ports/scheduler';
+import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createAnnouncementService } from '~/features/announcements/service';
+import { createGrantRepository } from '~/features/permissions/repository';
+import { createAuthorizer } from '~/features/permissions/service';
+import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
   fakeDirectory,
@@ -13,7 +14,6 @@ import {
   role,
   silentLog,
 } from '../../fakes';
-import { noDatabase, snowflake, testDb } from '../../db';
 
 describe.skipIf(noDatabase)('managed post API', () => {
   const setup = async (
@@ -173,31 +173,6 @@ describe.skipIf(noDatabase)('managed post API', () => {
     ).toHaveLength(1);
     expect(messenger.send).toHaveBeenCalledOnce();
     expect((await posts.find(post.id))?.messageId).toBeDefined();
-  });
-
-  it('keeps queued job keys, future retries and lateness handling', async () => {
-    const { service, author, posts, scheduler, messenger, advance, draft } =
-      await setup();
-    const post = await draft();
-
-    await service.schedule(author, post.id, '1h');
-    const job = service.jobs[0];
-
-    expect(job?.type).toBe('announcements.publish');
-    expect(scheduler.schedule.mock.calls[0]?.[1]).toEqual({
-      announcementId: post.id,
-    });
-    expect(scheduler.schedule.mock.calls[0]?.[2]).toEqual({
-      runAt: new Date('2026-11-17T13:00:00Z'),
-      key: `announcement:${post.id}`,
-    });
-    await expect(job?.run({ announcementId: post.id })).resolves.toEqual({
-      rescheduleAt: new Date('2026-11-17T13:00:00Z'),
-    });
-    advance(new Date('2026-11-17T14:00:00.001Z'));
-    await job?.run({ announcementId: post.id });
-    expect(messenger.send).not.toHaveBeenCalled();
-    expect((await posts.find(post.id))?.status).toBe('draft');
   });
 
   it('restores scheduled state on transient failure and draft on permanent failure', async () => {

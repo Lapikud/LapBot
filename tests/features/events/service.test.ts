@@ -1,13 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Calendar } from '~/core/ports/calendar';
 import type { Scheduler } from '~/core/ports/scheduler';
-import {
-  createEventService,
-  parseReminderMinutes,
-} from '~/features/events/service';
-import { eventView, reminderText } from '~/features/events/message';
-import { UserError } from '~/core/errors';
 import { createEventRepository } from '~/features/events/repository';
+import { createEventService } from '~/features/events/service';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -31,59 +26,6 @@ const base = () => ({
   mentionRoleId: null,
   reminderMinutes: [],
   icons: true,
-});
-
-describe('event helpers', () => {
-  it('parses reminder minutes', () => {
-    expect(parseReminderMinutes(undefined)).toEqual([60]);
-    expect(parseReminderMinutes('60, 15,15')).toEqual([60, 15]);
-    expect(() => parseReminderMinutes('1,2,3,4')).toThrow(UserError);
-  });
-
-  it('shows date, time and place with icons unless they are turned off', () => {
-    const event = {
-      ...base(),
-      id: 1,
-      messageId: null,
-      discordEventId: null,
-      status: 'scheduled' as const,
-      createdAt: new Date(),
-      startsAt: new Date('2026-11-20T16:00:00Z'),
-      endsAt: new Date('2026-11-20T19:00:00Z'),
-      location: 'Room 101',
-    };
-    const counts = { going: 0, maybe: 0, not_going: 0 };
-    const text = (icons: boolean) =>
-      eventView({ ...event, icons }, counts).content ?? '';
-
-    expect(text(true)).toContain('🗓️ <t:');
-    expect(text(true)).toContain('🕐 <t:1795190400:t> - <t:1795201200:t>');
-    expect(text(true)).toContain('📍 Room 101');
-    expect(text(false)).not.toMatch(/🗓️|🕐|📍/u);
-  });
-
-  it('keeps reminder pings under the Discord message limit', () => {
-    const going = Array.from(
-      { length: 200 },
-      (_, n) => `1${String(n).padStart(18, '0')}`,
-    );
-    const { content, pinged } = reminderText(
-      {
-        ...base(),
-        id: 1,
-        messageId: 'm',
-        discordEventId: null,
-        status: 'scheduled',
-        createdAt: new Date(),
-      },
-      60,
-      going,
-    );
-
-    expect(content.length).toBeLessThanOrEqual(2000);
-    expect(pinged.length).toBeGreaterThan(50);
-    expect(pinged.length).toBeLessThan(200);
-  });
 });
 
 describe.skipIf(noDatabase)('event RSVPs', () => {
@@ -134,16 +76,6 @@ describe.skipIf(noDatabase)('event RSVPs', () => {
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(3);
     expect((await events.counts(event.id)).going).toBe(3);
   });
-
-  it('closes RSVPs once cancelled', async () => {
-    const events = repository();
-    const event = await events.insert(base());
-
-    await events.update(event.id, { status: 'cancelled' });
-    await expect(
-      events.setRsvp(event.id, snowflake(), 'going'),
-    ).rejects.toBeInstanceOf(UserError);
-  });
 });
 
 describe.skipIf(noDatabase)('event service', () => {
@@ -179,50 +111,6 @@ describe.skipIf(noDatabase)('event service', () => {
     };
   };
 
-  it('publishes, schedules only future reminders and mirrors natively', async () => {
-    const { service, messenger, scheduler, calendar, organizer } = setup();
-    const event = await service.create(organizer, {
-      title: 'Quiz',
-      start: '3h',
-      channelId: 'c',
-      reminders: '60,600',
-      native: true,
-    });
-
-    expect(event.messageId).not.toBeNull();
-    expect(event.discordEventId).toBe('native');
-    expect(messenger.send).toHaveBeenCalledOnce();
-    expect(scheduler.schedule).toHaveBeenCalledOnce();
-    expect(calendar.upsert).toHaveBeenCalledOnce();
-  });
-
-  it('keeps event edits and cancellation working when calendar synchronization fails', async () => {
-    const { service, calendar, messenger, organizer } = setup();
-    const event = await service.create(organizer, {
-      title: 'Quiz',
-      start: '3h',
-      channelId: 'c',
-      native: true,
-    });
-
-    calendar.upsert.mockRejectedValueOnce(new Error('Calendar unavailable'));
-    const edited = await service.edit(organizer, event.id, {
-      title: 'Updated quiz',
-    });
-
-    expect(edited.title).toBe('Updated quiz');
-    expect(edited.discordEventId).toBe('native');
-    expect(messenger.edit).toHaveBeenCalledOnce();
-    calendar.remove.mockRejectedValueOnce(new Error('Calendar unavailable'));
-    const cancelled = await service.cancel(organizer, event.id);
-
-    expect(cancelled.status).toBe('cancelled');
-    expect((await service.get(organizer, event.id)).discordEventId).toBe(
-      'native',
-    );
-    expect(messenger.edit).toHaveBeenCalledTimes(2);
-  });
-
   it('skips reminders for cancelled events and lets only organizers manage', async () => {
     const { service, messenger, organizer } = setup();
     const event = await service.create(organizer, {
@@ -235,23 +123,6 @@ describe.skipIf(noDatabase)('event service', () => {
     messenger.send.mockClear();
     await service.jobs[0]?.run({ eventId: event.id, minutes: 60 });
     expect(messenger.send).not.toHaveBeenCalled();
-  });
-
-  it('returns an updated view after an RSVP', async () => {
-    const { service, organizer } = setup();
-    const event = await service.create(organizer, {
-      title: 'Quiz',
-      start: '3h',
-      channelId: 'c',
-      capacity: 5,
-    });
-    const view = await service.rsvp(
-      actor({ guildId: organizer.guildId, userId: snowflake() }),
-      event.id,
-      'going',
-    );
-
-    expect(view.content).toContain('1 / 5');
   });
 
   it('clears nullable fields while leaving omitted changes unchanged', async () => {

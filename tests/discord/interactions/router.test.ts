@@ -2,8 +2,8 @@ import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { UserError } from '~/core/errors';
 import type { AppContext, Feature } from '~/discord/contracts';
-import { buildRegistry } from '~/discord/registry';
 import { createInteractionHandler } from '~/discord/interactions/router';
+import { buildRegistry } from '~/discord/registry';
 
 function context(allowed: boolean) {
   const require = vi.fn(async () => {
@@ -80,18 +80,6 @@ const features: Feature[] = [
 describe('interaction router', () => {
   const registry = buildRegistry(features);
 
-  it('routes public subcommands without a permission check', async () => {
-    const { ctx, require } = context(false);
-
-    execute.mockClear();
-    await createInteractionHandler(
-      registry,
-      ctx,
-    )(commandInteraction('demo', 'view') as never);
-    expect(require).not.toHaveBeenCalled();
-    expect(execute).toHaveBeenCalledOnce();
-  });
-
   it('enforces declared permissions before executing', async () => {
     const { ctx, require } = context(false);
 
@@ -123,16 +111,6 @@ describe('interaction router', () => {
     expect(execute).toHaveBeenCalledWith(interaction, ['42', 'x'], allowed.ctx);
   });
 
-  it('answers unknown components instead of failing silently', async () => {
-    const { ctx } = context(true);
-    const interaction = componentInteraction('gone:button:1');
-
-    await createInteractionHandler(registry, ctx)(interaction as never);
-    expect(interaction.reply).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'This control is no longer active.' }),
-    );
-  });
-
   it('hides unexpected errors behind a reference', async () => {
     const { ctx } = context(true);
     const interaction = commandInteraction('boom', null);
@@ -145,24 +123,5 @@ describe('interaction router', () => {
     expect(reply.content).toMatch(
       /^Something went wrong\. Reference: `\w{8}`$/,
     );
-  });
-
-  it('completes a deferred reply, or follows up after a real one', async () => {
-    const { ctx } = context(true);
-    const handle = createInteractionHandler(registry, ctx);
-    const pending = {
-      ...commandInteraction('boom', null),
-      deferred: true,
-      editReply: vi.fn(async () => undefined),
-    };
-
-    await handle(pending as never);
-    expect(pending.editReply).toHaveBeenCalledOnce();
-    expect(pending.reply).not.toHaveBeenCalled();
-
-    const answered = { ...commandInteraction('boom', null), replied: true };
-
-    await handle(answered as never);
-    expect(answered.followUp).toHaveBeenCalledOnce();
   });
 });

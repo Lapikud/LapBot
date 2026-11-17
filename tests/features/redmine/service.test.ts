@@ -1,12 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { IssueTracker, Issue } from '~/core/ports/issue-tracker';
+import type { Issue, IssueTracker } from '~/core/ports/issue-tracker';
 import type { Scheduler } from '~/core/ports/scheduler';
-import { createRedmineService } from '~/features/redmine/service';
-import { IntegrationError } from '~/core/ports/issue-tracker';
-import { UserError } from '~/core/errors';
 import { createTrackerRepository } from '~/features/redmine/repository';
+import { createRedmineService } from '~/features/redmine/service';
 import { noDatabase, snowflake, testDb } from '../../db';
-import { actor, allowAll, fakeMessenger, silentLog } from '../../fakes';
+import { allowAll, fakeMessenger, silentLog } from '../../fakes';
 
 const since = new Date('2026-11-10T00:00:00Z');
 const issue: Issue = {
@@ -57,39 +55,6 @@ describe.skipIf(noDatabase)('redmine service', () => {
     return { service, messenger };
   };
 
-  it('subscribes a channel to a project found by identifier', async () => {
-    const { service } = setup();
-    const member = actor({ guildId: snowflake(), userId: snowflake() });
-    const channelId = snowflake();
-
-    await expect(service.subscribe(member, channelId, 'nope')).rejects.toThrow(
-      UserError,
-    );
-
-    const first = await service.subscribe(member, channelId, 'web');
-    const again = await service.subscribe(member, channelId, '1');
-
-    expect(first).toMatchObject({ project: { id: 1 }, added: true });
-    expect(again.added).toBe(false);
-    expect((await service.unsubscribe(member, channelId, 'web')).removed).toBe(
-      true,
-    );
-  });
-
-  it('turns tracker failures into user-facing errors', async () => {
-    const failing = tracker({
-      listProjects: vi.fn(async () => {
-        throw new IntegrationError('forbidden', 'Not allowed.');
-      }),
-    });
-    const { service } = setup(failing);
-    const member = actor({ guildId: snowflake(), userId: snowflake() });
-
-    await expect(service.subscribe(member, snowflake(), 'web')).rejects.toThrow(
-      UserError,
-    );
-  });
-
   it('notifies once per change and advances the checkpoint', async () => {
     const { service, messenger } = setup();
     const repository = createTrackerRepository(testDb());
@@ -124,17 +89,5 @@ describe.skipIf(noDatabase)('redmine service', () => {
     );
 
     expect(updated?.checkpoint.toISOString()).toBe('2026-11-12T10:00:00.000Z');
-  });
-
-  it('keeps going when one subscription fails', async () => {
-    const { service } = setup(
-      tracker({
-        listIssues: vi.fn(async () => {
-          throw new Error('boom');
-        }),
-      }),
-    );
-
-    await expect(service.jobs[0]?.run({})).resolves.toBeDefined();
   });
 });

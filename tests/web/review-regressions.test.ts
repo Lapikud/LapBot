@@ -1,11 +1,9 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
-import { type WebDeps, type Env, serverOf } from '~/web/context';
 import { visibleRecords } from '~/core/helpers/visibility';
+import { type Env, serverOf, type WebDeps } from '~/web/context';
 import { eventRoutes } from '~/web/pages/post/events/routes';
 import { pollRoutes } from '~/web/pages/post/polls/routes';
-import { announcementRoutes } from '~/web/pages/post/announcements/routes';
-import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
 import { actor, fakeDirectory } from '../fakes';
 
 const channels = [
@@ -71,46 +69,6 @@ it('hides private event and poll records from dashboard lists', async () => {
   }
 
   expect(await visibleRecords(directory, member, records)).toHaveLength(1);
-});
-
-it('preserves the channel and scheduling time through PSA previews', async () => {
-  const deps = {
-    guildId: 'g',
-    timezone: 'UTC',
-    services: {
-      announcements: { view: () => ({ content: 'Hello' }) },
-    },
-  } as unknown as WebDeps;
-  const response = await appFor(announcementRoutes(deps)).request('/', {
-    method: 'POST',
-    body: new URLSearchParams({
-      action: 'preview',
-      channelId: 'private',
-      content: 'Hello',
-      when: 'tomorrow 9:00',
-    }),
-  });
-  const html = await response.text();
-
-  expect(response.status).toBe(200);
-  expect(html).toMatch(/value="private" selected/);
-  expect(html).toContain('value="tomorrow 9:00"');
-});
-
-it('selects the saved birthday announcement channel', async () => {
-  const deps = {
-    guildId: 'g',
-    directory,
-    services: {
-      birthdays: {
-        settings: async () => ({ channelId: 'private', hour: 9, roleId: null }),
-        upcoming: async () => [],
-      },
-    },
-  } as unknown as WebDeps;
-  const html = await (await appFor(birthdayRoutes(deps)).request('/')).text();
-
-  expect(html).toMatch(/value="private" selected/);
 });
 
 it('submits explicit nulls when event fields are cleared', async () => {

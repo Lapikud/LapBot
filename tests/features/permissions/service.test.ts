@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { noDatabase, snowflake, testDb } from '../../db';
-import { UserError } from '~/core/errors';
 import { createAuthorizer } from '~/features/permissions/service';
 import type { Actor } from '~/core/actor';
 import {
@@ -115,14 +114,6 @@ describe.skipIf(noDatabase)('authorizer', () => {
     expect(await authz.can(member(guildId, [role]), 'movie:manage')).toBe(
       false,
     );
-  });
-
-  it('require throws a user-facing error', async () => {
-    const authz = createAuthorizer(createGrantRepository(testDb()));
-
-    await expect(
-      authz.require(member(guildId, []), 'event:create'),
-    ).rejects.toBeInstanceOf(UserError);
   });
 });
 

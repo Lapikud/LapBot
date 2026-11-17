@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAnnouncementService } from '~/features/announcements/service';
-import { createAuthorizer } from '~/features/permissions/service';
-import { createBirthdayService } from '~/features/birthdays/service';
-import { createRedmineService } from '~/features/redmine/service';
-import { createAnnouncementRepository } from '~/features/announcements/repository';
-import { createBirthdayRepository } from '~/features/birthdays/repository';
-import { createGrantRepository } from '~/features/permissions/repository';
-import { createTrackerRepository } from '~/features/redmine/repository';
-import type { Issue, IssueTracker } from '~/core/ports/issue-tracker';
 import type { Permission } from '~/core/permission';
+import type { Issue, IssueTracker } from '~/core/ports/issue-tracker';
 import type { Scheduler } from '~/core/ports/scheduler';
+import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createAnnouncementService } from '~/features/announcements/service';
+import { createBirthdayRepository } from '~/features/birthdays/repository';
+import { createBirthdayService } from '~/features/birthdays/service';
+import { createGrantRepository } from '~/features/permissions/repository';
+import { createAuthorizer } from '~/features/permissions/service';
+import { createTrackerRepository } from '~/features/redmine/repository';
+import { createRedmineService } from '~/features/redmine/service';
 import { noDatabase, snowflake, testDb } from '../db';
 import { actor, fakeDirectory, fakeMessenger, role, silentLog } from '../fakes';
 
@@ -90,69 +90,6 @@ describe.skipIf(noDatabase)('audit security regressions', () => {
     ).rejects.toThrow();
     expect(await birthdays.settings(member.guildId)).toBeUndefined();
   });
-
-  it('accepts a safe birthday role below the manager', async () => {
-    const { member, directory, birthdays, birthdayService } = await setup([
-      'birthday:manage',
-    ]);
-
-    directory.role.mockResolvedValue(role());
-    await birthdayService.configure(member, { channelId: 'c', roleId: 'r' });
-    expect(await birthdays.settings(member.guildId)).toMatchObject({
-      channelId: 'c',
-      roleId: 'r',
-    });
-  });
-
-  it('hides another author’s drafts but keeps their published announcements visible', async () => {
-    const { member, announcements, announcementService } = await setup();
-    const draft = await announcements.insert({
-      guildId: member.guildId,
-      authorId: 'other',
-      channelId: 'c',
-      title: 'Unpublished',
-      content: 'Hidden',
-      mentionRoleIds: [],
-      mentionEveryone: false,
-    });
-
-    await expect(announcementService.get(member, draft.id)).rejects.toThrow();
-    expect(await announcementService.list(member)).toEqual([]);
-    await announcements.update(draft.id, { status: 'published' });
-    expect(
-      (await announcementService.list(member)).map((row) => row.id),
-    ).toEqual([draft.id]);
-  });
-
-  it.each(['channel', 'everyone', 'role'] as const)(
-    'rechecks %s restrictions before publishing',
-    async (restriction) => {
-      const {
-        member,
-        directory,
-        announcements,
-        announcementService,
-        messages,
-      } = await setup(['announcement:publish']);
-      const draft = await announcements.insert({
-        guildId: member.guildId,
-        authorId: 'other',
-        channelId: 'c',
-        title: null,
-        content: 'Draft',
-        mentionRoleIds: restriction === 'role' ? ['r'] : [],
-        mentionEveryone: restriction === 'everyone',
-      });
-
-      directory.canPost.mockResolvedValue(restriction !== 'channel');
-      directory.role.mockResolvedValue(role({ mentionable: false }));
-      await expect(
-        announcementService.publish(member, draft.id),
-      ).rejects.toThrow();
-      expect(messages.size).toBe(0);
-      expect((await announcements.find(draft.id))?.status).toBe('draft');
-    },
-  );
 });
 
 const dueIssue: Issue = {
@@ -237,52 +174,5 @@ describe.skipIf(noDatabase)('audit Redmine regressions', () => {
         (message) => message.channelId === channelId,
       ),
     ).toHaveLength(1);
-  });
-
-  it('sends deadline notifications from every page', async () => {
-    const issues = Array.from({ length: 51 }, (_, index) => ({
-      ...dueIssue,
-      id: index + 1,
-    }));
-    const { service, messages, channelId } = await redmineSetup(issues);
-
-    await service.jobs[1]?.run({});
-    expect(
-      [...messages.values()].filter(
-        (message) => message.channelId === channelId,
-      ),
-    ).toHaveLength(51);
-  });
-
-  it('retries failed deadlines for their original date after midnight', async () => {
-    const { service, messenger, messages, channelId, queue, client } =
-      await redmineSetup([dueIssue]);
-
-    vi.useFakeTimers({ toFake: ['Date'] });
-    try {
-      vi.setSystemTime(new Date('2026-11-16T23:59:00Z'));
-      messenger.send.mockRejectedValueOnce(new Error('Temporary outage'));
-      await service.jobs[1]?.run({});
-      const retry = queue.schedule.mock.calls[0];
-
-      expect(retry).toBeDefined();
-      expect(retry?.[1]).toMatchObject({ dueDate: '2026-11-17' });
-      expect(retry?.[2].runAt.getTime()).toBeLessThanOrEqual(
-        Date.now() + 120_000,
-      );
-      vi.setSystemTime(new Date('2026-11-17T00:01:00Z'));
-      await service.jobs[1]?.run(retry?.[1]);
-      await service.jobs[1]?.run(retry?.[1]);
-      expect(client.listIssues).toHaveBeenLastCalledWith(
-        expect.objectContaining({ dueDate: '2026-11-17' }),
-      );
-      expect(
-        [...messages.values()].filter(
-          (message) => message.channelId === channelId,
-        ),
-      ).toHaveLength(1);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });

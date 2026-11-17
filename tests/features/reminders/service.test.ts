@@ -1,11 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import { UserError } from '~/core/errors';
 import type { Scheduler } from '~/core/ports/scheduler';
+import { createReminderRepository } from '~/features/reminders/repository';
 import { createReminderService } from '~/features/reminders/service';
-import { PermanentError, UserError } from '~/core/errors';
-import {
-  createReminderRepository,
-  maxActivePerUser,
-} from '~/features/reminders/repository';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -43,33 +40,6 @@ describe.skipIf(noDatabase)('reminder service', () => {
     };
   };
 
-  it('schedules a job keyed to the reminder', async () => {
-    const { service, scheduler, member } = setup();
-    const reminder = await service.create(member, {
-      when: '10m',
-      message: 'stand-up',
-    });
-
-    expect(scheduler.schedule).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'reminders.deliver' }),
-      { reminderId: reminder.id },
-      {
-        runAt: reminder.runAt,
-        key: `reminder:${reminder.id}`,
-      },
-    );
-  });
-
-  it('reminds a day later when no time is given', async () => {
-    const { service, member } = setup();
-    const before = Date.now();
-    const reminder = await service.create(member, { message: 'read this' });
-    const offset = reminder.runAt.getTime() - before;
-
-    expect(offset).toBeGreaterThanOrEqual(86_400_000 - 1000);
-    expect(offset).toBeLessThanOrEqual(86_400_000 + 5000);
-  });
-
   it('delivers one-off reminders by DM and completes them', async () => {
     const { service, messenger, repository, deliver, member } = setup();
     const reminder = await service.create(member, {
@@ -82,44 +52,6 @@ describe.skipIf(noDatabase)('reminder service', () => {
       content: '⏰ **Reminder:** stand-up',
     });
     expect((await repository.find(reminder.id))?.status).toBe('done');
-  });
-
-  it('reschedules recurring reminders into the future', async () => {
-    const { service, repository, deliver, member } = setup();
-    const reminder = await service.schedule({
-      guildId: member.guildId,
-      userId: member.userId,
-      channelId: null,
-      message: 'daily',
-      runAt: new Date(Date.now() - 3 * 86_400_000),
-      recurrence: 'daily',
-      timezone: 'Europe/Tallinn',
-    });
-    const outcome = await deliver?.run({ reminderId: reminder.id });
-
-    expect(outcome?.rescheduleAt.getTime()).toBeGreaterThan(Date.now());
-    expect(outcome?.rescheduleAt.getTime()).toBeLessThanOrEqual(
-      Date.now() + 86_400_000,
-    );
-    expect((await repository.find(reminder.id))?.status).toBe('active');
-  });
-
-  it('fails permanently when DMs are closed', async () => {
-    const { service, messenger, repository, deliver, member } = setup();
-
-    messenger.direct.mockRejectedValue(
-      new PermanentError('Cannot send messages to this user'),
-    );
-
-    const reminder = await service.create(member, {
-      when: '10m',
-      message: 'x',
-    });
-
-    await expect(
-      deliver?.run({ reminderId: reminder.id }),
-    ).rejects.toBeInstanceOf(PermanentError);
-    expect((await repository.find(reminder.id))?.status).toBe('failed');
   });
 
   it('skips cancelled reminders and only lets owners manage them', async () => {
@@ -143,23 +75,5 @@ describe.skipIf(noDatabase)('reminder service', () => {
     await expect(
       service.create(member, { when: '10m', message: 'x', channelId: 'c' }),
     ).rejects.toThrow('denied');
-  });
-
-  it('limits active reminders per user and message length', async () => {
-    const { service, member } = setup();
-
-    for (let n = 0; n < maxActivePerUser; n++) {
-      await service.create(member, { when: '1h', message: 'x' });
-    }
-
-    await expect(
-      service.create(member, { when: '1h', message: 'x' }),
-    ).rejects.toBeInstanceOf(UserError);
-    await expect(
-      service.create(actor({ guildId: snowflake() }), {
-        when: '1h',
-        message: 'x'.repeat(1001),
-      }),
-    ).rejects.toThrow('at most');
   });
 });

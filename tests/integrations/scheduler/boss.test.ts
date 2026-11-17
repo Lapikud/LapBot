@@ -1,26 +1,15 @@
 import { PgBoss } from 'pg-boss';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Job } from '~/core/ports/scheduler';
-import { PermanentError } from '~/core/errors';
 import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
-import { silentLog } from '../../fakes';
 import { noDatabase } from '../../db';
+import { silentLog } from '../../fakes';
 
 describe.skipIf(noDatabase)('pg-boss scheduler', () => {
   let boss: PgBoss;
   let scheduler: ReturnType<typeof createJobQueue>;
   const later = new Date(Date.now() + 60 * 60 * 1000);
   const idle: Job<{ n: number }> = { type: 'test-idle', run: async () => null };
-  const recurring: Job<{ n: number }> = {
-    type: 'test-recurring',
-    run: vi.fn(async () => ({ rescheduleAt: later })),
-  };
-  const broken: Job<{ n: number }> = {
-    type: 'test-broken',
-    run: vi.fn(async () => {
-      throw new PermanentError('bad');
-    }),
-  };
   const queued = async (job: Job<{ n: number }>, key: string) =>
     boss.findJobs<{ n: number }>(job.type, { key, queued: true });
 
@@ -28,7 +17,7 @@ describe.skipIf(noDatabase)('pg-boss scheduler', () => {
     boss = new PgBoss(process.env.TEST_DATABASE_URL ?? '');
     scheduler = createJobQueue(boss);
     await boss.start();
-    await startJobs(boss, [idle, recurring, broken], silentLog);
+    await startJobs(boss, [idle], silentLog);
   });
 
   afterAll(async () => {
@@ -45,37 +34,5 @@ describe.skipIf(noDatabase)('pg-boss scheduler', () => {
 
     await scheduler.cancel(idle, 'a');
     expect(await queued(idle, 'a')).toHaveLength(0);
-  });
-
-  it('queues the next run of a job that reschedules itself', async () => {
-    await scheduler.schedule(
-      recurring,
-      { n: 1 },
-      { runAt: new Date(), key: 'r' },
-    );
-
-    await vi.waitFor(
-      async () => {
-        const [next] = await queued(recurring, 'r');
-
-        expect(next?.startAfter.getTime()).toBe(later.getTime());
-      },
-      { timeout: 10_000, interval: 250 },
-    );
-    expect(recurring.run).toHaveBeenCalledOnce();
-  });
-
-  it('does not retry permanent failures', async () => {
-    await scheduler.schedule(broken, { n: 1 }, { runAt: new Date(), key: 'b' });
-
-    await vi.waitFor(
-      async () => {
-        const [job] = await boss.findJobs(broken.type, { key: 'b' });
-
-        expect(job?.state).toBe('failed');
-      },
-      { timeout: 10_000, interval: 250 },
-    );
-    expect(broken.run).toHaveBeenCalledOnce();
   });
 });

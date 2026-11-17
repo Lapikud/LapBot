@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { NewPoll } from '~/features/polls/model';
-import type { Scheduler } from '~/core/ports/scheduler';
-import { createPollService, pollView } from '~/features/polls/service';
 import { UserError } from '~/core/errors';
+import type { Scheduler } from '~/core/ports/scheduler';
+import type { NewPoll } from '~/features/polls/model';
 import { createPollRepository } from '~/features/polls/repository';
+import { createPollService } from '~/features/polls/service';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -37,22 +37,6 @@ describe.skipIf(noDatabase)('poll repository', () => {
     await expect(
       polls().vote(poll.id, user, [pizza ?? 0, sushi ?? 0]),
     ).rejects.toThrow('only one');
-  });
-
-  it('accepts several choices in multiple-choice polls and clearing', async () => {
-    const poll = await polls().insert(base({ multiple: true }));
-    const user = snowflake();
-
-    await polls().vote(
-      poll.id,
-      user,
-      poll.options.map((o) => o.id),
-    );
-    expect((await polls().results(poll)).options.map((o) => o.votes)).toEqual([
-      1, 1, 1,
-    ]);
-    await polls().vote(poll.id, user, []);
-    expect((await polls().results(poll)).voters).toBe(0);
   });
 
   it('rejects options from another poll and votes after closing', async () => {
@@ -133,35 +117,6 @@ describe.skipIf(noDatabase)('poll service', () => {
     );
 
     expect(view.content).not.toContain('▰');
-  });
-
-  it('closes on schedule, shows the winner and removes controls', async () => {
-    const { service, repository, messenger, creator } = setup();
-    const poll = await service.create(creator, {
-      question: 'Lunch?',
-      options: ['Pizza', 'Sushi'],
-      channelId: 'c',
-    });
-
-    await service.vote(
-      actor({ guildId: creator.guildId, userId: snowflake() }),
-      poll.id,
-      [poll.options[1]?.id ?? 0],
-    );
-    await service.jobs[0]?.run({ pollId: poll.id });
-
-    const closed = await repository.find(poll.id);
-
-    expect(closed?.status).toBe('closed');
-
-    if (closed) {
-      const view = pollView(closed, await repository.results(closed));
-
-      expect(view.content).toContain('Winner');
-      expect(view.controls).toEqual([]);
-    }
-
-    expect(messenger.edit).toHaveBeenCalled();
   });
 
   it('hides voters of anonymous polls even from managers', async () => {

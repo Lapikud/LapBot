@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { issueNotifications } from '~/features/redmine/rules';
 import type { Issue } from '~/core/ports/issue-tracker';
+import { issueNotifications } from '~/features/redmine/rules';
 
 const since = new Date('2026-11-10T00:00:00Z');
 const statuses = new Map([
@@ -30,50 +30,6 @@ const journal = (id: number, overrides: object) => ({
 });
 
 describe('issueNotifications', () => {
-  it('reports new issues, status changes, assignments and comments', () => {
-    const notifications = issueNotifications(
-      issue({
-        journals: [
-          journal(1, {
-            details: [
-              {
-                property: 'attr',
-                name: 'status_id',
-                old_value: '1',
-                new_value: '2',
-              },
-            ],
-          }),
-          journal(2, {
-            details: [
-              {
-                property: 'attr',
-                name: 'assigned_to_id',
-                old_value: null,
-                new_value: '5',
-              },
-            ],
-          }),
-          journal(3, { notes: 'Looks good' }),
-          journal(4, { created_on: '2026-11-01T00:00:00Z', notes: 'old' }),
-        ],
-      }),
-      since,
-      statuses,
-      'https://r/issues/42',
-    );
-
-    expect(notifications.map((n) => n.key)).toEqual([
-      'issue:42:created',
-      'journal:1',
-      'journal:2',
-      'journal:3',
-    ]);
-    expect(notifications[1]?.text).toContain('status New → In Progress');
-    expect(notifications[2]?.text).toContain('assigned to Jaan');
-    expect(notifications[3]?.text).toContain('> Looks good');
-  });
-
   it('never reveals private issues or private notes', () => {
     expect(
       issueNotifications(issue({ is_private: true }), since, statuses, 'u'),

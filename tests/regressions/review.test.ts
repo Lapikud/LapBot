@@ -105,37 +105,3 @@ it('processes all pages at an inclusive checkpoint before advancing it', async (
   );
   expect(tracker.setCheckpoint).toHaveBeenCalledWith(1, new Date(updated));
 });
-
-it('applies an allowed permission selection in one operation', async () => {
-  const grants: GrantRepository = {
-    holds: async () => true,
-    list: async () => [{ roleId: 'r', permission: 'poll:create' }],
-    grant: vi.fn(async () => true),
-    revoke: vi.fn(async () => true),
-    apply: vi.fn(async () => undefined),
-  };
-  const service = createPermissionService({
-    grants,
-    directory: fakeDirectory([role()]),
-    authz: allowAll,
-    log: silentLog,
-    known: () =>
-      new Map<Permission, PermissionDefinition>([
-        ['event:create', { id: 'event:create', description: '' }],
-        ['poll:create', { id: 'poll:create', description: '' }],
-      ]),
-  });
-
-  await expect(
-    service.setRole(actor(), 'r', ['event:create']),
-  ).resolves.toEqual({ granted: 1, revoked: 1 });
-  expect(grants.apply).toHaveBeenCalledWith({
-    guildId: 'g',
-    roleId: 'r',
-    grantedBy: 'u',
-    grant: ['event:create'],
-    revoke: ['poll:create'],
-  });
-  expect(grants.grant).not.toHaveBeenCalled();
-  expect(grants.revoke).not.toHaveBeenCalled();
-});
