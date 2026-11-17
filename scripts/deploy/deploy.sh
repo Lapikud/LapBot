@@ -80,8 +80,8 @@ switch_to() {
 
 restart_service() {
   started=$(date '+%Y-%m-%d %H:%M:%S')
-  sudo systemctl restart "$service"
-  echo "service: restarted $service"
+  readlink current > .restart
+  echo "service: requested a restart of $service"
 }
 
 wait_for_ready() {

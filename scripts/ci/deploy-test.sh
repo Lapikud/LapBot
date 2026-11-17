@@ -23,7 +23,6 @@ main() {
 make_stubs() {
   mkdir "$work/bin"
   stub pnpm 'echo "pnpm $*"; [[ "$1" != build || -z "${FAIL_BUILD:-}" ]]'
-  stub sudo 'echo "$*" >> "$STUB_LOG"'
   stub systemctl '[[ -z "${FAIL_HEALTH:-}" ]]'
   stub journalctl '[[ -n "${FAIL_HEALTH:-}" ]] || echo '"'"'{"level":30,"msg":"Ready"}'"'"
   stub sleep 'true'
@@ -49,7 +48,7 @@ make_root() {
 
 deploy() {
   command sleep 1
-  env PATH="$work/bin:$PATH" LAPBOT_ROOT="$work/root" LAPBOT_READY_TIMEOUT=3 STUB_LOG="$work/sudo.log" "$@" \
+  env PATH="$work/bin:$PATH" LAPBOT_ROOT="$work/root" LAPBOT_READY_TIMEOUT=3 "$@" \
     bash "$deploy_script" > "$work/out.log" 2>&1
 }
 
@@ -69,6 +68,7 @@ test_first_deploy() {
   [[ -f "$work/root/current/package.json" ]] || fail "current has no app"
   expect_equal "$(readlink "$work/root/current/.env")" "$work/root/.env" "release links .env"
   expect_equal "$(readlink "$work/root/current/logs")" "$work/root/logs" "release links logs"
+  expect_equal "$(cat "$work/root/.restart")" "$(readlink "$work/root/current")" "restart requested"
   expect_equal "$(release_count)" "1" "releases after first deploy"
   pass "first deploy"
 }
@@ -87,7 +87,6 @@ test_keeps_three_releases() {
 test_failed_startup_rolls_back() {
   local before
   before=$(readlink "$work/root/current")
-  : > "$work/sudo.log"
 
   if deploy FAIL_HEALTH=1; then
     fail "deploy passed although the bot never became ready"
@@ -95,14 +94,15 @@ test_failed_startup_rolls_back() {
 
   expect_equal "$(readlink "$work/root/current")" "$before" "current after rollback"
   expect_equal "$(release_count)" "3" "releases after rollback"
-  expect_equal "$(grep -c 'systemctl restart' "$work/sudo.log")" "2" "restarts (new, then previous)"
+  expect_equal "$(cat "$work/root/.restart")" "$before" "restart requested for the previous release"
+  grep -q "requested a restart" "$work/out.log" || fail "no restart requested"
   pass "failed startup rolls back"
 }
 
 test_failed_build_changes_nothing() {
   local before
   before=$(readlink "$work/root/current")
-  : > "$work/sudo.log"
+  rm -f "$work/root/.restart"
 
   if deploy FAIL_BUILD=1; then
     fail "deploy passed with a failing build"
@@ -110,7 +110,7 @@ test_failed_build_changes_nothing() {
 
   expect_equal "$(readlink "$work/root/current")" "$before" "current after failed build"
   expect_equal "$(release_count)" "3" "releases after failed build"
-  [[ ! -s "$work/sudo.log" ]] || fail "service restarted after a failed build"
+  [[ ! -e "$work/root/.restart" ]] || fail "restart requested after a failed build"
   pass "failed build changes nothing"
 }
 

@@ -87,10 +87,10 @@ As root, with PostgreSQL running:
 2. Create the user and checkout:
 
    ```sh
-   useradd --system --create-home --shell /bin/bash lapbot
+   useradd --system --create-home --shell /usr/sbin/nologin lapbot
    usermod -aG systemd-journal lapbot
    install -d -o lapbot -g lapbot /opt/lapbot
-   sudo -u lapbot git clone https://git.lapikud.ee/<owner>/lapbot.git /opt/lapbot/repo
+   runuser -u lapbot -- git clone https://git.lapikud.ee/<owner>/lapbot.git /opt/lapbot/repo
    ```
 
 3. Write `/opt/lapbot/.env` (owner `lapbot`, mode `600`).
@@ -114,21 +114,40 @@ As root, with PostgreSQL running:
    WantedBy=multi-user.target
    ```
 
-   ```sh
-   systemctl daemon-reload && systemctl enable lapbot
-   echo 'lapbot ALL=(root) NOPASSWD: /usr/bin/systemctl restart lapbot' > /etc/sudoers.d/lapbot
-   chmod 440 /etc/sudoers.d/lapbot
+5. Add the restart trigger, since `lapbot` has no sudo.
+   `/etc/systemd/system/lapbot-restart.path`:
+
+   ```ini
+   [Path]
+   PathModified=/opt/lapbot/.restart
+
+   [Install]
+   WantedBy=multi-user.target
    ```
 
-5. Deploy once: `sudo -u lapbot /opt/lapbot/repo/scripts/deploy/deploy.sh`.
-6. Register the runner and run `act_runner daemon` as `lapbot`:
+   `/etc/systemd/system/lapbot-restart.service`:
+
+   ```ini
+   [Service]
+   Type=oneshot
+   ExecStart=/usr/bin/systemctl restart lapbot
+   ```
 
    ```sh
-   cd /home/lapbot && sudo -u lapbot act_runner register --no-interactive \
+   systemctl daemon-reload
+   systemctl enable lapbot
+   systemctl enable --now lapbot-restart.path
+   ```
+
+6. Deploy once: `runuser -u lapbot -- /opt/lapbot/repo/scripts/deploy/deploy.sh`.
+7. Register the runner and run `act_runner daemon` as `lapbot`:
+
+   ```sh
+   cd /home/lapbot && runuser -u lapbot -- act_runner register --no-interactive \
      --instance https://git.lapikud.ee --token <token> --name lapbot-lxc --labels lapbot:host
    ```
 
-7. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
+8. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
    `https://<user>:<token>@git.lapikud.ee/<owner>/lapbot.git`.
 
 Logs: `journalctl -u lapbot`. Back up the database and `/opt/lapbot/logs`.
