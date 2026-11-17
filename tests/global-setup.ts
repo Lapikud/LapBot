@@ -10,6 +10,28 @@ export default async function setup(): Promise<void> {
     return;
   }
 
+  const target = new URL(url);
+  const databaseName = decodeURIComponent(target.pathname.slice(1));
+  const application = process.env.DATABASE_URL;
+
+  if (!databaseName.endsWith('_test')) {
+    throw new Error('TEST_DATABASE_URL database name must end in _test.');
+  }
+
+  if (application !== undefined && application !== '') {
+    const live = new URL(application);
+
+    if (
+      target.hostname === live.hostname &&
+      (target.port || '5432') === (live.port || '5432') &&
+      databaseName === decodeURIComponent(live.pathname.slice(1))
+    ) {
+      throw new Error(
+        'TEST_DATABASE_URL must not target the application database.',
+      );
+    }
+  }
+
   const sql = postgres(url, { onnotice: () => null });
 
   await sql`DROP SCHEMA IF EXISTS public CASCADE`;
