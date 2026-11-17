@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Calendar } from '~/core/calendar';
-import type { Scheduler } from '~/core/scheduler';
+import type { Calendar } from '~/core/ports/calendar';
+import type { Scheduler } from '~/core/ports/scheduler';
 import {
   createEventService,
   parseReminderMinutes,

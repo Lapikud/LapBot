@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { issueNotifications } from '~/features/redmine/rules';
-import type { Issue } from '~/integrations/redmine/model';
+import type { Issue } from '~/core/ports/issue-tracker';
 
 const since = new Date('2026-11-10T00:00:00Z');
 const statuses = new Map([

@@ -1,17 +1,6 @@
-import type { Actor } from './actor';
-import { UserError } from './errors';
-
-export type RoleInfo = {
-  id: string;
-  name: string;
-  position: number;
-  everyone: boolean;
-  managed: boolean;
-  mentionable: boolean;
-  moderator: boolean;
-  administrator: boolean;
-  botCanAssign: boolean;
-};
+import type { Actor } from '~/core/actor';
+import { UserError } from '~/core/errors';
+import type { RoleInfo } from '~/core/ports/directory';
 
 export function selfAssignProblem(role: RoleInfo): string | undefined {
   if (role.everyone) {

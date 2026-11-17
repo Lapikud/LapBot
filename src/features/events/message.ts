@@ -4,7 +4,7 @@ import {
   userMention,
   type Message,
 } from '~/core/message';
-import { discordTime, sameCalendarDay } from '~/core/time';
+import { discordTime, sameCalendarDay } from '~/core/helpers/time';
 import {
   rsvpStatuses,
   type Event,

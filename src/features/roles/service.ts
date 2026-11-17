@@ -1,11 +1,11 @@
-import { selfAssignProblem } from '~/core/roles';
+import { selfAssignProblem } from '~/core/helpers/roles';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import type { Directory } from '~/core/directory';
-import type { Logger } from '~/core/logger';
-import type { Messenger } from '~/core/messenger';
+import type { Directory } from '~/core/ports/directory';
+import type { Logger } from '~/core/ports/logger';
+import type { Messenger } from '~/core/ports/messenger';
 import type { RolePanelRepository, PanelRole, RolePanel } from './model';
-import { sequential } from '~/core/async';
+import { sequential } from '~/core/helpers/async';
 
 export const legacyMessage =
   'Valige endale rolli:\n1 - Tarkvara\n2 - Helpdesk\n3 - Kultuur';

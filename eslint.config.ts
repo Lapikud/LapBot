@@ -444,7 +444,10 @@ export default defineConfig(
   },
 
   {
-    files: ['src/core/async.ts', 'src/integrations/scheduler/runner.ts'],
+    files: [
+      'src/core/helpers/async.ts',
+      'src/integrations/scheduler/runner.ts',
+    ],
     rules: { 'no-await-in-loop': 'off' },
   },
 

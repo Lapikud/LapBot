@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { IssueTracker } from '~/integrations/redmine/contract';
-import type { Scheduler } from '~/core/scheduler';
+import type { IssueTracker, Issue } from '~/core/ports/issue-tracker';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { createRedmineService } from '~/features/redmine/service';
-import { IntegrationError, type Issue } from '~/integrations/redmine/model';
+import { IntegrationError } from '~/core/ports/issue-tracker';
 import { UserError } from '~/core/errors';
 import { createTrackerRepository } from '~/features/redmine/repository';
 import { noDatabase, snowflake, testDb } from '../../db';

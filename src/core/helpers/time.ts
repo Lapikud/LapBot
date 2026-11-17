@@ -8,7 +8,7 @@ import {
   parse,
   set,
 } from 'date-fns';
-import { UserError } from './errors';
+import { UserError } from '~/core/errors';
 
 const unitMs: Partial<Record<string, number>> = {
   w: 604_800_000,

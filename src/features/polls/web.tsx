@@ -1,7 +1,7 @@
 import { Input, Select, Textarea } from '~/core/ui/controls';
 import { ActionButton } from '~/core/ui/actions';
 import { Checkbox } from '~/core/ui/choices';
-import { visibleRecords } from '~/core/visibility';
+import { visibleRecords } from '~/core/helpers/visibility';
 import { Hono } from 'hono';
 import { UserError } from '~/core/errors';
 import {

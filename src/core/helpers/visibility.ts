@@ -1,5 +1,5 @@
-import type { Directory } from './directory';
-import type { Actor } from './actor';
+import type { Directory } from '~/core/ports/directory';
+import type { Actor } from '~/core/actor';
 
 export async function visibleRecords<T extends { channelId: string }>(
   directory: Directory,

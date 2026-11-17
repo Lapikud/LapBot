@@ -1,6 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Job } from '~/core/scheduler';
+import type { Job } from '~/core/ports/scheduler';
 import { PermanentError } from '~/core/errors';
 import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
 import { silentLog } from '../../fakes';

@@ -1,24 +1,6 @@
 import type { z } from 'zod';
-import { PermanentError } from './errors';
-
-export type JobOutcome = null | { rescheduleAt: Date };
-
-export type Job<P> = {
-  type: string;
-  run: (raw: unknown) => Promise<JobOutcome>;
-  payloadType?: P;
-};
-
-export type ScheduleOptions = { runAt: Date; key: string };
-
-export type Scheduler = {
-  schedule: <P extends object>(
-    job: Job<P>,
-    payload: P,
-    options: ScheduleOptions,
-  ) => Promise<void>;
-  cancel: <P>(job: Job<P>, key: string) => Promise<void>;
-};
+import { PermanentError } from '~/core/errors';
+import type { Job, JobOutcome } from '~/core/ports/scheduler';
 
 export function defineJob<S extends z.ZodType>(definition: {
   type: string;

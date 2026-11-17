@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Calendar } from '~/core/calendar';
-import type { MovieCatalog } from '~/integrations/tmdb/contract';
-import type { Scheduler } from '~/core/scheduler';
+import type { Calendar } from '~/core/ports/calendar';
+import type { MovieCatalog } from '~/core/ports/movie-catalog';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { createEventService } from '~/features/events/service';
 import { createMovieService } from '~/features/movies/service';
 import { createPollService } from '~/features/polls/service';

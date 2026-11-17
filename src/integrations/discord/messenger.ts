@@ -4,7 +4,7 @@ import {
   type GuildTextBasedChannel,
 } from 'discord.js';
 import { PermanentError, UserError } from '~/core/errors';
-import type { Messenger } from '~/core/messenger';
+import type { Messenger } from '~/core/ports/messenger';
 import { permanent, isUnknownObject } from './errors';
 import { render } from './render';
 

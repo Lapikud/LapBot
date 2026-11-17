@@ -1,5 +1,5 @@
-import type { Directory } from '~/core/directory';
-import { visibleRecords } from '~/core/visibility';
+import type { Directory } from '~/core/ports/directory';
+import { visibleRecords } from '~/core/helpers/visibility';
 import {
   ChannelType,
   InteractionContextType,

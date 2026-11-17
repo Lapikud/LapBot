@@ -5,7 +5,7 @@ import {
   nextOccurrence,
   parseFutureWhen,
   parseWhen,
-} from '~/core/time';
+} from '~/core/helpers/time';
 
 const zone = 'Europe/Tallinn';
 const now = new Date('2026-03-10T10:00:00Z');

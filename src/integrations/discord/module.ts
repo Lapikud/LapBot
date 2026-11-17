@@ -10,8 +10,8 @@ import type {
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from 'discord.js';
-import type { Logger } from '~/core/logger';
-import type { Authorizer } from '~/core/authorization';
+import type { Logger } from '~/core/ports/logger';
+import type { Authorizer } from '~/core/ports/authorization';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 
 export type AppContext = {

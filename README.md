@@ -237,9 +237,10 @@ src/
     forms/                 semantic fields and submission validation
     posts.ts               content, heading, explicit mentions, pure rendering
     message.ts             transport-neutral message values and controls
-    actor.ts, roles.ts, permission.ts, time.ts, errors.ts
-    authorization.ts, directory.ts, messenger.ts, calendar.ts
-    scheduler.ts, clock.ts, logger.ts, async.ts
+    actor.ts, permission.ts, errors.ts
+    helpers/               time, async, authorization, roles, visibility, jobs, clock
+    ports/                 authorization, directory, messaging, calendar, clock,
+                           logging, scheduling, movie catalog, issue tracker
     ui/                    accessible HTML controls and actions
   features/
     birthdays/             model.ts, rules.ts, form.ts, service.ts,
@@ -251,8 +252,8 @@ src/
     db/client.ts           connection and migrations
     discord/               SDK, messaging, directory, calendar, routing
     web/                   HTTP host, sign-in, layout, context and selectors
-    tmdb/                  catalog contract and provider client
-    redmine/               issue tracker contract, provider data and client
+    tmdb/                  catalog provider client
+    redmine/               issue tracker provider client
     scheduler/, logging/
 tests/
   features/<name>/         feature rules, services and adapter tests
@@ -267,7 +268,7 @@ exist for actual responsibilities; there is no mandatory set to scaffold. Rules
 and input definitions are pure; services orchestrate; `repository.ts`, `table.ts`,
 `discord.ts`, and `web.tsx` are feature-owned adapters. All tests live under
 `tests/`: feature tests in `tests/features/<name>/`,
-primitive tests in `tests/core/`, and provider tests in `tests/integrations/`.
+primitive tests in `tests/core/` (helpers in `tests/core/helpers/`), and provider tests in `tests/integrations/`.
 Cross-feature regressions live in `tests/regressions/`.
 
 **Imports name their source.** Within a feature use `./model` or `./rules`;
@@ -278,7 +279,7 @@ repositories, platform adapters and credentials.
 **Dependency boundaries are linted at the file level.** Core code cannot
 import features or integrations. Feature models, rules, input definitions,
 renderers and services cannot import concrete adapters. They may depend on shared
-core capabilities and provider contracts. Only Discord adapters and the
+core helpers and ports. Only Discord adapters and the
 composition root use discord.js. Colocation grants no permission to reverse those
 dependencies.
 
@@ -342,8 +343,7 @@ permissions in the service.
 **Integrations implement capabilities.** The event feature maps its model into the
 Calendar contract; the Discord calendar adapter owns SDK payloads and limits.
 Events retain warning-and-continue synchronization behavior. TMDB and Redmine
-contracts live with their provider integrations and are injected into feature
-services. Movies explicitly compose poll and event services. Supporting several
+contracts live in `core/ports` and are injected into feature services. Movies explicitly compose poll and event services. Supporting several
 calendar destinations still requires persisted links and a separate migration;
 one injected Calendar does not provide simultaneous multi-calendar support.
 

@@ -1,5 +1,5 @@
 import { controlId, maxContentLength, type Message } from '~/core/message';
-import { discordTime } from '~/core/time';
+import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import { isPollOpen } from './rules';
 import type { NewPoll, Poll, PollResults, PollWithOptions } from './model';

@@ -89,3 +89,25 @@ same.
 Correction verified: all 238 tests passed across 42 files from tests/; typecheck,
 lint, formatting and production build passed. Confirmed no test/spec files in src
 and no remaining foundation imports in code or current README.
+
+## User correction: helper and port grouping
+
+Shared utility implementations are grouped in `src/core/helpers/`: async, time,
+visibility, role/permission checks, authorization guard, validated job definition
+and system clock. External capability contracts are grouped in `src/core/ports/`:
+authorization, calendar, clock, directory (including RoleInfo), logger, messenger,
+scheduler, movie catalog and issue tracker. The catalog/issue data types are
+owned by their ports; provider SDK implementations remain in integrations.
+Feature repository contracts remain local to feature models. Core's root retains
+shared actor, permission, error, message and post primitives; forms/UI retain their
+existing dedicated directories. Mixed contract/helper files have been separated.
+
+Separate pre-existing logging edits include malformed test syntax. Verification
+therefore runs against an isolated temporary copy of HEAD plus only this refactor;
+the working copy's logging changes are preserved and excluded from the commit.
+
+Helper/port correction verified in the clean copy: all 238 tests passed across
+42 files, plus typecheck, ESLint, formatting and production build. A SHA-1 Git
+blob comparison confirmed all 169 indexed source/test/script/config/README files
+match the verified copy. All 11 original logging edit bodies are preserved
+exactly in the working copy and excluded from the staged refactor.

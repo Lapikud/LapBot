@@ -1,4 +1,4 @@
-import { visibleRecords } from '~/core/visibility';
+import { visibleRecords } from '~/core/helpers/visibility';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';

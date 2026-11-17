@@ -12,7 +12,7 @@ import {
 import type { Announcement } from './model';
 import { maxAnnouncementLength, type AnnouncementService } from './service';
 import { channelMention, controlId, type Message } from '~/core/message';
-import { discordTime } from '~/core/time';
+import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { toActor } from '~/integrations/discord/actor';

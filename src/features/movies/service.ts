@@ -1,10 +1,11 @@
 import { maxOptionLength } from '~/features/polls/rules';
 import { movieLabel, movieLinks, validateLinks } from './rules';
-import { parseFutureWhen, parseWhen } from '~/core/time';
+import { parseFutureWhen, parseWhen } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { type Authorizer, guard } from '~/core/authorization';
-import type { MovieCatalog, MovieDetails } from '~/integrations/tmdb/contract';
+import { type Authorizer } from '~/core/ports/authorization';
+import { guard } from '~/core/helpers/authorization';
+import type { MovieCatalog, MovieDetails } from '~/core/ports/movie-catalog';
 import type { MovieRepository } from './model';
 import type { EventService } from '~/features/events/service';
 import type { PollService } from '~/features/polls/service';

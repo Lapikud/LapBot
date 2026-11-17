@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '~/core/calendar';
+import type { CalendarEvent } from '~/core/ports/calendar';
 import type { Event } from './model';
 
 type EventDetails = Pick<

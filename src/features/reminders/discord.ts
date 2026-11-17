@@ -9,7 +9,7 @@ import {
 import type { Reminder } from './model';
 import type { ReminderService } from './service';
 import { channelMention } from '~/core/message';
-import { discordTime, recurrences } from '~/core/time';
+import { discordTime, recurrences } from '~/core/helpers/time';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand } from '~/integrations/discord/define';
 import type { Feature } from '~/integrations/discord/module';

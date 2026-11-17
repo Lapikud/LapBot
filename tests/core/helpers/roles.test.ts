@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { selfAssignProblem } from '~/core/roles';
-import { role } from '../fakes';
+import { selfAssignProblem } from '~/core/helpers/roles';
+import { role } from '../../fakes';
 
 describe('role rules', () => {
   it('accepts ordinary assignable roles', () => {

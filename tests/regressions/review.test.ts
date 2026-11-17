@@ -1,10 +1,9 @@
 import { expect, it, vi } from 'vitest';
 import type { GrantRepository } from '~/features/permissions/model';
-import type { IssueTracker } from '~/integrations/redmine/contract';
+import type { IssueTracker, Issue } from '~/core/ports/issue-tracker';
 import type { TrackerRepository } from '~/features/redmine/model';
 import { createPermissionService } from '~/features/permissions/service';
 import { createRedmineService } from '~/features/redmine/service';
-import type { Issue } from '~/integrations/redmine/model';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
   actor,

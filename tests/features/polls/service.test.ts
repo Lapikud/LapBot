@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NewPoll } from '~/features/polls/model';
-import type { Scheduler } from '~/core/scheduler';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { createPollService, pollView } from '~/features/polls/service';
 import { UserError } from '~/core/errors';
 import { createPollRepository } from '~/features/polls/repository';

@@ -313,3 +313,12 @@ src. Tests mirror feature ownership under `tests/features/<name>/`, shared
 primitives under `tests/core/`, and integrations under `tests/integrations/`.
 This explicit user preference supersedes earlier physical names and colocated
 test placement; logical boundaries and preservation requirements are unchanged.
+
+### User correction: helper and port ownership
+
+Reusable utilities belong under `core/helpers`; external capability contracts and
+their data shapes belong under `core/ports`. Contract files contain no utility
+implementations such as guards, validated job construction or a system clock.
+These helpers are separate. Provider clients remain under integrations; feature
+repository contracts remain with their feature models. Shared primitives and
+existing forms/UI directories retain cohesive ownership. All tests stay in tests.

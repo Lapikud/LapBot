@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Scheduler } from '~/core/scheduler';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { createBirthdayService } from '~/features/birthdays/service';
-import { calendarDay } from '~/core/time';
+import { calendarDay } from '~/core/helpers/time';
 import { createBirthdayRepository } from '~/features/birthdays/repository';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {

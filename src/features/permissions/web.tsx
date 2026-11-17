@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { PermissionDefinition } from '~/core/permission';
-import type { RoleInfo } from '~/core/roles';
+import type { RoleInfo } from '~/core/ports/directory';
 import {
   back,
   flashOf,

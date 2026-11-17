@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Announcement } from '~/features/announcements/model';
-import type { Scheduler } from '~/core/scheduler';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { announcementView } from '~/features/announcements/message';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { createAnnouncementRepository } from '~/features/announcements/repository';

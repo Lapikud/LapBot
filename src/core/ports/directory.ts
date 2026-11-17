@@ -1,5 +1,4 @@
-import type { Actor } from './actor';
-import type { RoleInfo } from './roles';
+import type { Actor } from '~/core/actor';
 
 export type ChannelInfo = {
   id: string;
@@ -26,4 +25,16 @@ export type Directory = {
     roleIds: readonly string[],
     reason: string,
   ) => Promise<void>;
+};
+
+export type RoleInfo = {
+  id: string;
+  name: string;
+  position: number;
+  everyone: boolean;
+  managed: boolean;
+  mentionable: boolean;
+  moderator: boolean;
+  administrator: boolean;
+  botCanAssign: boolean;
 };

@@ -1,6 +1,6 @@
 import { isLeapYear } from 'date-fns';
 import { UserError } from '~/core/errors';
-import type { CalendarDay } from '~/core/time';
+import type { CalendarDay } from '~/core/helpers/time';
 
 export const birthdayVisibilities = ['public', 'announce', 'private'] as const;
 

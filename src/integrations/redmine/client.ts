@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import type { IssueTracker } from './contract';
+import type { IssueTracker,
+  IntegrationErrorKind,
+  Issue,
+  IssueQuery,
+  IssueStatus,
+  TrackerProject } from '~/core/ports/issue-tracker';
 import {
   IntegrationError,
-  type IntegrationErrorKind,
-  type Issue,
-  type IssueQuery,
-  type IssueStatus,
-  type TrackerProject,
-} from './model';
+} from '~/core/ports/issue-tracker';
 
 const named = z.object({ id: z.number(), name: z.string() });
 

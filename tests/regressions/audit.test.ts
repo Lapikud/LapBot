@@ -7,10 +7,9 @@ import { createAnnouncementRepository } from '~/features/announcements/repositor
 import { createBirthdayRepository } from '~/features/birthdays/repository';
 import { createGrantRepository } from '~/features/permissions/repository';
 import { createTrackerRepository } from '~/features/redmine/repository';
-import type { Issue } from '~/integrations/redmine/model';
+import type { Issue, IssueTracker } from '~/core/ports/issue-tracker';
 import type { Permission } from '~/core/permission';
-import type { IssueTracker } from '~/integrations/redmine/contract';
-import type { Scheduler } from '~/core/scheduler';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { noDatabase, snowflake, testDb } from '../db';
 import { actor, fakeDirectory, fakeMessenger, role, silentLog } from '../fakes';
 

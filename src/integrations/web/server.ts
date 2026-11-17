@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server';
-import type { Logger } from '~/core/logger';
+import type { Logger } from '~/core/ports/logger';
 import type { WebApp } from './app';
 
 export async function startWebServer(

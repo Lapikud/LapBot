@@ -5,7 +5,7 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import type { MovieService } from './service';
-import { discordTime } from '~/core/time';
+import { discordTime } from '~/core/helpers/time';
 import { userMention } from '~/core/message';
 import { maxPollOptions } from '~/features/polls/rules';
 import { movieLabel, movieLinks, type MovieLink } from './rules';

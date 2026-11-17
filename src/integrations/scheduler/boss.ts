@@ -1,8 +1,8 @@
 import type { JobWithMetadata, PgBoss } from 'pg-boss';
-import type { Job, Scheduler } from '~/core/scheduler';
-import type { Logger } from '~/core/logger';
+import type { Job, Scheduler } from '~/core/ports/scheduler';
+import type { Logger } from '~/core/ports/logger';
 import { PermanentError } from '~/core/errors';
-import { sequential } from '~/core/async';
+import { sequential } from '~/core/helpers/async';
 
 const queueOptions = {
   policy: 'short',

@@ -1,10 +1,6 @@
-import type { Actor } from './actor';
-import type { Permission } from './permission';
-
-export type Authorizer = {
-  can: (actor: Actor, permission: Permission) => Promise<boolean>;
-  require: (actor: Actor, permission: Permission) => Promise<void>;
-};
+import type { Actor } from '~/core/actor';
+import type { Permission } from '~/core/permission';
+import type { Authorizer } from '~/core/ports/authorization';
 
 export function guard<Args extends unknown[], Result>(
   authz: Authorizer,

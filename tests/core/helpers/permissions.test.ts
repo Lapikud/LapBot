@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkDelegation } from '~/core/permission';
+import { checkDelegation } from '~/core/helpers/permissions';
 import type { Actor } from '~/core/actor';
 
 const actor = (overrides: Partial<Actor> = {}): Actor => ({

@@ -2,7 +2,7 @@ import type {
   Issue,
   IssueStatus,
   Notification,
-} from '~/integrations/redmine/model';
+} from '~/core/ports/issue-tracker';
 
 export function issueNotifications(
   issue: Issue,

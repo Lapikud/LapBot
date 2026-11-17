@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { celebratedOn, validateBirthday } from '~/features/birthdays/rules';
-import { nextDailyRun } from '~/core/time';
+import { nextDailyRun } from '~/core/helpers/time';
 
 describe('birthday dates', () => {
   it('accepts 29 February and rejects impossible dates', () => {

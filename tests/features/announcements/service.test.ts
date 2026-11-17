@@ -1,4 +1,4 @@
-import type { Scheduler } from '~/core/scheduler';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { describe, expect, it, vi } from 'vitest';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { createAuthorizer } from '~/features/permissions/service';

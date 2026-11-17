@@ -5,13 +5,14 @@ import {
   parseFutureWhen,
   recurrences,
   type Recurrence,
-} from '~/core/time';
+} from '~/core/helpers/time';
 import { PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import type { Authorizer } from '~/core/authorization';
-import type { Directory } from '~/core/directory';
-import type { Messenger } from '~/core/messenger';
-import { type Scheduler, defineJob } from '~/core/scheduler';
+import type { Authorizer } from '~/core/ports/authorization';
+import type { Directory } from '~/core/ports/directory';
+import type { Messenger } from '~/core/ports/messenger';
+import { type Scheduler } from '~/core/ports/scheduler';
+import { defineJob } from '~/core/helpers/jobs';
 import type { NewReminder, Reminder, ReminderRepository } from './model';
 
 const jobKey = (id: number) => `reminder:${id}`;

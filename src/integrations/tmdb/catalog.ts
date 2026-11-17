@@ -1,5 +1,5 @@
 import { TMDB } from 'tmdb-ts';
-import type { MovieCatalog } from './contract';
+import type { MovieCatalog } from '~/core/ports/movie-catalog';
 
 const posterBase = 'https://image.tmdb.org/t/p/w342';
 

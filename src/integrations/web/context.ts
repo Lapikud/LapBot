@@ -2,9 +2,9 @@ import type { LogStore } from '~/integrations/logging/store';
 import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
-import type { Authorizer } from '~/core/authorization';
-import type { ChannelInfo, Directory } from '~/core/directory';
-import type { Logger } from '~/core/logger';
+import type { Authorizer } from '~/core/ports/authorization';
+import type { ChannelInfo, Directory, RoleInfo } from '~/core/ports/directory';
+import type { Logger } from '~/core/ports/logger';
 import type { AnnouncementService } from '~/features/announcements/service';
 import type { BirthdayService } from '~/features/birthdays/service';
 import type { MovieService } from '~/features/movies/service';
@@ -14,7 +14,6 @@ import type { PollService } from '~/features/polls/service';
 import type { RoleService } from '~/features/roles/service';
 import type { Actor } from '~/core/actor';
 import type { Permission } from '~/core/permission';
-import type { RoleInfo } from '~/core/roles';
 import type { SignIn } from './auth';
 
 export type WebServices = {

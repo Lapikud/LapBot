@@ -1,14 +1,15 @@
+import { checkDelegation } from '~/core/helpers/permissions';
 import {
-  checkDelegation,
   managePermissions,
   type Permission,
   type PermissionDefinition,
 } from '~/core/permission';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { type Authorizer, guard } from '~/core/authorization';
-import type { Directory } from '~/core/directory';
-import type { Logger } from '~/core/logger';
+import { type Authorizer } from '~/core/ports/authorization';
+import { guard } from '~/core/helpers/authorization';
+import type { Directory } from '~/core/ports/directory';
+import type { Logger } from '~/core/ports/logger';
 import type { GrantRepository } from './model';
 
 export function createAuthorizer(grants: GrantRepository): Authorizer {

@@ -1,4 +1,4 @@
-import type { Message } from './message';
+import type { Message } from '~/core/message';
 
 export type Sent = { channelId: string; messageId: string };
 

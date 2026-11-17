@@ -1,6 +1,6 @@
 import { Select } from '~/core/ui/controls';
 import { Hono } from 'hono';
-import { selfAssignProblem } from '~/core/roles';
+import { selfAssignProblem } from '~/core/helpers/roles';
 import { UserError } from '~/core/errors';
 import {
   back,
