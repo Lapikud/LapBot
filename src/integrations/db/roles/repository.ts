@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
-import type { PanelRole, RolePanelRepository } from './model';
-import type { Db } from '~/integrations/db/client';
+import type { PanelRole, RolePanelRepository } from '~/features/roles/model';
+import type { Db } from '../client';
 import { rolePanelRoles, rolePanels } from './table';
 
 export async function findReactionRole(

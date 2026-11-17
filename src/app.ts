@@ -41,14 +41,14 @@ import { createWebApp } from '~/web/app';
 import { startWebServer } from '~/web/server';
 import type { WebServices } from '~/web/context';
 import { connectDatabase, runMigrations } from '~/integrations/db/client';
-import { createAnnouncementRepository } from '~/features/announcements/repository';
-import { createEventRepository } from '~/features/events/repository';
-import { createBirthdayRepository } from '~/features/birthdays/repository';
-import { createGrantRepository } from '~/features/permissions/repository';
-import { createMovieRepository } from '~/features/movies/repository';
-import { createPollRepository } from '~/features/polls/repository';
-import { createReminderRepository } from '~/features/reminders/repository';
-import { createRolePanelRepository } from '~/features/roles/repository';
+import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
+import { createEventRepository } from '~/integrations/db/events/repository';
+import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
+import { createGrantRepository } from '~/integrations/db/permissions/repository';
+import { createMovieRepository } from '~/integrations/db/movies/repository';
+import { createPollRepository } from '~/integrations/db/polls/repository';
+import { createReminderRepository } from '~/integrations/db/reminders/repository';
+import { createRolePanelRepository } from '~/integrations/db/roles/repository';
 import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {

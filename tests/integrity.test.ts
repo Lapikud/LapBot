@@ -4,7 +4,7 @@ import { UserError } from '~/core/errors';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import type { Scheduler } from '~/core/ports/scheduler';
 import type { NewPoll } from '~/features/polls/model';
-import { createPollRepository } from '~/features/polls/repository';
+import { createPollRepository } from '~/integrations/db/polls/repository';
 import { createPollService } from '~/features/polls/service';
 import { noDatabase, snowflake, testDb } from './db';
 import {
@@ -15,9 +15,9 @@ import {
   silentLog,
 } from './fakes';
 import type { Calendar } from '~/core/ports/calendar';
-import { createEventRepository } from '~/features/events/repository';
+import { createEventRepository } from '~/integrations/db/events/repository';
 import { createEventService } from '~/features/events/service';
-import { createMovieRepository } from '~/features/movies/repository';
+import { createMovieRepository } from '~/integrations/db/movies/repository';
 import { createMovieService } from '~/features/movies/service';
 
 describe('polls', () => {

@@ -236,10 +236,11 @@ src/
     helpers/               shared time, async, authorization and job helpers
     ports/                 external capability contracts
   features/
-    <name>/                model, rules, forms, service, message views,
-                           tables and repositories as needed
+    <name>/                model, rules, forms, service and message views
+                           as needed
   integrations/            implementations of external capabilities
-    db/                    connection and migrations
+    db/                    connection, migrations, and per-feature
+                           <name>/table.ts and <name>/repository.ts
     discord/               SDK client, messaging, directory, calendar and API errors
     tmdb/, scheduler/, logging/
   web/
@@ -254,22 +255,23 @@ src/
     interactions/          actor conversion, responses and routing
     contracts.ts, registry.ts, registration.ts, render.ts
 tests/
-  core/, features/, integrations/, web/, discord/
-  regressions/             cross-feature regressions
+  role-message, permissions, delivery, integrity
+                           one .test.ts per critical concern
+  db.ts, fakes.ts          shared test database and fakes
 drizzle/                   SQL migrations
 ```
 
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
-and input definitions are pure; services orchestrate; `repository.ts` and `table.ts` own persistence.
+and input definitions are pure; services orchestrate. Persistence lives in `integrations/db/<name>/`, which
+implements the repository contract from the feature's `model.ts`.
 Web flows are grouped into `web/pages/post`, `web/pages/forms`, `web/pages/roles`, and
 `web/pages/settings`. Each flow owns its routes, submission decoding and components.
 An `index.tsx` is a rendered page, never a re-export-only entry point. Discord commands live in
 `discord/commands`; gateway event listeners live in
-`discord/events`. All tests live under
-`tests/`: feature tests in `tests/features/<name>/`,
-primitive tests in `tests/core/` (helpers in `tests/core/helpers/`), provider tests in `tests/integrations/`, and interface tests in `tests/web/` and `tests/discord/`.
-Cross-feature regressions live in `tests/regressions/`.
+`discord/events`. Tests cover only critical
+behavior and live flat in `tests/`, one file per concern: the role message,
+permissions and privacy, duplicate delivery, and data integrity.
 
 **Imports name their source.** Within a feature use `./model` or `./rules`;
 across features use direct paths such as `~/features/events/service`. There are
@@ -356,9 +358,10 @@ are not retried. Each feature owns its lateness policy.
 ### Adding a capability
 
 Start with one directory under `features/` and the operation you need. Keep its
-model and rules there; put its tests in `tests/features/<name>/`. Add web pages
-under `web/` and Discord commands under `discord/`, persistence to the
-feature, and provider clients to integrations. Wire them in `app.ts`.
+model and rules there; add critical tests to the matching concern file in
+`tests/`. Add web pages under `web/`, Discord commands under `discord/`,
+persistence under `integrations/db/<name>/`, and provider clients to
+integrations. Wire them in `app.ts`.
 Extract a primitive only when it has a useful independent contract; use an existing
 core capability first. Do not create model/service/ports/index files just
 to satisfy a template. Generate migrations or register commands only when those

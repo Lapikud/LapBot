@@ -15,16 +15,16 @@ import {
 } from './fakes';
 import { announcementView } from '~/features/announcements/message';
 import type { Announcement } from '~/features/announcements/model';
-import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { PermanentError, UserError } from '~/core/errors';
 import type { Permission } from '~/core/permission';
-import { createGrantRepository } from '~/features/permissions/repository';
+import { createGrantRepository } from '~/integrations/db/permissions/repository';
 import { createAuthorizer } from '~/features/permissions/service';
 import { createBirthdayService } from '~/features/birthdays/service';
 import { calendarDay } from '~/core/helpers/time';
-import { createBirthdayRepository } from '~/features/birthdays/repository';
-import { createReminderRepository } from '~/features/reminders/repository';
+import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
+import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { createReminderService } from '~/features/reminders/service';
 
 describe('job queue', () => {

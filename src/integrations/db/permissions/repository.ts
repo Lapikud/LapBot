@@ -1,6 +1,6 @@
-import type { GrantRepository } from './model';
+import type { GrantRepository } from '~/features/permissions/model';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Db } from '~/integrations/db/client';
+import type { Db } from '../client';
 import { rolePermissions } from './table';
 
 export async function hasGrant(

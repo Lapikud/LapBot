@@ -3,8 +3,8 @@ import type {
   AnnouncementChanges,
   NewAnnouncement,
   AnnouncementRepository,
-} from './model';
-import type { Db } from '~/integrations/db/client';
+} from '~/features/announcements/model';
+import type { Db } from '../client';
 import { posts, type AnnouncementRow } from './table';
 
 type Status = AnnouncementRow['status'];

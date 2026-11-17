@@ -1,8 +1,8 @@
 import { and, eq, inArray, isNull, lt, ne, or } from 'drizzle-orm';
 import type { CalendarDay } from '~/core/helpers/time';
-import type { BirthdayRepository } from './model';
-import type { Db } from '~/integrations/db/client';
-import { celebratedOn, validateBirthday } from './rules';
+import type { BirthdayRepository } from '~/features/birthdays/model';
+import type { Db } from '../client';
+import { celebratedOn, validateBirthday } from '~/features/birthdays/rules';
 import {
   birthdays,
   birthdaySettings,

@@ -19,7 +19,7 @@ import {
   grant,
   listGrants,
   revoke,
-} from '~/features/permissions/repository';
+} from '~/integrations/db/permissions/repository';
 import type { GrantRepository } from '~/features/permissions/model';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
@@ -47,20 +47,20 @@ import { setSignedCookie } from 'hono/cookie';
 import { signedInUser, type SignIn } from '~/web/auth';
 import { type Env, type WebDeps, serverOf } from '~/web/context';
 import type { Scheduler } from '~/core/ports/scheduler';
-import { createAnnouncementRepository } from '~/features/announcements/repository';
+import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createAnnouncementService } from '~/features/announcements/service';
-import { createBirthdayRepository } from '~/features/birthdays/repository';
+import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
 import { createBirthdayService } from '~/features/birthdays/service';
-import { createEventRepository } from '~/features/events/repository';
+import { createEventRepository } from '~/integrations/db/events/repository';
 import {
   createEventService,
   type EventService,
 } from '~/features/events/service';
-import { createMovieRepository } from '~/features/movies/repository';
+import { createMovieRepository } from '~/integrations/db/movies/repository';
 import { createMovieService } from '~/features/movies/service';
-import { createPollRepository } from '~/features/polls/repository';
+import { createPollRepository } from '~/integrations/db/polls/repository';
 import { createPollService, type PollService } from '~/features/polls/service';
-import { createRolePanelRepository } from '~/features/roles/repository';
+import { createRolePanelRepository } from '~/integrations/db/roles/repository';
 import { createRoleService } from '~/features/roles/service';
 import { createLogStore } from '~/integrations/logging/store';
 import { createWebApp, type WebApp } from '~/web/app';

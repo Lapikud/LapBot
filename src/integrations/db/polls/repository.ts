@@ -4,10 +4,10 @@ import type {
   PollResults,
   PollWithOptions,
   PollRepository,
-} from './model';
-import type { Db } from '~/integrations/db/client';
-import { isPollOpen, tally, validatePollOptions } from './rules';
-import { validatePollResponse } from './form';
+} from '~/features/polls/model';
+import type { Db } from '../client';
+import { isPollOpen, tally, validatePollOptions } from '~/features/polls/rules';
+import { validatePollResponse } from '~/features/polls/form';
 import { UserError } from '~/core/errors';
 import { pollOptions, polls, pollVotes, type Poll } from './table';
 

@@ -84,18 +84,6 @@ const noDiscordImport = {
   message: 'Only Discord adapters may use discord.js.',
 };
 
-const featureLogic = [
-  'model.ts',
-  'rules.ts',
-  'form.ts',
-  'service.ts',
-  'message.ts',
-  'calendar.ts',
-].map((file) => `./src/features/*/${file}`);
-const featureAdapters = ['table.ts', 'repository.ts'].map(
-  (file) => `./src/features/*/${file}`,
-);
-
 const unicornRules: Linter.RulesRecord = {
   'unicorn/prefer-set-has': 'error',
   'unicorn/prefer-array-some': 'error',
@@ -343,12 +331,7 @@ export default defineConfig(
                 'Core primitives cannot depend on features or their adapters.',
             },
             {
-              target: featureLogic,
-              from: featureAdapters,
-              message: 'Feature logic uses contracts, never concrete adapters.',
-            },
-            {
-              target: featureLogic,
+              target: './src/features',
               from: [
                 './src/config',
                 './src/app.ts',
@@ -393,7 +376,7 @@ export default defineConfig(
   },
 
   {
-    files: [...featureLogic.map((file) => file.slice(2)), 'src/core/**/*.ts'],
+    files: ['src/features/**/*.ts', 'src/core/**/*.ts'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [

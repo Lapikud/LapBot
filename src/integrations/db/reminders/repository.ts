@@ -1,7 +1,10 @@
 import { and, asc, count, eq } from 'drizzle-orm';
-import type { Db } from '~/integrations/db/client';
+import type { Db } from '../client';
 import { UserError } from '~/core/errors';
-import type { NewReminder, ReminderRepository } from './model';
+import type {
+  NewReminder,
+  ReminderRepository,
+} from '~/features/reminders/model';
 import { reminders, type Reminder } from './table';
 
 export const maxActivePerUser = 25;

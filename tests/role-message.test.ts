@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createRoleService, legacyMessage } from '~/features/roles/service';
-import { createRolePanelRepository } from '~/features/roles/repository';
+import { createRolePanelRepository } from '~/integrations/db/roles/repository';
 import { noDatabase, snowflake, testDb } from './db';
 import { actor, fakeDirectory, fakeMessenger, role, silentLog } from './fakes';
 import type { RolePanelRepository } from '~/features/roles/model';
