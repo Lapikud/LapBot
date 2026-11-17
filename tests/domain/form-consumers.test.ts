@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseBirthdaySubmission, validatePollResponse } from '~/domain';
+import { parseBirthdaySubmission } from '~/domain/birthdays';
+import { validatePollResponse } from '~/domain/polls';
 
 describe('feature input composition', () => {
   it('keeps birthday fallback privacy and calendar validity', () => {

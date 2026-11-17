@@ -1,16 +1,13 @@
-import { visibleRecords } from '~/core/helper/visible-records';
+import { visibleRecords } from '~/core/authorization';
 import {
   ChannelType,
   InteractionContextType,
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { rsvpStatuses, type Directory, type RsvpStatus } from '~/core/ports';
-import {
-  reminderChoices,
-  rsvpLabels,
-  type EventService,
-} from '~/core/services';
+import { rsvpStatuses, type RsvpStatus } from '~/domain/events';
+import { type Directory } from '~/core/ports';
+import { reminderChoices, rsvpLabels, type EventService } from '~/core/events';
 import { channelMention, discordTime, userMention, UserError } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';

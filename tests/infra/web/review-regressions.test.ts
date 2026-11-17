@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
-import type { WebDeps, Env } from '~/infra/web/context';
-import { serverOf } from '~/infra/web/context';
-import { visibleRecords } from '~/core/helper/visible-records';
-import { eventPages } from '~/infra/web/events';
-import { pollPages } from '~/infra/web/polls';
-import { psaPages } from '~/infra/web/psa';
-import { birthdayPages } from '~/infra/web/birthdays';
+import type { WebDeps, Env } from '~/infra/web';
+import { serverOf } from '~/infra/web';
+import { visibleRecords } from '~/core/authorization';
+import { eventPages } from '~/infra/web/pages/events';
+import { pollPages } from '~/infra/web/pages/polls';
+import { psaPages } from '~/infra/web/pages/psa';
+import { birthdayPages } from '~/infra/web/pages/birthdays';
 import { actor, fakeDirectory } from '../../fakes';
 
 const channels = [

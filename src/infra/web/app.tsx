@@ -1,4 +1,4 @@
-import { visibleRecords } from '~/core/helper/visible-records';
+import { visibleRecords } from '~/core/authorization';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -8,16 +8,16 @@ import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError, webAccess, type Permission } from '~/domain';
 import { signedInUser, signInPages } from './auth';
-import { birthdayPages } from './birthdays';
+import { birthdayPages } from './pages/birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
-import { eventPages } from './events';
-import { moviePages } from './movies';
-import { logPages } from './logs';
+import { eventPages } from './pages/events';
+import { moviePages } from './pages/movies';
+import { logPages } from './pages/logs';
 import { Layout } from './layout';
-import { permissionPages } from './permissions';
-import { rolePages } from './roles';
-import { pollPages } from './polls';
-import { psaPages } from './psa';
+import { permissionPages } from './pages/permissions';
+import { rolePages } from './pages/roles';
+import { pollPages } from './pages/polls';
+import { psaPages } from './pages/psa';
 
 function Message({
   title,

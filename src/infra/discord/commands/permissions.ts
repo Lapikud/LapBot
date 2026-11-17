@@ -3,7 +3,7 @@ import {
   SlashCommandBuilder,
   type SlashCommandStringOption,
 } from 'discord.js';
-import type { PermissionService } from '~/core/services';
+import type { PermissionService } from '~/core/authorization';
 import { managePermissions, roleMention } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';

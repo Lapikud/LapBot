@@ -1,18 +1,14 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
-import type {
-  NewPoll,
-  PollRepository,
-  PollResults,
-  PollWithOptions,
-} from '~/core/ports';
+import type { NewPoll, PollResults, PollWithOptions } from '~/domain/polls';
+import type { PollRepository } from '~/core/polls';
 import type { Db } from '../client';
 import {
   isPollOpen,
   tally,
-  UserError,
   validatePollOptions,
   validatePollResponse,
-} from '~/domain';
+} from '~/domain/polls';
+import { UserError } from '~/domain';
 import { pollOptions, polls, pollVotes, type Poll } from './model';
 
 export async function insertPoll(

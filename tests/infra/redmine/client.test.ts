@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { IntegrationError } from '~/domain';
+import { IntegrationError } from '~/domain/issues';
 import { RedmineClient } from '~/infra/redmine';
 
 const issue = {

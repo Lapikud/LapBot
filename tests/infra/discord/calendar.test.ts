@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import type { Client } from 'discord.js';
-import { createDiscordCalendar } from '~/infra/discord/calendar';
+import { createDiscordCalendar } from '~/infra/discord';
 
 it('creates updates and removes calendar entries with provider limits', async () => {
   const create = vi.fn(async (_input: unknown) => ({ id: 'new' }));

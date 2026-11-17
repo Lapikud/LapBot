@@ -7,7 +7,7 @@ import {
   type IssueQuery,
   type IssueStatus,
   type TrackerProject,
-} from '~/domain';
+} from '~/domain/issues';
 
 const named = z.object({ id: z.number(), name: z.string() });
 

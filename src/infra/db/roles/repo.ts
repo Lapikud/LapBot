@@ -1,5 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
-import type { PanelRole, RolePanelRepository } from '~/core/ports';
+import type { PanelRole } from '~/domain/roles';
+import type { RolePanelRepository } from '~/core/roles';
 import type { Db } from '../client';
 import { rolePanelRoles, rolePanels } from './model';
 

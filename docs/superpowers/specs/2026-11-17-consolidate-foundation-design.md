@@ -278,3 +278,18 @@ Review for unconsumed abstractions, duplicated rules/lifecycles, and unintended
 behavior changes. Stop when the slices above are demonstrated and required
 checks pass; persisted post links, custom forms, and additional providers are
 not part of the completion claim.
+
+## 9. Approved physical layout follow-up
+
+After implementation, the user approved organizing by ownership within each
+architectural boundary. This supersedes the physical locations and temporary
+compatibility facades described above; runtime compatibility requirements remain.
+
+Domain capability directories own records, pure rules, and input definitions.
+Core capability directories own service, repository ports, message construction,
+and mappings. Shared external contracts remain under core/ports. Database
+adapters use capability names, including db/posts, independently of SQL names.
+Discord messenger and directory adapters have dedicated files; web route
+implementations live under web/pages. Internal announcement aliases are removed
+once all callers are migrated. Tests and public import boundaries follow the
+same ownership. See [layout execution record](../plans/2026-11-17-foundation-layout.md).

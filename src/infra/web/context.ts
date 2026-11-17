@@ -3,21 +3,20 @@ import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
 import type { Authorizer, ChannelInfo, Directory, Logger } from '~/core/ports';
-import type {
-  AnnouncementService,
-  BirthdayService,
-  MovieService,
-  EventService,
-  PermissionService,
-  PollService,
-  RoleService,
-} from '~/core/services';
-import type { Actor, Permission, RoleInfo } from '~/domain';
+import type { PostService } from '~/core/posts';
+import type { BirthdayService } from '~/core/birthdays';
+import type { MovieService } from '~/core/movies';
+import type { EventService } from '~/core/events';
+import type { PermissionService } from '~/core/authorization';
+import type { PollService } from '~/core/polls';
+import type { RoleService } from '~/core/roles';
+import type { Actor, Permission } from '~/domain';
+import type { RoleInfo } from '~/domain/roles';
 import type { SignIn } from './auth';
 
 export type WebServices = {
   roles: RoleService;
-  announcements: AnnouncementService;
+  announcements: PostService;
   events: EventService;
   polls: PollService;
   permissions: PermissionService;

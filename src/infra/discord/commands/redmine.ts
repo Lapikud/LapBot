@@ -3,7 +3,7 @@ import {
   InteractionContextType,
   SlashCommandBuilder,
 } from 'discord.js';
-import type { RedmineService } from '~/core/services';
+import type { RedmineService } from '~/core/redmine';
 import { channelMention } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';

@@ -4,15 +4,10 @@ import {
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import type { MovieService } from '~/core/services';
-import {
-  discordTime,
-  maxPollOptions,
-  movieLabel,
-  movieLinks,
-  userMention,
-  type MovieLink,
-} from '~/domain';
+import type { MovieService } from '~/core/movies';
+import { discordTime, userMention } from '~/domain';
+import { maxPollOptions } from '~/domain/polls';
+import { movieLabel, movieLinks, type MovieLink } from '~/domain/movies';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';
 import type { Feature } from '../module';

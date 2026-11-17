@@ -1,3 +1,4 @@
+import { PermanentError } from '~/domain';
 import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
 
 const permanentCodes = new Set<number | string>([
@@ -22,4 +23,16 @@ export function isUnknownObject(error: unknown): boolean {
     (error.code === RESTJSONErrorCodes.UnknownMessage ||
       error.code === RESTJSONErrorCodes.UnknownChannel)
   );
+}
+
+export async function permanent<T>(action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    if (isPermanentDiscordError(error) && error instanceof Error) {
+      throw new PermanentError(error.message);
+    }
+
+    throw error;
+  }
 }

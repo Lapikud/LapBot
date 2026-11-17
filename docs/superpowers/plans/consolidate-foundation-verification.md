@@ -1,6 +1,8 @@
 # Foundation consolidation verification
 
-Implemented on `fix/consolidate-foundation`, starting from `61879f9`.
+Initial extraction implemented on `fix/consolidate-foundation`, starting from `61879f9`.
+The subsequent [physical layout follow-up](2026-11-17-foundation-layout.md)
+replaces the temporary facades and technical-category directories described here.
 No schema migration or new dependency was needed.
 
 ## Verification

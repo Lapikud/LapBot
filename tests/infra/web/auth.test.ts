@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
 import { expect, it } from 'vitest';
-import { signedInUser, type SignIn } from '~/infra/web/auth';
-import type { Env } from '~/infra/web/context';
+import { signedInUser } from '~/infra/web';
+import type { Env, SignIn } from '~/infra/web';
 
 const signIn = { sessionSecret: 'test-secret' } as SignIn;
 

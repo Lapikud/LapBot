@@ -5,7 +5,7 @@ import {
   type PartialUser,
   type User,
 } from 'discord.js';
-import type { RoleService } from '~/core/services';
+import type { RoleService } from '~/core/roles';
 import { defineListener } from '../define';
 import type { Feature } from '../module';
 

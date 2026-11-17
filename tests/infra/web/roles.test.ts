@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
-import { rolePages } from '~/infra/web/roles';
-import { serverOf, type Env, type WebDeps } from '~/infra/web/context';
+import { rolePages } from '~/infra/web/pages/roles';
+import { serverOf, type Env, type WebDeps } from '~/infra/web';
 import { actor, role } from '../../fakes';
 
 function setup(empty = false) {

@@ -1,4 +1,4 @@
-import { startApp } from '~/app';
+import { startApp } from './app';
 import { loadConfig } from '~/config';
 import { createLogger, createLogStore } from '~/infra/logging';
 

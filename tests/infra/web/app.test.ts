@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Scheduler } from '~/core/ports';
+import { createPostService } from '~/core/posts';
 import {
-  createAnnouncementService,
   createAuthorizer,
-  createBirthdayService,
-  createMovieService,
-  createEventService,
   createPermissionService,
-  createPollService,
-  createRoleService,
-} from '~/core/services';
+} from '~/core/authorization';
+import { createBirthdayService } from '~/core/birthdays';
+import { createMovieService } from '~/core/movies';
+import { createEventService } from '~/core/events';
+import { createPollService } from '~/core/polls';
+import { createRoleService } from '~/core/roles';
 import {
-  createAnnouncementRepository,
+  createPostRepository,
   createBirthdayRepository,
   createMovieRepository,
   createEventRepository,
@@ -118,9 +118,9 @@ describe.skipIf(noDatabase)('web UI', () => {
           messenger,
           log: silentLog,
         }),
-        announcements: createAnnouncementService({
+        announcements: createPostService({
           ...shared,
-          announcements: createAnnouncementRepository(db),
+          posts: createPostRepository(db),
           clock: { now: () => new Date() },
         }),
         events,

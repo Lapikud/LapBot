@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import type { Client } from 'discord.js';
-import { createDiscordMessenger } from '~/infra/discord/adapters';
+import { createDiscordMessenger } from '~/infra/discord/messenger';
 
 function setup(canManage = true) {
   const obsolete = vi.fn(async () => undefined);

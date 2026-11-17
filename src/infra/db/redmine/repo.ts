@@ -1,5 +1,5 @@
 import { and, asc, eq, gt } from 'drizzle-orm';
-import type { TrackerRepository } from '~/core/ports';
+import type { TrackerRepository } from '~/core/redmine';
 import type { Db } from '../client';
 import { redmineNotifications, redmineSubscriptions } from './model';
 

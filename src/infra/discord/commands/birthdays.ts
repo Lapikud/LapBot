@@ -8,8 +8,11 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import { describeBirthday, type BirthdayService } from '~/core/services';
-import { birthdayVisibilities, birthdayVisibilityLabels } from '~/domain';
+import { describeBirthday, type BirthdayService } from '~/core/birthdays';
+import {
+  birthdayVisibilities,
+  birthdayVisibilityLabels,
+} from '~/domain/birthdays';
 import { toActor } from '../actor';
 import { bySubcommand } from '../define';
 import type { ComponentHandler, Feature } from '../module';

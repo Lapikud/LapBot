@@ -9,11 +9,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { Announcement } from '~/core/ports';
-import {
-  maxAnnouncementLength,
-  type AnnouncementService,
-} from '~/core/services';
+import type { Post } from '~/domain/posts';
+import { maxPostLength, type PostService } from '~/core/posts';
 import {
   channelMention,
   controlId,
@@ -28,11 +25,7 @@ import type { AppContext, ComponentHandler, Feature } from '../module';
 import { render } from '../render';
 import { respond, respondView } from '../router';
 
-function contentModal(
-  id: string,
-  title: string,
-  current?: Announcement,
-): ModalBuilder {
+function contentModal(id: string, title: string, current?: Post): ModalBuilder {
   const titleInput = new TextInputBuilder()
     .setCustomId('title')
     .setStyle(TextInputStyle.Short)
@@ -41,7 +34,7 @@ function contentModal(
   const contentInput = new TextInputBuilder()
     .setCustomId('content')
     .setStyle(TextInputStyle.Paragraph)
-    .setMaxLength(maxAnnouncementLength);
+    .setMaxLength(maxPostLength);
 
   if (current?.title !== undefined && current.title !== null) {
     titleInput.setValue(current.title);
@@ -94,11 +87,9 @@ const data = new SlashCommandBuilder()
       ),
   );
 
-export function announcementCommands(
-  announcements: AnnouncementService,
-): Feature {
+export function announcementCommands(announcements: PostService): Feature {
   const draftView = async (
-    announcement: Announcement,
+    announcement: Post,
     actor: Actor,
     ctx: AppContext,
   ): Promise<Message> => {

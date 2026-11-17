@@ -1,12 +1,12 @@
 import type { Directory } from '~/core/ports';
-import { visibleRecords } from '~/core/helper/visible-records';
+import { visibleRecords } from '~/core/authorization';
 import {
   ChannelType,
   InteractionContextType,
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import { describeOutcome, type PollService } from '~/core/services';
+import { describeOutcome, type PollService } from '~/core/polls';
 import { channelMention, userMention, UserError } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand, deferred } from '../define';

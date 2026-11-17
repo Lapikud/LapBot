@@ -1,5 +1,6 @@
 import { and, asc, count, eq, gte, ne } from 'drizzle-orm';
-import type { EventRepository, NewEvent, RsvpCounts } from '~/core/ports';
+import type { EventRepository } from '~/core/events';
+import type { NewEvent, RsvpCounts } from '~/domain/events';
 import type { Db } from '../client';
 import { UserError } from '~/domain';
 import { eventRsvps, events, type Event, type RsvpStatus } from './model';

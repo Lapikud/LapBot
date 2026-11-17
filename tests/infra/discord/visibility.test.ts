@@ -1,12 +1,12 @@
 import { expect, it, vi } from 'vitest';
-import { eventCommands } from '~/infra/discord/commands/events';
-import { pollCommands } from '~/infra/discord/commands/polls';
-import type { EventService, PollService } from '~/core/services';
+import { eventCommands, pollCommands } from '~/infra/discord';
+import type { EventService } from '~/core/events';
+import type { PollService } from '~/core/polls';
 import type {
   AppContext,
   CommandInteraction,
   SlashCommand,
-} from '~/infra/discord/module';
+} from '~/infra/discord';
 import { allowAll, fakeDirectory, silentLog } from '../../fakes';
 
 it('filters private events and polls from Discord lists and autocomplete', async () => {

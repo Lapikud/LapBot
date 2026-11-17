@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import type { Client } from 'discord.js';
-import { createDiscordDirectory } from '~/infra/discord/adapters';
+import { createDiscordDirectory } from '~/infra/discord/directory';
 
 it('refreshes membership before constructing an authorization actor', async () => {
   const fetchMember = vi.fn(async () => ({

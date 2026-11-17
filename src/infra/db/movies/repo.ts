@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
-import type { MovieRepository, NewSuggestion } from '~/core/ports';
+import type { MovieRepository } from '~/core/movies';
+import type { NewSuggestion } from '~/domain/movies';
 import type { Db } from '../client';
-import { normalizeTitle, UserError } from '~/domain';
+import { normalizeTitle } from '~/domain/movies';
+import { UserError } from '~/domain';
 import {
   movieScreenings,
   movieSuggestions,

@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { afterEach, expect, it } from 'vitest';
 import { createLogStore } from '~/infra/logging';
-import { logPages } from '~/infra/web/logs';
-import type { Env, WebDeps } from '~/infra/web/context';
+import { logPages } from '~/infra/web/pages/logs';
+import type { Env, WebDeps } from '~/infra/web';
 import { createWebApp } from '~/infra/web';
 import { setSignedCookie } from 'hono/cookie';
 import { actor, fakeDirectory, allowAll, silentLog } from '../../fakes';

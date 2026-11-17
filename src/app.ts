@@ -18,19 +18,18 @@ import {
   roleCommands,
   permissionCommands,
 } from '~/infra/discord';
+import { createPostService } from '~/core/posts';
 import {
-  createPostService,
   createAuthorizer,
-  createRedmineService,
-  createBirthdayService,
-  createEventService,
-  createMovieService,
-  createPollService,
   createPermissionService,
-  createReminderService,
-  createRoleService,
-  type LegacyPanel,
-} from '~/core/services';
+} from '~/core/authorization';
+import { createRedmineService } from '~/core/redmine';
+import { createBirthdayService } from '~/core/birthdays';
+import { createEventService } from '~/core/events';
+import { createMovieService } from '~/core/movies';
+import { createPollService } from '~/core/polls';
+import { createReminderService } from '~/core/reminders';
+import { createRoleService, type LegacyPanel } from '~/core/roles';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
 import type { Logger, LogStore } from '~/infra/logging';
 import { PgBoss } from 'pg-boss';

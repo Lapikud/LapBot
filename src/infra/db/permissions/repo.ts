@@ -1,4 +1,4 @@
-import type { GrantRepository } from '~/core/ports';
+import type { GrantRepository } from '~/core/authorization';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../client';
 import { rolePermissions } from './model';

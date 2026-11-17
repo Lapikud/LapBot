@@ -6,8 +6,8 @@ import {
   SlashCommandBuilder,
   type SlashCommandIntegerOption,
 } from 'discord.js';
-import type { Reminder } from '~/core/ports';
-import type { ReminderService } from '~/core/services';
+import type { Reminder } from '~/domain/reminders';
+import type { ReminderService } from '~/core/reminders';
 import { channelMention, discordTime, recurrences } from '~/domain';
 import { toActor } from '../actor';
 import { bySubcommand } from '../define';

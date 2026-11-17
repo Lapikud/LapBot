@@ -102,8 +102,7 @@ const noDiscordImport = {
 
 const modulePatterns = [
   {
-    regex:
-      '^~/(config|domain|lib|core/ports|core/services|core/presentation|core/calendar|infra/[a-z-]+|features/[a-z-]+)/',
+    regex: '^~/(config|domain/[a-z-]+|lib|core/[a-z-]+|infra/[a-z-]+)/',
     message: 'Import from the module barrel, not a file inside it.',
   },
   {
