@@ -65,7 +65,7 @@ export async function startJobs(
 
               log.error(
                 {
-                  err: error,
+                  error,
                   jobId: found.id,
                   jobType: job.type,
                   attempt: found.retryCount + 1,

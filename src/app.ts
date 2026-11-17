@@ -297,7 +297,7 @@ export async function startApp(
   const jobLog = log.child({ component: 'scheduler' });
 
   boss.on('error', (error) => {
-    jobLog.error({ err: error }, 'Job queue error');
+    jobLog.error({ error }, 'Job queue error');
   });
 
   try {
@@ -322,11 +322,11 @@ export async function startApp(
 
     client.on(Events.InteractionCreate, (interaction) => {
       handleInteraction(interaction).catch((error: unknown) => {
-        log.error({ err: error }, 'Interaction handler crashed');
+        log.error({ error }, 'Interaction handler crashed');
       });
     });
     client.on(Events.Error, (error) => {
-      log.error({ err: error }, 'Discord client error');
+      log.error({ error }, 'Discord client error');
     });
 
     await Promise.all(
@@ -335,7 +335,7 @@ export async function startApp(
           await feature.start?.();
         } catch (error) {
           log.error(
-            { err: error, feature: feature.name },
+            { error, feature: feature.name },
             'Feature failed to start',
           );
         }
@@ -351,7 +351,10 @@ export async function startApp(
     });
 
     log.info(
-      { user: ready.user.tag, features: registry.features.map((f) => f.name) },
+      {
+        user: ready.user.tag,
+        features: registry.features.map((f) => f.name),
+      },
       'Ready',
     );
 

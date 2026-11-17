@@ -108,7 +108,7 @@ export function createBirthdayService(deps: Deps) {
           },
         );
       } catch (error) {
-        log.warn({ err: error, userId }, 'Could not give birthday role');
+        log.warn({ error, userId }, 'Could not give birthday role');
       }
     });
   };
@@ -131,7 +131,7 @@ export function createBirthdayService(deps: Deps) {
       }
 
       log.error(
-        { err: error, guildId: settings.guildId },
+        { error, guildId: settings.guildId },
         'Birthday channel is unusable; skipping today',
       );
     }

@@ -82,7 +82,7 @@ async function runAutocomplete(
     await command?.autocomplete?.(interaction, ctx);
   } catch (error) {
     ctx.log.warn(
-      { err: error, command: interaction.commandName },
+      { error, command: interaction.commandName },
       'Autocomplete failed',
     );
   }
@@ -176,14 +176,14 @@ export function createInteractionHandler(
         const ref = randomUUID().slice(0, 8);
 
         ctx.log.error(
-          { err: error, ref, ...describe(interaction) },
+          { error, ref, ...describe(interaction) },
           'Interaction failed',
         );
         message = `Something went wrong. Reference: \`${ref}\``;
       }
 
       await respond(interaction, message).catch((replyError: unknown) => {
-        ctx.log.warn({ err: replyError }, 'Could not report interaction error');
+        ctx.log.warn({ replyError }, 'Could not report interaction error');
       });
     }
   };

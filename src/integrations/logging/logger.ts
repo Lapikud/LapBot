@@ -1,4 +1,4 @@
-import { pino, type Logger } from 'pino';
+import { pino, stdSerializers, type Logger } from 'pino';
 import type { LogStore } from './store';
 
 export function createLogger(
@@ -9,6 +9,11 @@ export function createLogger(
 
   return pino({
     level,
+    serializers: {
+      error: stdSerializers.err,
+      replyError: stdSerializers.err,
+      reason: stdSerializers.err,
+    },
     hooks: {
       streamWrite: (line) => {
         try {

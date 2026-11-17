@@ -108,3 +108,25 @@ it('reports archive write failures explicitly while preserving stdout logging', 
   expect(() => log.info('Still visible on stdout')).not.toThrow();
   expect(stderr).toHaveBeenCalledWith(expect.stringContaining('disk full'));
 });
+
+it.each(['error', 'replyError', 'reason'])(
+  'serializes errors under %s',
+  (key) => {
+    const logs = archive();
+    const log = createLogger('info', logs);
+
+    log.error({ [key]: new Error('Failed operation') }, 'Operation failed');
+    const details = JSON.parse(
+      logs.page({ level: 10, query: '' }).entries[0]?.details ?? '{}',
+    ) as Record<string, unknown>;
+
+    expect(details[key]).toMatchObject({
+      type: 'Error',
+      message: 'Failed operation',
+    });
+    expect(details[key]).toHaveProperty(
+      'stack',
+      expect.stringContaining('Error: Failed operation'),
+    );
+  },
+);

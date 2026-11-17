@@ -219,7 +219,7 @@ export function createEventService(deps: Deps) {
       );
     } catch (error) {
       log.warn(
-        { err: error, eventId: event.id },
+        { error, eventId: event.id },
         'Could not sync native Discord event',
       );
 

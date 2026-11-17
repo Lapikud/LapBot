@@ -16,7 +16,7 @@ const logs = createLogStore(config.LOG_DATABASE_PATH);
 const log = createLogger(config.LOG_LEVEL, logs);
 
 process.on('unhandledRejection', (reason) => {
-  log.error({ err: reason }, 'Unhandled promise rejection');
+  log.error({ reason }, 'Unhandled promise rejection');
 });
 
 try {
@@ -35,7 +35,7 @@ try {
         process.exit(0);
       },
       (error: unknown) => {
-        log.error({ err: error }, 'Shutdown failed');
+        log.error({ error }, 'Shutdown failed');
         logs.close();
         process.exit(1);
       },
@@ -45,7 +45,7 @@ try {
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
 } catch (error) {
-  log.fatal({ err: error }, 'Startup failed');
+  log.fatal({ error }, 'Startup failed');
   logs.close();
   process.exitCode = 1;
 }

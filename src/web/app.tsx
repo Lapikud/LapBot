@@ -153,6 +153,7 @@ export function createWebApp(deps: WebDeps) {
   app.notFound((c) =>
     c.html(<StatusPage title="Not found" text="There is no such page." />, 404),
   );
+
   app.onError((error, c) => {
     if (error instanceof UserError && c.req.method === 'GET') {
       return c.html(
@@ -189,7 +190,7 @@ export function createWebApp(deps: WebDeps) {
 
     const ref = randomUUID().slice(0, 8);
 
-    log.error({ err: error, ref, path: c.req.path }, 'Web request failed');
+    log.error({ error, ref, path: c.req.path }, 'Web request failed');
 
     return c.html(
       <StatusPage title="Something went wrong" text={`Reference: ${ref}`} />,

@@ -72,7 +72,7 @@ export function createRedmineService(deps: Deps) {
         await handle(subscription);
       } catch (error) {
         log.warn(
-          { err: error, subscriptionId: subscription.id },
+          { error, subscriptionId: subscription.id },
           'Redmine subscription update failed',
         );
       }

@@ -10,7 +10,7 @@ export function createEventListener<K extends keyof ClientEvents>(
     attach: (client, ctx) => {
       client.on(event, (...args) => {
         handle(ctx, ...args).catch((error: unknown) => {
-          ctx.log.error({ err: error, event }, 'Event listener failed');
+          ctx.log.error({ error, event }, 'Event listener failed');
         });
       });
     },
