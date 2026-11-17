@@ -57,6 +57,16 @@ function requireText(title: string, description?: string | null) {
   }
 }
 
+function requireCapacity(capacity?: number | null) {
+  if (
+    capacity !== undefined &&
+    capacity !== null &&
+    (!Number.isInteger(capacity) || capacity < 1)
+  ) {
+    throw new UserError('Capacity must be a whole number of at least 1.');
+  }
+}
+
 // Reserve space for the generated ID, cancellation label and growing RSVP counts.
 function requirePublishable(input: NewEvent, mention = false) {
   const view = eventView(
@@ -328,6 +338,7 @@ export function createEventService(deps: Deps) {
       }
 
       requireText(request.title, request.description);
+      requireCapacity(request.capacity);
 
       const event = await publish(
         {
@@ -377,6 +388,7 @@ export function createEventService(deps: Deps) {
       }
 
       requireText(changes.title ?? event.title, changes.description);
+      requireCapacity(changes.capacity);
 
       const updates = {
         title: changes.title ?? event.title,

@@ -9,10 +9,6 @@ export async function insertEvent(db: Db, input: NewEvent): Promise<Event> {
     throw new UserError('The end must be after the start.');
   }
 
-  if (input.capacity !== null && input.capacity < 1) {
-    throw new UserError('Capacity must be at least 1.');
-  }
-
   const [row] = await db.insert(events).values(input).returning();
 
   if (!row) {

@@ -260,6 +260,32 @@ describe('events', () => {
       expect(messenger.send).not.toHaveBeenCalled();
     });
 
+    it('rejects capacities that are not whole positive numbers', async () => {
+      const { service, organizer } = setup();
+      const event = await service.create(organizer, {
+        title: 'Quiz',
+        start: '3h',
+        channelId: 'c',
+        capacity: 5,
+      });
+
+      for (const capacity of [0, -3, 2.5, Number.NaN]) {
+        await expect(
+          service.edit(organizer, event.id, { capacity }),
+        ).rejects.toBeInstanceOf(UserError);
+        await expect(
+          service.create(organizer, {
+            title: 'Quiz',
+            start: '3h',
+            channelId: 'c',
+            capacity,
+          }),
+        ).rejects.toBeInstanceOf(UserError);
+      }
+
+      expect((await service.get(organizer, event.id)).capacity).toBe(5);
+    });
+
     it('clears nullable fields while leaving omitted changes unchanged', async () => {
       const { service, organizer } = setup();
       const event = await service.create(organizer, {
