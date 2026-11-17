@@ -1,4 +1,4 @@
-export type IssueTracker = {
+export interface IssueTracker {
   listProjects: (
     offset?: number,
     limit?: number,
@@ -8,35 +8,40 @@ export type IssueTracker = {
   ) => Promise<{ issues: Issue[]; total: number }>;
   getIssue: (id: number, withJournals?: boolean) => Promise<Issue>;
   listStatuses: () => Promise<IssueStatus[]>;
-};
-export type Named = { id: number; name: string };
+}
+export interface Named {
+  id: number;
+  name: string;
+}
 
-export type TrackerProject = {
+export interface TrackerProject {
   id: number;
   name: string;
   identifier: string;
   description?: string | null;
-};
+}
 
-export type IssueStatus = Named & { is_closed?: boolean };
+export interface IssueStatus extends Named {
+  is_closed?: boolean;
+}
 
-export type JournalDetail = {
+export interface JournalDetail {
   property: string;
   name: string;
   old_value?: string | null;
   new_value?: string | null;
-};
+}
 
-export type Journal = {
+export interface Journal {
   id: number;
   user?: Named;
   notes?: string | null;
   private_notes?: boolean;
   created_on: string;
   details: JournalDetail[];
-};
+}
 
-export type Issue = {
+export interface Issue {
   id: number;
   project: Named;
   tracker: Named;
@@ -52,9 +57,9 @@ export type Issue = {
   created_on: string;
   updated_on: string;
   journals?: Journal[];
-};
+}
 
-export type IssueQuery = {
+export interface IssueQuery {
   projectId?: number | string;
   status?: 'open' | 'closed' | '*';
   updatedSince?: Date;
@@ -62,7 +67,7 @@ export type IssueQuery = {
   sort?: string;
   offset?: number;
   limit?: number;
-};
+}
 
 export type IntegrationErrorKind =
   'auth' | 'forbidden' | 'not_found' | 'unavailable' | 'invalid_response';
@@ -78,4 +83,7 @@ export class IntegrationError extends Error {
   }
 }
 
-export type Notification = { key: string; text: string };
+export interface Notification {
+  key: string;
+  text: string;
+}

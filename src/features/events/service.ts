@@ -19,7 +19,7 @@ const maxReminders = 3;
 const reminderKey = (id: number, minutes: number) =>
   `event:${id}:remind:${minutes}`;
 
-export type EventRequest = {
+export interface EventRequest {
   title: string;
   start: string;
   end?: string;
@@ -31,16 +31,16 @@ export type EventRequest = {
   reminders?: string;
   native?: boolean;
   icons?: boolean;
-};
+}
 
-export type EventChanges = Partial<
+export interface EventChanges extends Partial<
   Pick<EventRequest, 'title' | 'start' | 'icons'>
-> & {
+> {
   end?: string | null;
   description?: string | null;
   location?: string | null;
   capacity?: number | null;
-};
+}
 
 const maxTitleLength = 200;
 const maxDescriptionLength = 1500;
@@ -113,7 +113,7 @@ export function parseReminderMinutes(value: string | undefined): number[] {
   return [...new Set(minutes)];
 }
 
-type Deps = {
+interface Deps {
   events: EventRepository;
   scheduler: Scheduler;
   messenger: Messenger;
@@ -122,7 +122,7 @@ type Deps = {
   authz: Authorizer;
   log: Logger;
   timezone: string;
-};
+}
 
 export function createEventService(deps: Deps) {
   const { events, scheduler, messenger, calendar, directory, authz, log } =

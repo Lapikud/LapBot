@@ -29,13 +29,13 @@ export function createAuthorizer(grants: GrantRepository): Authorizer {
   };
 }
 
-type Deps = {
+interface Deps {
   grants: GrantRepository;
   directory: Directory;
   authz: Authorizer;
   log: Logger;
   known: () => ReadonlyMap<Permission, PermissionDefinition>;
-};
+}
 
 export function createPermissionService(deps: Deps) {
   const { grants, directory, authz, log, known } = deps;

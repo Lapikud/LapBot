@@ -1,14 +1,14 @@
 import type { Child, JSX } from 'hono/jsx';
 import { Field } from './field';
 
-type Presentation = Readonly<{
-  name: string;
-  id?: string;
-  label: Child;
-  help?: string;
-  error?: string;
-  'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
-}>;
+interface Presentation {
+  readonly name: string;
+  readonly id?: string;
+  readonly label: Child;
+  readonly help?: string;
+  readonly error?: string;
+  readonly 'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
+}
 type InputProps = Presentation & JSX.IntrinsicElements['input'];
 type TextareaProps = Presentation & JSX.IntrinsicElements['textarea'];
 type SelectProps = Presentation & JSX.IntrinsicElements['select'];

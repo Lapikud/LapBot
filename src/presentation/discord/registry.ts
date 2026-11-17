@@ -6,13 +6,13 @@ import type {
 } from './module';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 
-export type Registry = {
+export interface Registry {
   features: readonly Feature[];
   commands: ReadonlyMap<string, SlashCommand>;
   messageCommands: ReadonlyMap<string, MessageCommand>;
   components: ReadonlyMap<string, ComponentHandler>;
   permissions: ReadonlyMap<Permission, PermissionDefinition>;
-};
+}
 
 const componentPrefix = /^[a-z][a-z-]*:[a-z][a-z-]*$/;
 

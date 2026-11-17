@@ -19,7 +19,11 @@ export function Checkbox({
   );
 }
 
-export type Choice = { name: string; value: string; label: string };
+export interface Choice {
+  name: string;
+  value: string;
+  label: string;
+}
 
 export function MultiSelect({
   label,

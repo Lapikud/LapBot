@@ -3,7 +3,7 @@ import type { Post } from '~/core/posts';
 export type AnnouncementStatus =
   'draft' | 'scheduled' | 'published' | 'cancelled';
 
-export type Announcement = Post & {
+export interface Announcement extends Post {
   id: number;
   guildId: string;
   authorId: string;
@@ -17,7 +17,7 @@ export type Announcement = Post & {
   messageId: string | null;
   failure: string | null;
   createdAt: Date;
-};
+}
 
 export type NewAnnouncement = Pick<
   Announcement,
@@ -34,7 +34,7 @@ export type AnnouncementChanges = Partial<
   Omit<Announcement, 'id' | 'guildId' | 'authorId' | 'createdAt'>
 >;
 
-export type AnnouncementRepository = {
+export interface AnnouncementRepository {
   insert: (post: NewAnnouncement) => Promise<Announcement>;
   find: (id: number) => Promise<Announcement | undefined>;
   list: (guildId: string, limit?: number) => Promise<Announcement[]>;
@@ -43,4 +43,4 @@ export type AnnouncementRepository = {
     changes: AnnouncementChanges,
     onlyIf?: readonly AnnouncementStatus[],
   ) => Promise<Announcement | undefined>;
-};
+}

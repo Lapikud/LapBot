@@ -4,7 +4,7 @@ export type RsvpStatus = (typeof rsvpStatuses)[number];
 
 export type RsvpCounts = Record<RsvpStatus, number>;
 
-export type Event = {
+export interface Event {
   id: number;
   guildId: string;
   title: string;
@@ -23,14 +23,14 @@ export type Event = {
   discordEventId: string | null;
   status: 'scheduled' | 'cancelled';
   createdAt: Date;
-};
+}
 
 export type NewEvent = Omit<
   Event,
   'id' | 'messageId' | 'discordEventId' | 'status' | 'createdAt'
 >;
 
-export type EventRepository = {
+export interface EventRepository {
   insert: (event: NewEvent) => Promise<Event>;
   find: (id: number) => Promise<Event | undefined>;
   upcoming: (guildId: string, limit?: number) => Promise<Event[]>;
@@ -47,4 +47,4 @@ export type EventRepository = {
   attendees: (
     eventId: number,
   ) => Promise<Array<{ userId: string; status: RsvpStatus }>>;
-};
+}

@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
-export type FieldDefinition<T> = {
+export interface FieldDefinition<T> {
   key: string;
   label: string;
   kind: 'integer' | 'choice';
   schema: z.ZodType<T>;
-};
+}
 
-export type FormDefinition<T extends Record<string, unknown>> = {
+export interface FormDefinition<T extends object> {
   fields: { [K in keyof T]: FieldDefinition<T[K]> & { key: K } };
-};
+}
 
 export function choiceField<V extends string | number, K extends string>({
   key,

@@ -4,12 +4,12 @@ export const maxPollOptions = 10;
 
 export const maxOptionLength = 55;
 
-export type Tally<O> = {
+export interface Tally<O> {
   options: Array<O & { votes: number }>;
   voters: number;
   winners: Array<O & { votes: number }>;
   tie: boolean;
-};
+}
 
 export function isPollOpen(
   poll: { status: string; closesAt: Date | null },

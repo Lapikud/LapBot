@@ -1,8 +1,11 @@
 import type { Message } from '~/core/message';
 
-export type Sent = { channelId: string; messageId: string };
+export interface Sent {
+  channelId: string;
+  messageId: string;
+}
 
-export type Messenger = {
+export interface Messenger {
   send: (channelId: string, message: Message) => Promise<Sent>;
   edit: (
     channelId: string,
@@ -20,4 +23,4 @@ export type Messenger = {
   ) => Promise<void>;
   ownReactions: (channelId: string, messageId: string) => Promise<string[]>;
   react: (channelId: string, messageId: string, emoji: string) => Promise<void>;
-};
+}

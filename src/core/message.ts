@@ -1,19 +1,23 @@
-export type Mentions = {
+export interface Mentions {
   users?: readonly string[];
   roles?: readonly string[];
   everyone?: boolean;
-};
+}
 
-export type EmbedField = { name: string; value: string; inline?: boolean };
+export interface EmbedField {
+  name: string;
+  value: string;
+  inline?: boolean;
+}
 
-export type Embed = {
+export interface Embed {
   title?: string;
   description?: string;
   url?: string;
   color?: number;
   fields?: readonly EmbedField[];
   footer?: string;
-};
+}
 
 export type ButtonStyle = 'primary' | 'secondary' | 'success' | 'danger';
 
@@ -32,13 +36,13 @@ export type Control =
       }>;
     };
 
-export type Message = {
+export interface Message {
   content?: string;
   embeds?: readonly Embed[];
   mentions?: Mentions;
   controls?: ReadonlyArray<readonly Control[]>;
   suppressEmbeds?: boolean;
-};
+}
 
 export const maxContentLength = 2000;
 

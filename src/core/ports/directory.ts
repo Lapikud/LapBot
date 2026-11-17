@@ -1,12 +1,12 @@
 import type { Actor } from '~/core/actor';
 
-export type ChannelInfo = {
+export interface ChannelInfo {
   id: string;
   name: string;
   kind: 'text' | 'announcement';
-};
+}
 
-export type Directory = {
+export interface Directory {
   guildOf: (channelId: string) => Promise<string | undefined>;
   channels: (guildId: string) => Promise<ChannelInfo[]>;
   roles: (guildId: string) => Promise<RoleInfo[]>;
@@ -25,9 +25,9 @@ export type Directory = {
     roleIds: readonly string[],
     reason: string,
   ) => Promise<void>;
-};
+}
 
-export type RoleInfo = {
+export interface RoleInfo {
   id: string;
   name: string;
   position: number;
@@ -37,4 +37,4 @@ export type RoleInfo = {
   moderator: boolean;
   administrator: boolean;
   botCanAssign: boolean;
-};
+}

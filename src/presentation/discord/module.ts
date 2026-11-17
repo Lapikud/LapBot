@@ -14,14 +14,14 @@ import type { Logger } from '~/core/ports/logger';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 
-export type AppContext = {
+export interface AppContext {
   log: Logger;
   authz: Authorizer;
-};
+}
 
 export type CommandInteraction = ChatInputCommandInteraction<'cached'>;
 
-export type SlashCommand = {
+export interface SlashCommand {
   data: RESTPostAPIChatInputApplicationCommandsJSONBody;
   permissions?: Partial<Record<string, Permission>>;
   execute: (interaction: CommandInteraction, ctx: AppContext) => Promise<void>;
@@ -29,25 +29,25 @@ export type SlashCommand = {
     interaction: AutocompleteInteraction<'cached'>,
     ctx: AppContext,
   ) => Promise<void>;
-};
+}
 
 export type MessageCommandInteraction =
   MessageContextMenuCommandInteraction<'cached'>;
 
-export type MessageCommand = {
+export interface MessageCommand {
   data: RESTPostAPIContextMenuApplicationCommandsJSONBody;
   execute: (
     interaction: MessageCommandInteraction,
     ctx: AppContext,
   ) => Promise<void>;
-};
+}
 
 export type ComponentInteraction =
   | ButtonInteraction<'cached'>
   | AnySelectMenuInteraction<'cached'>
   | ModalSubmitInteraction<'cached'>;
 
-export type ComponentHandler = {
+export interface ComponentHandler {
   prefix: string;
   permission?: Permission;
   execute: (
@@ -55,14 +55,14 @@ export type ComponentHandler = {
     args: readonly string[],
     ctx: AppContext,
   ) => Promise<void>;
-};
+}
 
-export type EventListener = {
+export interface EventListener {
   event: keyof ClientEvents;
   attach: (client: Client, ctx: AppContext) => void;
-};
+}
 
-export type Feature = {
+export interface Feature {
   name: string;
   permissions?: readonly PermissionDefinition[];
   commands?: readonly SlashCommand[];
@@ -70,4 +70,4 @@ export type Feature = {
   components?: readonly ComponentHandler[];
   events?: readonly EventListener[];
   start?: () => Promise<void>;
-};
+}

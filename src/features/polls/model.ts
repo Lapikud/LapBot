@@ -2,7 +2,7 @@ import type { Tally } from './rules';
 
 export type PollStatus = 'open' | 'closed' | 'cancelled';
 
-export type Poll = {
+export interface Poll {
   id: number;
   guildId: string;
   channelId: string;
@@ -16,36 +16,40 @@ export type Poll = {
   status: PollStatus;
   source: string | null;
   createdAt: Date;
-};
+}
 
-export type PollOption = {
+export interface PollOption {
   id: number;
   pollId: number;
   position: number;
   label: string;
   ref: string | null;
   url: string | null;
-};
+}
 
-export type PollWithOptions = Poll & { options: PollOption[] };
+export interface PollWithOptions extends Poll {
+  options: PollOption[];
+}
 
 export type PollResults = Tally<PollOption>;
 
-export type NewPoll = Pick<
-  Poll,
-  'guildId' | 'channelId' | 'creatorId' | 'question'
-> &
-  Partial<
-    Pick<Poll, 'multiple' | 'anonymous' | 'showResults' | 'closesAt' | 'source'>
-  > & {
-    options: ReadonlyArray<{
-      label: string;
-      ref?: string | null;
-      url?: string | null;
-    }>;
-  };
+export interface NewPoll
+  extends
+    Pick<Poll, 'guildId' | 'channelId' | 'creatorId' | 'question'>,
+    Partial<
+      Pick<
+        Poll,
+        'multiple' | 'anonymous' | 'showResults' | 'closesAt' | 'source'
+      >
+    > {
+  options: ReadonlyArray<{
+    label: string;
+    ref?: string | null;
+    url?: string | null;
+  }>;
+}
 
-export type PollRepository = {
+export interface PollRepository {
   insert: (poll: NewPoll) => Promise<PollWithOptions>;
   find: (id: number) => Promise<PollWithOptions | undefined>;
   vote: (
@@ -66,4 +70,4 @@ export type PollRepository = {
     guildId: string,
     source: string,
   ) => Promise<PollWithOptions | undefined>;
-};
+}

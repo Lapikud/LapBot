@@ -1,4 +1,4 @@
-export type MovieSuggestion = {
+export interface MovieSuggestion {
   id: number;
   guildId: string;
   title: string;
@@ -13,7 +13,7 @@ export type MovieSuggestion = {
   links: string[];
   createdAt: Date;
   removedAt: Date | null;
-};
+}
 
 export type NewSuggestion = Pick<
   MovieSuggestion,
@@ -29,21 +29,21 @@ export type NewSuggestion = Pick<
   | 'links'
 >;
 
-export type Screening = {
+export interface Screening {
   guildId: string;
   suggestionId: number;
   eventId?: number | null;
   pollId?: number | null;
   scheduledFor?: Date | null;
-};
+}
 
-export type WatchedMovie = {
+export interface WatchedMovie {
   title: string;
   year: number | null;
   watchedAt: Date | null;
-};
+}
 
-export type MovieRepository = {
+export interface MovieRepository {
   suggest: (suggestion: NewSuggestion) => Promise<MovieSuggestion>;
   find: (guildId: string, id: number) => Promise<MovieSuggestion>;
   unwatched: (guildId: string, limit?: number) => Promise<MovieSuggestion[]>;
@@ -56,4 +56,4 @@ export type MovieRepository = {
     at: Date,
   ) => Promise<void>;
   history: (guildId: string, limit?: number) => Promise<WatchedMovie[]>;
-};
+}

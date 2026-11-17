@@ -1,4 +1,4 @@
-export type Subscription = {
+export interface Subscription {
   id: number;
   guildId: string;
   channelId: string;
@@ -6,9 +6,9 @@ export type Subscription = {
   projectName: string;
   createdBy: string;
   checkpoint: Date;
-};
+}
 
-export type TrackerRepository = {
+export interface TrackerRepository {
   subscribe: (
     subscription: Omit<Subscription, 'id' | 'checkpoint'>,
   ) => Promise<boolean>;
@@ -21,4 +21,4 @@ export type TrackerRepository = {
   setCheckpoint: (id: number, checkpoint: Date) => Promise<void>;
   claimNotification: (subscriptionId: number, key: string) => Promise<boolean>;
   releaseNotification: (subscriptionId: number, key: string) => Promise<void>;
-};
+}

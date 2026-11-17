@@ -1,11 +1,11 @@
 import { roleMention, type Message } from './message';
 
-export type Post = {
+export interface Post {
   title?: string | null;
   content: string;
   mentionRoleIds?: readonly string[];
   mentionEveryone?: boolean;
-};
+}
 
 export function renderPost(post: Post): Message {
   const roles = post.mentionRoleIds ?? [];

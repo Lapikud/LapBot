@@ -8,10 +8,10 @@ export type Db = PostgresJsDatabase;
 
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
-export type Database = {
+export interface Database {
   db: Db;
   close: () => Promise<void>;
-};
+}
 
 const migrationsFolder = resolve('drizzle');
 

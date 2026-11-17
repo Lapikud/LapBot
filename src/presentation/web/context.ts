@@ -16,7 +16,7 @@ import type { Actor } from '~/core/actor';
 import type { Permission } from '~/core/permission';
 import type { SignIn } from './auth';
 
-export type WebServices = {
+export interface WebServices {
   roles: RoleService;
   announcements: AnnouncementService;
   events: EventService;
@@ -24,9 +24,9 @@ export type WebServices = {
   permissions: PermissionService;
   birthdays: BirthdayService;
   movies: MovieService;
-};
+}
 
-export type WebDeps = {
+export interface WebDeps {
   guildId: string;
   timezone: string;
   signIn: SignIn;
@@ -35,14 +35,14 @@ export type WebDeps = {
   services: WebServices;
   log: Logger;
   logs: LogStore;
-};
+}
 
-export type Server = {
+export interface Server {
   channels: ChannelInfo[];
   roles: RoleInfo[];
   roleName: (id: string) => string;
   channelName: (id: string) => string;
-};
+}
 
 export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
   const roleNames = new Map<string, string>(
@@ -60,9 +60,9 @@ export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
   };
 }
 
-export type Env = {
+export interface Env {
   Variables: { actor: Actor; server: Server; can: ReadonlySet<Permission> };
-};
+}
 
 export const allows = (c: Context<Env>, permission: Permission) =>
   c.var.can.has(permission);
@@ -73,7 +73,10 @@ export const owns = (
   permission: Permission,
 ) => c.var.actor.userId === ownerId || allows(c, permission);
 
-export type Flash = { notice?: string; error?: string };
+export interface Flash {
+  notice?: string;
+  error?: string;
+}
 
 export type Form = FormData;
 

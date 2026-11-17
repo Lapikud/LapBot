@@ -233,7 +233,7 @@ export default defineConfig(
         },
       ],
       '@typescript-eslint/consistent-type-exports': 'error',
-      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
       '@typescript-eslint/consistent-generic-constructors': [
         'error',
         'constructor',

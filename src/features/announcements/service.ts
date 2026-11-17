@@ -21,15 +21,15 @@ const open: AnnouncementStatus[] = ['draft', 'scheduled'];
 
 export const maxAnnouncementLength = 1900;
 
-export type AnnouncementDraft = {
+export interface AnnouncementDraft {
   channelId: string;
   title?: string;
   content: string;
   mentionRoleIds?: readonly string[];
   mentionEveryone?: boolean;
-};
+}
 
-export type AnnouncementDeps = {
+export interface AnnouncementDeps {
   posts: AnnouncementRepository;
   scheduler: Scheduler;
   messenger: Messenger;
@@ -38,7 +38,7 @@ export type AnnouncementDeps = {
   log: Logger;
   clock: Clock;
   timezone: string;
-};
+}
 
 export function createAnnouncementService(deps: AnnouncementDeps) {
   const { posts, scheduler, messenger, directory, authz, log, clock } = deps;

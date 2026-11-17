@@ -1,4 +1,4 @@
-export type Actor = {
+export interface Actor {
   guildId: string;
   userId: string;
   roleIds: readonly string[];
@@ -6,4 +6,4 @@ export type Actor = {
   owner: boolean;
   mentionEveryone: boolean;
   highestRolePosition: number;
-};
+}

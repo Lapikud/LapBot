@@ -21,7 +21,7 @@ import type {
 
 const closeKey = (id: number) => `poll:${id}:close`;
 
-export type PollRequest = {
+export interface PollRequest {
   question: string;
   options: readonly string[];
   channelId: string;
@@ -29,9 +29,9 @@ export type PollRequest = {
   anonymous?: boolean;
   showResults?: 'live' | 'closed';
   closes?: string;
-};
+}
 
-type Deps = {
+interface Deps {
   polls: PollRepository;
   scheduler: Scheduler;
   messenger: Messenger;
@@ -39,7 +39,7 @@ type Deps = {
   authz: Authorizer;
   log: Logger;
   timezone: string;
-};
+}
 
 export function createPollService(deps: Deps) {
   const { polls, scheduler, messenger, directory, authz, log } = deps;

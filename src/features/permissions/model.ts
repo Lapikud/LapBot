@@ -1,14 +1,17 @@
 import type { Permission } from '~/core/permission';
 
-export type Grant = { roleId: string; permission: string };
+export interface Grant {
+  roleId: string;
+  permission: string;
+}
 
-export type GrantChange = {
+export interface GrantChange {
   guildId: string;
   roleId: string;
   permission: Permission;
-};
+}
 
-export type GrantRepository = {
+export interface GrantRepository {
   holds: (
     guildId: string,
     roleIds: readonly string[],
@@ -24,4 +27,4 @@ export type GrantRepository = {
     revoke: readonly Permission[];
   }) => Promise<void>;
   list: (guildId: string, roleId?: string) => Promise<Grant[]>;
-};
+}

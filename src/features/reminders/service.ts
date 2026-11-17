@@ -17,21 +17,21 @@ import type { NewReminder, Reminder, ReminderRepository } from './model';
 
 const jobKey = (id: number) => `reminder:${id}`;
 
-export type ReminderRequest = {
+export interface ReminderRequest {
   when?: string;
   message: string;
   channelId?: string;
   repeat?: string;
-};
+}
 
-type Deps = {
+interface Deps {
   reminders: ReminderRepository;
   scheduler: Scheduler;
   messenger: Messenger;
   directory: Directory;
   authz: Authorizer;
   timezone: string;
-};
+}
 
 export function createReminderService(deps: Deps) {
   const { reminders, scheduler, messenger, directory, authz, timezone } = deps;

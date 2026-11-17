@@ -11,11 +11,11 @@ import {
 } from '~/core/forms/fields';
 import { validateSubmission } from '~/core/forms/validation';
 
-type BirthdayInput = {
+interface BirthdayInput {
   day: number;
   month: number;
   visibility: BirthdayVisibility;
-};
+}
 
 export const birthdayForm: FormDefinition<BirthdayInput> = {
   fields: {

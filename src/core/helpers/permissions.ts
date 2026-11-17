@@ -2,12 +2,12 @@ import type { Actor } from '~/core/actor';
 import { UserError } from '~/core/errors';
 import { managePermissions, type Permission } from '~/core/permission';
 
-export type Delegation = {
+export interface Delegation {
   actor: Actor;
   rolePosition: number;
   permission: Permission;
   actorHolds: boolean;
-};
+}
 
 export function checkDelegation(delegation: Delegation): void {
   const { actor, rolePosition, permission, actorHolds } = delegation;

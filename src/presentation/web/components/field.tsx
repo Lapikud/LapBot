@@ -1,12 +1,12 @@
 import type { Child } from 'hono/jsx';
 
-export type FieldProps = Readonly<{
-  id: string;
-  label: Child;
-  help?: string | undefined;
-  error?: string | undefined;
-  children: Child;
-}>;
+export interface FieldProps {
+  readonly id: string;
+  readonly label: Child;
+  readonly help?: string | undefined;
+  readonly error?: string | undefined;
+  readonly children: Child;
+}
 
 export function Field({ id, label, help, error, children }: FieldProps) {
   return (

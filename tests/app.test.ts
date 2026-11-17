@@ -53,12 +53,12 @@ function problems(
   return found;
 }
 
-type Counted = {
+interface Counted {
   name: string;
   description?: string;
   options?: readonly Counted[];
   choices?: ReadonlyArray<{ name: string; value: string | number }>;
-};
+}
 
 function characters(node: Counted): number {
   return (

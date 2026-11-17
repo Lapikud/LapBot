@@ -10,26 +10,26 @@ import { sequential } from '~/core/helpers/async';
 export const legacyMessage =
   'Valige endale rolli:\n1 - Tarkvara\n2 - Helpdesk\n3 - Kultuur';
 
-export type LegacyPanel = {
+export interface LegacyPanel {
   channelId: string;
   roles: ReadonlyArray<{ emoji: string; roleId: string; label: string }>;
-};
+}
 
-export type Reaction = {
+export interface Reaction {
   guildId: string;
   channelId: string;
   messageId: string;
   emoji: string;
   userId: string;
-};
+}
 
-type Deps = {
+interface Deps {
   panels: RolePanelRepository;
   directory: Directory;
   messenger: Messenger;
   log: Logger;
   legacy?: LegacyPanel | undefined;
-};
+}
 
 function panelContent(entries: readonly PanelRole[]) {
   return [
@@ -180,7 +180,10 @@ export function createRoleService(deps: Deps) {
     return panels.list(actor.guildId);
   };
 
-  type Choice = { roleId: string; emoji: string };
+  interface Choice {
+    roleId: string;
+    emoji: string;
+  }
   const validateChoices = async (
     guildId: string,
     choices: readonly Choice[],

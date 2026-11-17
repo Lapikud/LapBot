@@ -9,7 +9,11 @@ export const recurrences = ['daily', 'weekly', 'monthly'] as const;
 
 export type Recurrence = (typeof recurrences)[number];
 
-export type CalendarDay = { year: number; month: number; day: number };
+export interface CalendarDay {
+  year: number;
+  month: number;
+  day: number;
+}
 
 export function isZone(zone: string): boolean {
   try {

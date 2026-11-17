@@ -1,23 +1,23 @@
 import type { BirthdayVisibility } from './rules';
 import type { CalendarDay } from '~/core/helpers/time';
 
-export type Birthday = {
+export interface Birthday {
   guildId: string;
   userId: string;
   month: number;
   day: number;
   visibility: BirthdayVisibility;
   lastAnnouncedYear: number | null;
-};
+}
 
-export type BirthdaySettings = {
+export interface BirthdaySettings {
   guildId: string;
   channelId: string;
   roleId: string | null;
   hour: number;
-};
+}
 
-export type BirthdayRepository = {
+export interface BirthdayRepository {
   set: (birthday: Omit<Birthday, 'lastAnnouncedYear'>) => Promise<void>;
   remove: (guildId: string, userId: string) => Promise<boolean>;
   find: (guildId: string, userId: string) => Promise<Birthday | undefined>;
@@ -31,4 +31,4 @@ export type BirthdayRepository = {
   settings: (guildId: string) => Promise<BirthdaySettings | undefined>;
   saveSettings: (settings: BirthdaySettings) => Promise<void>;
   deleteSettings: (guildId: string) => Promise<void>;
-};
+}

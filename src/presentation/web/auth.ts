@@ -3,16 +3,16 @@ import { Hono, type Context } from 'hono';
 import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie';
 import type { Env } from './context';
 
-export type SignIn = {
+export interface SignIn {
   clientId: string;
   clientSecret: string;
   publicUrl: string;
   sessionSecret: string;
-};
+}
 
-type SignInEnv = {
+interface SignInEnv {
   Variables: Env['Variables'] & { 'user-discord'?: DiscordUser };
-};
+}
 
 const sessionCookie = 'session';
 const sessionSeconds = 7 * 86_400;

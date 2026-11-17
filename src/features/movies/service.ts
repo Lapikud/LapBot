@@ -12,29 +12,29 @@ import type { PollService } from '~/features/polls/service';
 
 const pollSource = 'movies';
 
-export type MovieNight = {
+export interface MovieNight {
   start: string;
   movieId?: number;
   location?: string;
   capacity?: number;
   channelId: string;
-};
+}
 
-export type MovieSuggestionRequest = {
+export interface MovieSuggestionRequest {
   title: string;
   year: number | null;
   note: string | null;
   links?: readonly string[];
-};
+}
 
-type Deps = {
+interface Deps {
   movies: MovieRepository;
   catalog: MovieCatalog | undefined;
   polls: PollService;
   events: EventService;
   authz: Authorizer;
   timezone: string;
-};
+}
 
 export function createMovieService(deps: Deps) {
   const { movies, polls, events, authz, timezone, catalog } = deps;

@@ -34,7 +34,10 @@ export function validateLinks(links: readonly string[]): string[] {
   return [...new Set(trimmed)];
 }
 
-export type MovieLink = { label: string; url: string };
+export interface MovieLink {
+  label: string;
+  url: string;
+}
 
 export function movieLinks(movie: {
   trailerUrl: string | null;

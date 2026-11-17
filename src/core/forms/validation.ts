@@ -1,10 +1,13 @@
 import type { FieldDefinition, FormDefinition } from './fields';
 
-export type FieldIssue = { field: string; code: string };
+export interface FieldIssue {
+  field: string;
+  code: string;
+}
 export type ValidationResult<T> =
   { ok: true; values: T } | { ok: false; issues: FieldIssue[] };
 
-export function validateSubmission<T extends Record<string, unknown>>(
+export function validateSubmission<T extends object>(
   definition: FormDefinition<T>,
   submission: Readonly<Record<string, unknown>>,
 ): ValidationResult<T> {

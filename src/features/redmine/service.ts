@@ -26,7 +26,7 @@ const pollIntervalMs = 2 * 60 * 1000;
 const issuesPerPoll = 25;
 const deadlineHour = 9;
 
-type Deps = {
+interface Deps {
   baseUrl: string;
   client: IssueTracker;
   tracker: TrackerRepository;
@@ -35,7 +35,7 @@ type Deps = {
   authz: Authorizer;
   log: Logger;
   timezone: string;
-};
+}
 
 export function createRedmineService(deps: Deps) {
   const { client, tracker, messenger, authz, log } = deps;

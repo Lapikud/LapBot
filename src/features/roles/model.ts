@@ -1,33 +1,33 @@
 export type PanelKind = 'reaction' | 'select';
 
-export type PanelRole = {
+export interface PanelRole {
   roleId: string;
   label: string;
   emoji: string | null;
-};
+}
 
-export type NewPanel = {
+export interface NewPanel {
   guildId: string;
   channelId: string;
   kind: PanelKind;
   title: string;
   createdBy: string;
-};
+}
 
-export type ReactionKey = {
+export interface ReactionKey {
   guildId: string;
   channelId: string;
   messageId: string;
   emoji: string;
-};
+}
 
-export type RolePanel = NewPanel & {
+export interface RolePanel extends NewPanel {
   id: number;
   messageId: string | null;
   roles: PanelRole[];
-};
+}
 
-export type RolePanelRepository = {
+export interface RolePanelRepository {
   list: (guildId: string) => Promise<RolePanel[]>;
   reactionRole: (key: ReactionKey) => Promise<string | undefined>;
   create: (panel: NewPanel) => Promise<number>;
@@ -37,4 +37,4 @@ export type RolePanelRepository = {
   ) => Promise<{ id: number; messageId: string | null } | undefined>;
   setMessage: (id: number, messageId: string | null) => Promise<void>;
   replaceRoles: (id: number, roles: readonly PanelRole[]) => Promise<void>;
-};
+}

@@ -3,7 +3,10 @@ import { UserError } from '~/core/errors';
 import { choiceField, type FormDefinition } from '~/core/forms/fields';
 import { validateSubmission } from '~/core/forms/validation';
 
-type Option = { id: number; label: string };
+interface Option {
+  id: number;
+  label: string;
+}
 
 export function pollResponseForm(
   options: readonly Option[],

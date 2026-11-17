@@ -18,12 +18,12 @@ import { sequential } from '~/core/helpers/async';
 
 const dailyKey = (guildId: string) => `birthdays:${guildId}`;
 
-export type BirthdayConfiguration = {
+export interface BirthdayConfiguration {
   channelId?: string;
   roleId?: string | null;
   hour?: number;
   disable?: boolean;
-};
+}
 
 export function describeBirthday(birthday: Birthday): string {
   const date = format(
@@ -49,7 +49,7 @@ export const birthdaySignup: Message = {
   ],
 };
 
-type Deps = {
+interface Deps {
   birthdays: BirthdayRepository;
   scheduler: Scheduler;
   messenger: Messenger;
@@ -57,7 +57,7 @@ type Deps = {
   authz: Authorizer;
   log: Logger;
   timezone: string;
-};
+}
 
 export function createBirthdayService(deps: Deps) {
   const { birthdays, scheduler, messenger, directory, authz, log, timezone } =
