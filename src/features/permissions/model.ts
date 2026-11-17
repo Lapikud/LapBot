@@ -17,6 +17,7 @@ export interface GrantRepository {
     roleIds: readonly string[],
     permission: Permission,
   ) => Promise<boolean>;
+  held: (guildId: string, roleIds: readonly string[]) => Promise<string[]>;
   grant: (change: GrantChange & { grantedBy: string }) => Promise<boolean>;
   revoke: (change: GrantChange) => Promise<boolean>;
   apply: (input: {

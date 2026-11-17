@@ -183,6 +183,21 @@ describe('permission grants', () => {
       expect(await authz.can(both, 'poll:create')).toBe(true);
     });
 
+    it('lists only held permissions in one lookup', async () => {
+      const authz = createAuthorizer(createGrantRepository(testDb()));
+      const asked = ['event:create', 'poll:create', 'movie:manage'] as const;
+
+      expect(
+        await authz.granted(member(guildId, [organizers, helpers]), asked),
+      ).toEqual(new Set(['event:create', 'poll:create']));
+      expect(
+        await authz.granted(member(otherGuild, [organizers]), asked),
+      ).toEqual(new Set());
+      expect(await authz.granted(member(guildId, [], true), asked)).toEqual(
+        new Set(asked),
+      );
+    });
+
     it('isolates grants per guild', async () => {
       const authz = createAuthorizer(createGrantRepository(testDb()));
 
@@ -274,6 +289,7 @@ describe('permission changes', () => {
   it('validates every permission change before writing any', async () => {
     const grants: GrantRepository = {
       holds: async () => false,
+      held: async () => [],
       list: async () => [],
       grant: vi.fn(async () => true),
       revoke: vi.fn(async () => true),
@@ -291,6 +307,7 @@ describe('permission changes', () => {
       authz: {
         require: async () => undefined,
         can: async (_actor, p) => p !== 'poll:create',
+        granted: async () => new Set(),
       },
     });
 

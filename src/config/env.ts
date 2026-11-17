@@ -43,14 +43,13 @@ const envSchema = z.object({
 
 export type Config = z.infer<typeof envSchema>;
 
-const checkedSchema = envSchema
-  .refine(
-    (env) => env.WEB_PORT === undefined || env.DISCORD_GUILD_ID !== undefined,
-    {
-      message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
-      path: ['DISCORD_GUILD_ID'],
-    },
-  );
+const checkedSchema = envSchema.refine(
+  (env) => env.WEB_PORT === undefined || env.DISCORD_GUILD_ID !== undefined,
+  {
+    message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
+    path: ['DISCORD_GUILD_ID'],
+  },
+);
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = checkedSchema.safeParse(env);

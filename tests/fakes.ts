@@ -5,6 +5,7 @@ import type { Directory, RoleInfo } from '~/core/ports/directory';
 import type { Messenger } from '~/core/ports/messenger';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
+import type { Authorizer } from '~/core/ports/authorization';
 
 export const silentLog = pino({ level: 'silent' });
 
@@ -36,16 +37,18 @@ export function role(overrides: Partial<RoleInfo> = {}): RoleInfo {
   };
 }
 
-export const allowAll = {
+export const allowAll: Authorizer = {
   can: async () => true,
   require: async () => undefined,
+  granted: async (_actor, permissions) => new Set(permissions),
 };
 
-export const denyAll = {
+export const denyAll: Authorizer = {
   can: async () => false,
   require: async () => {
     throw new UserError('denied');
   },
+  granted: async () => new Set(),
 };
 
 export function fakeMessenger() {

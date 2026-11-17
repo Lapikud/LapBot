@@ -86,7 +86,12 @@ export function createWebApp(deps: WebDeps) {
       );
     }
 
-    if (!(await authz.can(actor, webAccess))) {
+    const can = await authz.granted(actor, [
+      webAccess,
+      ...services.permissions.catalogue().map(({ id }) => id),
+    ]);
+
+    if (!can.has(webAccess)) {
       return c.html(
         <StatusPage
           title="No access yet"
@@ -101,14 +106,8 @@ export function createWebApp(deps: WebDeps) {
       directory.roles(guildId),
     ]);
 
-    const held = await Promise.all(
-      services.permissions
-        .catalogue()
-        .map(async ({ id }) => ((await authz.can(actor, id)) ? [id] : [])),
-    );
-
     c.set('actor', actor);
-    c.set('can', new Set(held.flat()));
+    c.set('can', can);
     const visible = await visibleRecords(
       directory,
       actor,

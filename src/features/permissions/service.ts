@@ -26,6 +26,15 @@ export function createAuthorizer(grants: GrantRepository): Authorizer {
         );
       }
     },
+    granted: async (actor, permissions) => {
+      if (actor.administrator) {
+        return new Set(permissions);
+      }
+
+      const held = new Set(await grants.held(actor.guildId, actor.roleIds));
+
+      return new Set(permissions.filter((permission) => held.has(permission)));
+    },
   };
 }
 

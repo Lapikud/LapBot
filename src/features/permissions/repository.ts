@@ -28,6 +28,28 @@ export async function hasGrant(
   return rows.length > 0;
 }
 
+export async function heldPermissions(
+  db: Db,
+  guildId: string,
+  roleIds: readonly string[],
+): Promise<string[]> {
+  if (roleIds.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .selectDistinct({ permission: rolePermissions.permission })
+    .from(rolePermissions)
+    .where(
+      and(
+        eq(rolePermissions.guildId, guildId),
+        inArray(rolePermissions.roleId, [...roleIds]),
+      ),
+    );
+
+  return rows.map((row) => row.permission);
+}
+
 export async function grant(
   db: Db,
   input: {
@@ -89,6 +111,7 @@ export function createGrantRepository(db: Db): GrantRepository {
   return {
     holds: (guildId, roleIds, permission) =>
       hasGrant(db, guildId, roleIds, permission),
+    held: (guildId, roleIds) => heldPermissions(db, guildId, roleIds),
     grant: (change) => grant(db, change),
     revoke: (change) => revoke(db, change),
     apply: (input) =>
