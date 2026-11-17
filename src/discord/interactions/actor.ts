@@ -22,9 +22,6 @@ export function toActor(member: GuildMember): Actor {
     roleIds: [...member.roles.cache.keys()],
     administrator: member.permissions.has(PermissionFlagsBits.Administrator),
     owner: member.id === member.guild.ownerId,
-    mentionEveryone: member.permissions.has(
-      PermissionFlagsBits.MentionEveryone,
-    ),
     highestRolePosition: member.roles.highest.position,
   };
 }

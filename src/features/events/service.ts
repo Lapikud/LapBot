@@ -382,7 +382,7 @@ export function createEventService(deps: Deps) {
           throw new UserError('That role no longer exists.');
         }
 
-        requireMentionable(actor, role);
+        requireMentionable(role);
       }
 
       const { timezone } = deps;

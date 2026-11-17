@@ -28,7 +28,6 @@ export interface AnnouncementDraft {
   title?: string;
   content: string;
   mentionRoleIds?: readonly string[];
-  mentionEveryone?: boolean;
 }
 
 export interface AnnouncementDeps {
@@ -73,19 +72,12 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
   const checkTargets = async (
     actor: Actor,
-    draft: Pick<
-      AnnouncementDraft,
-      'channelId' | 'mentionRoleIds' | 'mentionEveryone'
-    >,
+    draft: Pick<AnnouncementDraft, 'channelId' | 'mentionRoleIds'>,
   ) => {
     if (!(await directory.canPost(actor, draft.channelId))) {
       throw new UserError(
         `You cannot post in ${channelMention(draft.channelId)} yourself.`,
       );
-    }
-
-    if (draft.mentionEveryone === true && !actor.mentionEveryone) {
-      throw new UserError('You may not mention everyone.');
     }
 
     const roles = await Promise.all(
@@ -99,7 +91,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         throw new UserError('One of the mentioned roles no longer exists.');
       }
 
-      requireMentionable(actor, role);
+      requireMentionable(role);
     }
   };
 
@@ -230,7 +222,6 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
           title: title === '' ? null : title,
           content: draft.content,
           mentionRoleIds: [...(draft.mentionRoleIds ?? [])],
-          mentionEveryone: draft.mentionEveryone ?? false,
         };
 
         announcementView(post);

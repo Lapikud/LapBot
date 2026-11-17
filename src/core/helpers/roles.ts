@@ -1,4 +1,3 @@
-import type { Actor } from '~/core/actor';
 import { UserError } from '~/core/errors';
 import type { RoleInfo } from '~/core/ports/directory';
 
@@ -30,8 +29,8 @@ export function requireManageable(role: RoleInfo): void {
   }
 }
 
-export function requireMentionable(actor: Actor, role: RoleInfo): void {
-  if (!actor.mentionEveryone && (role.everyone || !role.mentionable)) {
+export function requireMentionable(role: RoleInfo): void {
+  if (role.everyone || !role.mentionable) {
     throw new UserError('You may not mention that role.');
   }
 }

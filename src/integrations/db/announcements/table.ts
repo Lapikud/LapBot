@@ -1,5 +1,4 @@
 import {
-  boolean,
   index,
   pgEnum,
   pgTable,
@@ -25,7 +24,6 @@ export const posts = pgTable(
     title: text('title'),
     content: text('content').notNull(),
     mentionRoleIds: text('mention_role_ids').array().notNull().default([]),
-    mentionEveryone: boolean('mention_everyone').notNull().default(false),
     status: postStatus('status').notNull().default('draft'),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     publishedAt: timestamp('published_at', { withTimezone: true }),

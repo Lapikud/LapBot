@@ -7,24 +7,18 @@ export function MentionPicker({
   draft,
 }: Readonly<{ server: Server; draft: Draft | undefined }>) {
   const roles = server.roles.filter((role) => !role.everyone && !role.managed);
-  const selected = new Set([
-    ...(draft?.mentionEveryone === true ? ['1'] : []),
-    ...(draft?.mentionRoleIds ?? []),
-  ]);
+  const selected = new Set(draft?.mentionRoleIds ?? []);
 
   return (
     <MultiSelect
       label="Mention"
       placeholder="Nobody"
       selected={selected}
-      choices={[
-        { name: 'everyone', value: '1', label: '@everyone' },
-        ...roles.map(({ id, name }) => ({
-          name: 'role',
-          value: id,
-          label: `@${name}`,
-        })),
-      ]}
+      choices={roles.map(({ id, name }) => ({
+        name: 'role',
+        value: id,
+        label: `@${name}`,
+      }))}
     />
   );
 }

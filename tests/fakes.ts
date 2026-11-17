@@ -16,7 +16,6 @@ export function actor(overrides: Partial<Actor> = {}): Actor {
     roleIds: [],
     administrator: false,
     owner: false,
-    mentionEveryone: false,
     highestRolePosition: 10,
     ...overrides,
   };

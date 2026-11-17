@@ -73,7 +73,6 @@ describe('announcement publication', () => {
     title: 'Hello',
     content: 'World',
     mentionRoleIds: [],
-    mentionEveryone: false,
     status: 'draft',
     scheduledAt: null,
     publishedAt: null,
@@ -84,23 +83,16 @@ describe('announcement publication', () => {
   });
 
   describe('announcement view', () => {
-    it('only pings the chosen roles or everyone, never text in the body', () => {
+    it('only pings the chosen roles, never text in the body', () => {
       expect(
         announcementView(sample({ content: '@everyone hi' }))[0]?.mentions,
-      ).toEqual({
-        everyone: false,
-        roles: [],
-      });
+      ).toEqual({ roles: [] });
       expect(
         announcementView(sample({ mentionRoleIds: ['r1', 'r2'] }))[0],
       ).toMatchObject({
         content: '<@&r1> <@&r2>\n# Hello\nWorld',
         mentions: { roles: ['r1', 'r2'] },
       });
-      expect(
-        announcementView(sample({ mentionEveryone: true }))[0]?.mentions
-          ?.everyone,
-      ).toBe(true);
     });
   });
 
@@ -309,7 +301,6 @@ describe('announcement lifecycle', () => {
         title: null,
         content: 'Hidden',
         mentionRoleIds: [],
-        mentionEveryone: false,
       });
 
       await expect(service.get(author, post.id)).rejects.toThrow(
@@ -344,13 +335,6 @@ describe('announcement lifecycle', () => {
     it('rechecks channel access and mention permissions before publication', async () => {
       const { service, author, directory, draft } = await setup();
 
-      await expect(
-        service.draft(author, {
-          channelId: 'c',
-          content: 'x',
-          mentionEveryone: true,
-        }),
-      ).rejects.toThrow('everyone');
       await expect(
         service.draft(author, {
           channelId: 'c',

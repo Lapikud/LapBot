@@ -1,7 +1,6 @@
 export interface Mentions {
   users?: readonly string[];
   roles?: readonly string[];
-  everyone?: boolean;
 }
 
 export interface EmbedField {

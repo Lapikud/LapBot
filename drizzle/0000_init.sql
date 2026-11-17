@@ -15,7 +15,6 @@ CREATE TABLE "announcements" (
 	"title" text,
 	"content" text NOT NULL,
 	"mention_role_ids" text[] DEFAULT '{}' NOT NULL,
-	"mention_everyone" boolean DEFAULT false NOT NULL,
 	"status" "announcement_status" DEFAULT 'draft' NOT NULL,
 	"scheduled_at" timestamp with time zone,
 	"published_at" timestamp with time zone,

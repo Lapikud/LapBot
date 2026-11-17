@@ -18,7 +18,7 @@ Migrations and command registration run on start.
 ### Discord permissions
 
 View Channels, Send Messages, Embed Links, Read Message History, Add Reactions,
-Manage Messages, Manage Roles and Mention Everyone. The bot's role must be
+Manage Messages and Manage Roles. The bot's role must be
 above every role it hands out.
 
 ### Configuration

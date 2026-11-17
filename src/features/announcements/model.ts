@@ -10,7 +10,6 @@ export interface Announcement extends Post {
   channelId: string;
   title: string | null;
   mentionRoleIds: string[];
-  mentionEveryone: boolean;
   status: AnnouncementStatus;
   scheduledAt: Date | null;
   publishedAt: Date | null;
@@ -21,13 +20,7 @@ export interface Announcement extends Post {
 
 export type NewAnnouncement = Pick<
   Announcement,
-  | 'guildId'
-  | 'authorId'
-  | 'channelId'
-  | 'title'
-  | 'content'
-  | 'mentionRoleIds'
-  | 'mentionEveryone'
+  'guildId' | 'authorId' | 'channelId' | 'title' | 'content' | 'mentionRoleIds'
 >;
 
 export type AnnouncementChanges = Partial<

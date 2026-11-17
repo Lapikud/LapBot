@@ -1,7 +1,7 @@
 import type { Message } from '~/core/message';
 import type { Server } from '~/web/context';
 
-const token = /(<@&\d+>|<@\d+>|<#\d+>|@everyone|\*\*[^*]+\*\*)/;
+const token = /(<@&\d+>|<@\d+>|<#\d+>|\*\*[^*]+\*\*)/;
 
 function withOffsets(parts: readonly string[], separator = 0) {
   let offset = 0;
@@ -29,10 +29,6 @@ function Piece({ part, server }: Readonly<{ part: string; server: Server }>) {
 
   if (channel !== undefined) {
     return <span class="mention">#{server.channelName(channel)}</span>;
-  }
-
-  if (part === '@everyone') {
-    return <span class="mention">@everyone</span>;
   }
 
   if (part.startsWith('**') && part.endsWith('**')) {

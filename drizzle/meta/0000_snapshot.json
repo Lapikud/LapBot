@@ -1,5 +1,5 @@
 {
-  "id": "e3d3bbc5-016c-4994-bf02-6719abd1c965",
+  "id": "c6d545b5-335f-4b1d-9725-f4c69c87ae3a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -50,13 +50,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
-        },
-        "mention_everyone": {
-          "name": "mention_everyone",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "status": {
           "name": "status",

@@ -4,7 +4,6 @@ import {
   LabelBuilder,
   ModalBuilder,
   RoleSelectMenuBuilder,
-  StringSelectMenuBuilder,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -184,9 +183,6 @@ export function announcementCommands(
         title: interaction.fields.getTextInputValue('title'),
         content: interaction.fields.getTextInputValue('content'),
         mentionRoleIds: roles ? [...roles.keys()] : [],
-        mentionEveryone: interaction.fields
-          .getStringSelectValues('everyone')
-          .includes('everyone'),
       });
 
       await respondView(interaction, await draftView(announcement, actor, ctx));
@@ -322,14 +318,6 @@ export function announcementCommands(
                       .setCustomId('mentions')
                       .setRequired(false)
                       .setMaxValues(25),
-                  ),
-                new LabelBuilder()
-                  .setLabel('Mention everyone')
-                  .setStringSelectMenuComponent(
-                    new StringSelectMenuBuilder()
-                      .setCustomId('everyone')
-                      .setRequired(false)
-                      .addOptions({ label: '@everyone', value: 'everyone' }),
                   ),
               ),
             );

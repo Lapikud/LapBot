@@ -1,4 +1,4 @@
-import { checked, field, type Form } from '~/web/context';
+import { field, type Form } from '~/web/context';
 
 export function draftOf(form: Form) {
   const content = form.get('content');
@@ -9,7 +9,6 @@ export function draftOf(form: Form) {
     title: field(form, 'title') ?? '',
     content: typeof content === 'string' ? content : '',
     mentionRoleIds: form.getAll('role').map(String),
-    mentionEveryone: checked(form, 'everyone'),
   };
 }
 

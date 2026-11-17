@@ -80,7 +80,6 @@ describe('permission delegation', () => {
     roleIds: [],
     administrator: false,
     owner: false,
-    mentionEveryone: false,
     highestRolePosition: 5,
     ...overrides,
   });
@@ -136,7 +135,6 @@ describe('permission grants', () => {
       roleIds,
       administrator,
       owner: false,
-      mentionEveryone: false,
       highestRolePosition: 1,
     };
   }
