@@ -3,8 +3,8 @@ import type { Child } from 'hono/jsx';
 export interface FieldProps {
   id: string;
   label: Child;
-  help?: string | undefined;
-  error?: string | undefined;
+  help: string | undefined;
+  error: string | undefined;
   children: Child;
 }
 

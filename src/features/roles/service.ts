@@ -28,7 +28,7 @@ interface Deps {
   directory: Directory;
   messenger: Messenger;
   log: Logger;
-  legacy?: LegacyPanel | undefined;
+  legacy?: LegacyPanel;
 }
 interface Choice {
   roleId: string;

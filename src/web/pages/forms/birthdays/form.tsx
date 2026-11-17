@@ -17,7 +17,10 @@ export function BirthdaySettingsForm({
 }: Readonly<Props>) {
   return (
     <form method="post" action="/forms/birthdays">
-      <ChannelSelect server={server} selected={settings?.channelId} />
+      <ChannelSelect
+        server={server}
+        {...(settings && { selected: settings.channelId })}
+      />
       <div class="grid">
         <Select label="Role for the day" name="roleId">
           <option value="">None</option>

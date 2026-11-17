@@ -27,7 +27,7 @@ export function logRoutes(timezone: string, logs: LogStore) {
     const { entries, hasMore } = logs.page({
       level: minimum.value,
       query,
-      before,
+      ...(before !== undefined && { before }),
     });
     const filters = { level: minimum.name, q: query };
     const toggle = new URLSearchParams({ ...filters, live: live ? '0' : '1' });

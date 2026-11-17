@@ -4,7 +4,7 @@ import { Select } from '~/web/components/controls';
 export function ChannelOptions({
   server,
   selected,
-}: Readonly<{ server: Server; selected?: string | undefined }>) {
+}: Readonly<{ server: Server; selected?: string }>) {
   return (
     <>
       {server.channels.map(({ id, name }) => (
@@ -20,10 +20,13 @@ export function ChannelSelect({
   server,
   name = 'channelId',
   selected,
-}: Readonly<{ server: Server; name?: string; selected?: string | undefined }>) {
+}: Readonly<{ server: Server; name?: string; selected?: string }>) {
   return (
     <Select name={name} label="Channel" required>
-      <ChannelOptions server={server} selected={selected} />
+      <ChannelOptions
+        server={server}
+        {...(selected !== undefined && { selected })}
+      />
     </Select>
   );
 }

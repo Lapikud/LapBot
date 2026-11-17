@@ -8,7 +8,11 @@ interface Props {
 export function RoleChannelPicker({ server, channelId }: Readonly<Props>) {
   return (
     <form method="get" action="/roles" class="role-channel">
-      <ChannelSelect server={server} name="channel" selected={channelId} />
+      <ChannelSelect
+        server={server}
+        name="channel"
+        {...(channelId !== undefined && { selected: channelId })}
+      />
       <button type="submit" class="secondary">
         Open channel
       </button>

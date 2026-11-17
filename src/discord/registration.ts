@@ -6,7 +6,7 @@ export async function registerCommands(
   options: {
     token: string;
     applicationId: string;
-    guildId?: string | undefined;
+    guildId?: string;
   },
 ): Promise<number> {
   const body = [

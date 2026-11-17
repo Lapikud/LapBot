@@ -35,7 +35,10 @@ export function Composer({
 }>) {
   return (
     <form method="post" action="/post/announcements">
-      <ChannelSelect server={server} selected={draft?.channelId} />
+      <ChannelSelect
+        server={server}
+        {...(draft && { selected: draft.channelId })}
+      />
       <Input label="Title" name="title" maxlength={256} value={draft?.title} />
       <Textarea
         label="Message"

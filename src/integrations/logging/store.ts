@@ -51,11 +51,7 @@ export function createLogStore(path: string) {
         })
         .run();
     },
-    page: (input: {
-      level: number;
-      query: string;
-      before?: number | undefined;
-    }) => {
+    page: (input: { level: number; query: string; before?: number }) => {
       const query = input.query.toLowerCase();
       const rows: LogEntry[] = [];
       let before = input.before ?? Number.MAX_SAFE_INTEGER;
