@@ -199,7 +199,7 @@ export function announcementCommands(
             .addLabelComponents(
               new LabelBuilder()
                 .setLabel('When')
-                .setDescription('e.g. tomorrow 18:00, fri 9:00, 20.11 18:00')
+                .setDescription('e.g. tomorrow 18:00, fri 9:00, 20/11 18:00')
                 .setTextInputComponent(
                   new TextInputBuilder()
                     .setCustomId('when')

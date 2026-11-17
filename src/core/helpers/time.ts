@@ -1,35 +1,7 @@
-import parseDuration from 'parse-duration';
-import { TZDate, tz } from '@date-fns/tz';
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  addYears,
-  isValid,
-  parse,
-  set,
-} from 'date-fns';
+import { en } from 'chrono-node';
+import { TZDate, tz, tzOffset } from '@date-fns/tz';
+import { addDays, addMonths, addWeeks, isValid, parse, set } from 'date-fns';
 import { UserError } from '~/core/errors';
-
-const absoluteFormats = [
-  'yyyy-MM-dd HH:mm',
-  "yyyy-MM-dd'T'HH:mm",
-  'd.M.yyyy H:mm',
-  'yyyy-MM-dd',
-  'd.M.yyyy',
-];
-
-const dayMonthFormats = ['d.M H:mm', 'd.M'];
-
-const weekdays = [
-  'sunday',
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-];
 
 const steps = { daily: addDays, weekly: addWeeks, monthly: addMonths };
 
@@ -59,147 +31,41 @@ export function requireZone(zone: string): string {
   return zone;
 }
 
-function parseRelative(input: string, now: Date): Date | undefined {
-  if (input.length > 100) {
-    return undefined;
-  }
-
-  const duration = parseDuration(input);
-
-  if (duration === null || !Number.isFinite(duration)) {
-    return undefined;
-  }
-
-  const date = new Date(now.getTime() + duration);
-
-  return isValid(date) ? date : undefined;
-}
-
-function parseClockFields(
-  input: string,
-): { hours: number; minutes: number } | undefined {
-  if (!/^\d{1,2}:\d{2}$/.test(input)) {
-    return undefined;
-  }
-
-  const clock = parse(input, 'H:mm', new Date(0), { in: tz('UTC') });
-
-  if (!isValid(clock)) {
-    return undefined;
-  }
-
-  return { hours: clock.getHours(), minutes: clock.getMinutes() };
-}
-
-function parseClock(input: string, zone: string, now: Date): Date | undefined {
-  const clock = parseClockFields(input);
-
-  if (!clock) {
-    return undefined;
-  }
-
-  const today = set(
-    now,
-    { ...clock, seconds: 0, milliseconds: 0 },
-    { in: tz(zone) },
-  );
-
-  return today <= now ? addDays(today, 1, { in: tz(zone) }) : today;
-}
-
-function dayOffset(name: string, now: Date, zone: string): number | undefined {
-  if (name === 'today') {
-    return 0;
-  }
-
-  if (name === 'tomorrow') {
-    return 1;
-  }
-
-  const index = weekdays.findIndex(
-    (day) => name.length >= 3 && day.startsWith(name),
-  );
-
-  return index === -1
-    ? undefined
-    : (index - new TZDate(now, zone).getDay() + 7) % 7;
-}
-
-function parseNamedDay(
-  input: string,
-  zone: string,
-  now: Date,
-): Date | undefined {
-  const match = /^([a-z]+)\s+(\d{1,2}:\d{2})$/i.exec(input);
-  const offset = match && dayOffset(match[1]?.toLowerCase() ?? '', now, zone);
-  const clock = parseClockFields(match?.[2] ?? '');
-
-  if (!match || !clock || offset === undefined || offset === null) {
-    return undefined;
-  }
-
-  const date = set(
-    addDays(now, offset, { in: tz(zone) }),
-    {
-      ...clock,
-      seconds: 0,
-      milliseconds: 0,
-    },
-    { in: tz(zone) },
-  );
-  const weekday = match[1]?.toLowerCase() !== 'today';
-
-  return weekday && offset === 0 && date <= now
-    ? addDays(date, 7, { in: tz(zone) })
-    : date;
-}
-
-function parseDayMonth(
-  input: string,
-  zone: string,
-  now: Date,
-): Date | undefined {
-  const date = dayMonthFormats
-    .map((format) => parse(input, format, now, { in: tz(zone) }))
-    .find((candidate) => isValid(candidate));
-
-  if (date === undefined) {
-    return undefined;
-  }
-
-  return date < now ? addYears(date, 1, { in: tz(zone) }) : date;
-}
-
-function parseAbsolute(
-  input: string,
-  zone: string,
-  now: Date,
-): Date | undefined {
-  const trimmed = input.trim();
-
-  return (
-    parseClock(trimmed, zone, now) ??
-    parseNamedDay(trimmed, zone, now) ??
-    parseDayMonth(trimmed, zone, now) ??
-    absoluteFormats
-      .map((format) => parse(trimmed, format, now, { in: tz(zone) }))
-      .find((date) => isValid(date))
-  );
-}
-
 export function parseWhen(input: string, zone: string, now = new Date()): Date {
-  const trimmed = input.trim();
-  // Clock/date input keeps calendar semantics; unit-suffixed clocks are durations.
-  const calendarInput =
-    !/\p{L}$/u.test(trimmed) && /:|^\d{1,4}[.-]\d/u.test(trimmed);
-  const date = calendarInput
-    ? parseAbsolute(trimmed, requireZone(zone), now)
-    : parseRelative(trimmed, now);
+  requireZone(zone);
+  const text = input.trim();
+  const result =
+    text.length <= 100
+      ? en.GB.parse(
+          text,
+          { instant: now, timezone: tzOffset(zone, now) },
+          { forwardDate: true },
+        )[0]
+      : undefined;
 
-  if (date === undefined) {
+  if (result?.text !== text) {
     throw new UserError(
-      `I could not read "${input}". Try "30m", "2h", "18:30", "tomorrow 9:00", "fri 18:00" or "20.11 18:00".`,
+      `I could not read "${input}". Try "30m", "2 hours", "18:30", "tomorrow at noon", "Friday at 6pm" or "20/11 18:00".`,
     );
+  }
+
+  const start = result.start;
+  // Chrono resolves syntax; TZDate applies IANA/DST rules to local appointments.
+  const date = start.isCertain('timezoneOffset')
+    ? result.date()
+    : new TZDate(
+        start.get('year') ?? Number.NaN,
+        (start.get('month') ?? Number.NaN) - 1,
+        start.get('day') ?? Number.NaN,
+        start.get('hour') ?? 0,
+        start.get('minute') ?? 0,
+        start.get('second') ?? 0,
+        start.get('millisecond') ?? 0,
+        zone,
+      );
+
+  if (!isValid(date)) {
+    throw new UserError('That is not a valid time.');
   }
 
   return new Date(date.getTime());
@@ -304,15 +170,7 @@ export function formatCalendarDay(day: CalendarDay): string {
 }
 
 export function parseCalendarDay(value: string): CalendarDay | undefined {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = parse(value, 'yyyy-MM-dd', new Date(0), { in: tz('UTC') });
 
-  if (!match) {
-    return undefined;
-  }
-
-  return {
-    year: Number(match[1]),
-    month: Number(match[2]),
-    day: Number(match[3]),
-  };
+  return isValid(date) ? calendarDay(date, 'UTC') : undefined;
 }

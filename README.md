@@ -48,12 +48,13 @@ Times are read and shown in `DEFAULT_TIMEZONE`. Birthday settings and
 self-selection role panels live in the database. Connection settings come
 from the environment.
 
-Relative times use `parse-duration` directly: aliases, compound expressions,
-fractions, exponents and implicit smaller units follow the library's grammar.
-The library tolerates extra text rather than enforcing our own strict tokenizer.
-Months and years use fixed averages (365.25 days per year), not calendar arithmetic.
-Duration expressions are limited to 100 characters. Clock times and calendar dates
-keep their existing timezone behavior; scheduling still requires a future time.
+Time input uses Chrono's English day-first parser: `30m`, `2 hours 30 minutes`,
+`18:30`, `tomorrow at noon`, `Friday at 6pm`, `20/11 18:00`, or an explicit date.
+Chrono owns the grammar; there are no custom clock, weekday or date parsers.
+Yearless dates use slashes (`20/11`); full dotted dates such as `20.11.2026` also
+work. Months and years follow calendar arithmetic. Inputs must be one complete
+time expression, up to 100 characters; scheduling requires a future time.
+The server's IANA timezone and DST rules apply to local appointments.
 
 ## Commands
 
