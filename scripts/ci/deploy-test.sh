@@ -3,7 +3,7 @@ set -euo pipefail
 
 main() {
   cd "$(dirname "$0")/../.."
-  deploy_script="$PWD/scripts/deploy/deploy.sh"
+  deploy_script="$PWD/scripts/deploy/deploy.py"
 
   work=$(mktemp -d)
   trap 'rm -rf "$work"' EXIT
@@ -25,7 +25,6 @@ make_stubs() {
   stub pnpm 'echo "pnpm $*"; [[ "$1" != build || -z "${FAIL_BUILD:-}" ]]'
   stub systemctl '[[ -z "${FAIL_HEALTH:-}" ]]'
   stub journalctl '[[ -n "${FAIL_HEALTH:-}" ]] || echo '"'"'{"level":30,"msg":"Ready"}'"'"
-  stub sleep 'true'
 }
 
 stub() {
@@ -49,7 +48,7 @@ make_root() {
 deploy() {
   command sleep 1
   env PATH="$work/bin:$PATH" LAPBOT_ROOT="$work/root" LAPBOT_READY_TIMEOUT=3 "$@" \
-    bash "$deploy_script" > "$work/out.log" 2>&1
+    python3 -u "$deploy_script" > "$work/out.log" 2>&1
 }
 
 test_missing_env_fails() {

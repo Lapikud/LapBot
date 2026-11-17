@@ -75,7 +75,7 @@ tests/               role message, permissions, delivery, integrity
 
 Pull requests run CI. A push to `main` runs CI, then mirrors to
 `git.lapikud.ee`, where a runner in the LXC container runs
-`scripts/deploy/deploy.sh`. It builds a new release, restarts the `lapbot`
+`scripts/deploy/deploy.py`. It builds a new release, restarts the `lapbot`
 service and rolls back if the bot doesn't log `Ready` within 90 seconds.
 Migrations are not rolled back, so each must work with the previous release.
 
@@ -83,7 +83,7 @@ Migrations are not rolled back, so each must work with the previous release.
 
 As root, with PostgreSQL running:
 
-1. Install Node 24, git and act_runner, and run `corepack enable`.
+1. Install Node 24, Python 3, git and act_runner, and run `corepack enable`.
 2. Create the user and checkout:
 
    ```sh
@@ -139,7 +139,7 @@ As root, with PostgreSQL running:
    systemctl enable --now lapbot-restart.path
    ```
 
-6. Deploy once: `runuser -u lapbot -- /opt/lapbot/repo/scripts/deploy/deploy.sh`.
+6. Deploy once: `runuser -u lapbot -- /opt/lapbot/repo/scripts/deploy/deploy.py`.
 7. Register the runner and run `act_runner daemon` as `lapbot`:
 
    ```sh
