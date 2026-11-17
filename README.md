@@ -25,6 +25,7 @@ above every role it hands out.
 
 Settings are documented in `.env.example`.
 
+- Application administrators: set `JUHATUS_ROLE_ID` to the Juhatus Discord role ID.
 - Role selection: `ROLE_SELECTION_CHANNEL_ID` and the role IDs.
 - Movie details: `TMDB_ACCESS_TOKEN`.
 - Google Calendar: `GOOGLE_CALENDAR_ID=lapikud@gmail.com` and
@@ -45,8 +46,25 @@ Settings are documented in `.env.example`.
 | `/permissions grant/revoke/list`                                    | `permissions:manage`                                   |
 | Web dashboard                                                       | `web:access`                                           |
 
-Discord administrators hold every permission and make the first grants.
-Others can only grant permissions they hold, to roles below their own.
+Discord administrators and members of `JUHATUS_ROLE_ID` hold every bot permission.
+Roles and Logs are admin-only. Losing Juhatus removes its admin access.
+
+Grant permissions to a role or member with `/permissions grant/revoke`, using
+`role:` or `user:`. Personal and role grants combine. Non-admins can only grant
+permissions they hold, to roles or members below their own. Only admins can
+delegate `permissions:manage`.
+
+### Events
+
+`/event suggest text:going to the park` saves an idea and posts it in the current
+channel without pings. The dashboard inbox needs `event:suggestions:manage`,
+which grants inbox access without `web:access`.
+
+Calendar crossposting is opt-in and needs `event:calendar:publish`. Choose it when
+creating an event, or use `/event calendar id:` or the dashboard to post an
+existing event. Only public-channel events can be crossposted. Editing linked
+calendar details needs the same permission; cancellation removes the entry.
+Retry failed calendar posts from the existing event.
 
 ## Development
 
@@ -149,12 +167,18 @@ As root, with PostgreSQL running:
    systemctl enable --now lapbot-restart.path
    ```
 
-6. Register the runner and run `act_runner daemon` as `lapbot`:
+6. Register a repository-only runner and run `act_runner daemon` as `lapbot`:
 
    ```sh
    cd /home/lapbot && runuser -u lapbot -- act_runner register --no-interactive \
      --instance https://git.lapikud.ee --token <token> --name lapbot-lxc --labels lapbot:host
    ```
+
+   The runner can read production secrets. Restrict Gitea pushes to trusted
+   maintainers or use a read-only mirror.
+
+   Private repo: set `LAPBOT_REMOTE` in the runner environment. Use an SSH URL,
+   a read-only deploy key and configured known hosts.
 
 7. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
    `https://<user>:<token>@git.lapikud.ee/<owner>/lapbot.git`.
