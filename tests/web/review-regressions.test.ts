@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
 import { type WebDeps, type Env, serverOf } from '~/web/context';
 import { visibleRecords } from '~/core/helpers/visibility';
-import { eventRoutes } from '~/web/post/events/routes';
-import { pollRoutes } from '~/web/post/polls/routes';
-import { announcementRoutes } from '~/web/post/announcements/routes';
-import { birthdayRoutes } from '~/web/forms/birthdays/routes';
+import { eventRoutes } from '~/web/pages/post/events/routes';
+import { pollRoutes } from '~/web/pages/post/polls/routes';
+import { announcementRoutes } from '~/web/pages/post/announcements/routes';
+import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
 import { actor, fakeDirectory } from '../fakes';
 
 const channels = [

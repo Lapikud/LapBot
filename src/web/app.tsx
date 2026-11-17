@@ -9,18 +9,18 @@ import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
 import { webAccess } from '~/core/permission';
 import { signedInUser, signInPages } from './auth';
-import { birthdayRoutes } from '~/web/forms/birthdays/routes';
+import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
 import { back, serverOf, type Env, type WebDeps } from './context';
-import { eventRoutes } from '~/web/post/events/routes';
-import { movieRoutes } from '~/web/forms/movies/routes';
-import { logRoutes } from '~/web/settings/logs/routes';
+import { eventRoutes } from '~/web/pages/post/events/routes';
+import { movieRoutes } from '~/web/pages/forms/movies/routes';
+import { logRoutes } from '~/web/pages/settings/logs/routes';
 import { StatusPage } from './components/status-page';
-import { overviewRoutes } from './overview/routes';
+import { overviewRoutes } from './pages/overview/routes';
 import { containsPath, sections, visibleLinks } from './navigation';
-import { permissionRoutes } from '~/web/settings/permissions/routes';
-import { roleRoutes } from '~/web/roles/routes';
-import { pollRoutes } from '~/web/post/polls/routes';
-import { announcementRoutes } from '~/web/post/announcements/routes';
+import { permissionRoutes } from '~/web/pages/settings/permissions/routes';
+import { roleRoutes } from '~/web/pages/roles/routes';
+import { pollRoutes } from '~/web/pages/post/polls/routes';
+import { announcementRoutes } from '~/web/pages/post/announcements/routes';
 
 function returnPath(referer: string | undefined, path: string): string {
   const parts = path.split('/').filter(Boolean);

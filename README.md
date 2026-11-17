@@ -107,7 +107,7 @@ The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 [Pico.css](https://picocss.com) (classless, so plain form markup looks right),
 loaded from jsDelivr. Our own styles are in `src/web/public/app.css`; every file in
 that directory is served as is.
-Each flow has a local folder under `src/web/overview`, `forms`, `post`, `roles`, or `settings`.
+Each flow has a local folder under `src/web/pages/overview`, `forms`, `post`, `roles`, or `settings`.
 Its `routes.tsx` handles requests and calls services; `index.tsx` renders its main
 page, with forms and other components beside it. Components receive explicit
 data through props. Mount routes in `app.tsx` and add the flow to `navigation.ts`. Forms
@@ -280,8 +280,8 @@ drizzle/                   SQL migrations
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
 and input definitions are pure; services orchestrate; `repository.ts` and `table.ts` own persistence.
-Web flows are grouped into `web/post`, `web/forms`, `web/roles`, and
-`web/settings`. Each flow owns its routes, submission decoding and components.
+Web flows are grouped into `web/pages/post`, `web/pages/forms`, `web/pages/roles`, and
+`web/pages/settings`. Each flow owns its routes, submission decoding and components.
 An `index.tsx` is a rendered page, never a re-export-only entry point. Discord commands live in
 `discord/commands`; gateway event listeners live in
 `discord/events`. All tests live under

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { afterEach, expect, it } from 'vitest';
 import { createLogStore } from '~/integrations/logging/store';
-import { logRoutes } from '~/web/settings/logs/routes';
+import { logRoutes } from '~/web/pages/settings/logs/routes';
 import type { Env, WebDeps } from '~/web/context';
 import { createWebApp } from '~/web/app';
 import { setSignedCookie } from 'hono/cookie';

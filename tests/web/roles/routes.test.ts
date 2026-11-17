@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
-import { roleRoutes } from '~/web/roles/routes';
+import { roleRoutes } from '~/web/pages/roles/routes';
 import { serverOf, type Env, type WebDeps } from '~/web/context';
 import { actor, role } from '../../fakes';
 
