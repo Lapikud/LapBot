@@ -79,22 +79,29 @@ Pull requests run CI. A push to `main` runs CI, then mirrors to
 service and rolls back if the bot doesn't log `Ready` within 90 seconds.
 Migrations are not rolled back, so each must work with the previous release.
 
+`deploy.py` reads these from the runner's environment:
+
+| Variable               | Default                               | Purpose                        |
+| ---------------------- | ------------------------------------- | ------------------------------ |
+| `LAPBOT_ROOT`          | `/opt/lapbot`                         | Where releases and `.env` live |
+| `LAPBOT_SERVICE`       | `lapbot`                              | The systemd service            |
+| `LAPBOT_READY_TIMEOUT` | `90`                                  | Seconds to wait for `Ready`    |
+| `LAPBOT_REMOTE`        | `origin` of the checkout it runs from | Where to clone `repo/` from    |
+
+If you change the root or service, change the unit files below to match.
+
 ### Server setup
 
 As root, with PostgreSQL running:
 
 1. Install Node 24, Python 3, git and act_runner, and run `corepack enable`.
-2. Create the user and checkout:
+2. Create the user and root:
 
    ```sh
    useradd --system --create-home --shell /usr/sbin/nologin lapbot
    usermod -aG systemd-journal lapbot
    install -d -o lapbot -g lapbot /opt/lapbot
-   runuser -u lapbot -- git clone https://git.lapikud.ee/<owner>/lapbot.git /opt/lapbot/repo
    ```
-
-   The clone must be at `/opt/lapbot/repo`: `deploy.py` builds every release
-   from it.
 
 3. Write `/opt/lapbot/.env` (owner `lapbot`, mode `600`).
 4. Add `/etc/systemd/system/lapbot.service`:
@@ -142,15 +149,15 @@ As root, with PostgreSQL running:
    systemctl enable --now lapbot-restart.path
    ```
 
-6. Deploy once: `runuser -u lapbot -- /opt/lapbot/repo/scripts/deploy/deploy.py`.
-7. Register the runner and run `act_runner daemon` as `lapbot`:
+6. Register the runner and run `act_runner daemon` as `lapbot`:
 
    ```sh
    cd /home/lapbot && runuser -u lapbot -- act_runner register --no-interactive \
      --instance https://git.lapikud.ee --token <token> --name lapbot-lxc --labels lapbot:host
    ```
 
-8. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
+7. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
    `https://<user>:<token>@git.lapikud.ee/<owner>/lapbot.git`.
+8. Push to `main`. The first deploy clones `/opt/lapbot/repo`.
 
 Logs: `journalctl -u lapbot`. Back up the database and `/opt/lapbot/logs`.

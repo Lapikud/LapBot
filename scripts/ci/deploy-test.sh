@@ -42,12 +42,11 @@ make_root() {
   git clone --quiet --bare "$seed" "$work/origin.git"
 
   mkdir "$work/root"
-  git clone --quiet "$work/origin.git" "$work/root/repo"
 }
 
 deploy() {
   command sleep 1
-  env PATH="$work/bin:$PATH" LAPBOT_ROOT="$work/root" LAPBOT_READY_TIMEOUT=3 "$@" \
+  env PATH="$work/bin:$PATH" LAPBOT_ROOT="$work/root" LAPBOT_REMOTE="$work/origin.git" LAPBOT_READY_TIMEOUT=3 "$@" \
     python3 -u "$deploy_script" > "$work/out.log" 2>&1
 }
 
@@ -64,6 +63,7 @@ test_first_deploy() {
   echo "A=1" > "$work/root/.env"
   deploy || fail "first deploy failed"
 
+  [[ -d "$work/root/repo/.git" ]] || fail "repo was not cloned"
   [[ -f "$work/root/current/package.json" ]] || fail "current has no app"
   expect_equal "$(readlink "$work/root/current/.env")" "$work/root/.env" "release links .env"
   expect_equal "$(readlink "$work/root/current/logs")" "$work/root/logs" "release links logs"

@@ -23,6 +23,9 @@ logs = root / "logs"
 
 
 def main():
+    if not root.is_dir():
+        sys.exit(f"root: {root} does not exist")
+
     lock = lock_file.open("w")
     flock(lock, LOCK_EX)
 
@@ -66,11 +69,33 @@ def git(*args):
     return result.stdout.strip()
 
 
+def remote():
+    configured = os.environ.get("LAPBOT_REMOTE")
+
+    if configured:
+        return configured
+
+    own = subprocess.run(
+        ["git", "-C", str(Path(__file__).parent), "remote", "get-url", "origin"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    if not own:
+        sys.exit(f"repo: {repo} is missing and LAPBOT_REMOTE is not set")
+
+    return own
+
+
 def live():
     return Path(os.readlink(current)) if current.is_symlink() else None
 
 
 def update_code():
+    if not (repo / ".git").is_dir():
+        run("git", "clone", "--quiet", remote(), str(repo))
+        print(f"code: cloned into {repo}")
+
     git("fetch", "--quiet", "origin", "main")
     git("reset", "--quiet", "--hard", "origin/main")
     print(f"code: at {git('log', '-1', '--format=%h %s')}")
