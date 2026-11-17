@@ -1,3 +1,4 @@
+import { Input, Select, Textarea, ActionButton, Checkbox } from './ui';
 import { visibleRecords } from '~/core/helper/visible-records';
 import { Hono } from 'hono';
 import type { Event } from '~/core/ports';
@@ -16,7 +17,8 @@ import {
   type Form,
   type WebDeps,
 } from './context';
-import { ActionButton, ChannelSelect, Checkbox, Layout } from './layout';
+import { Layout } from './layout';
+import { ChannelSelect } from './selectors';
 
 const textFields = [
   'title',
@@ -32,53 +34,50 @@ function EventFields({
 }: Readonly<{ event?: Event; time: (date: Date | null) => string }>) {
   return (
     <>
-      <label>
-        Title
-        <input name="title" required maxlength={200} value={event?.title} />
-      </label>
+      <Input
+        label="Title"
+        name="title"
+        required
+        maxlength={200}
+        value={event?.title}
+      />
       <div class="grid">
-        <label>
-          Start
-          <input
-            name="start"
-            required
-            placeholder="e.g. fri 18:00"
-            value={time(event?.startsAt ?? null)}
-          />
-        </label>
-        <label>
-          End
-          <input
-            name="end"
-            placeholder="e.g. 21:00 or 3h"
-            value={time(event?.endsAt ?? null)}
-          />
-        </label>
+        <Input
+          label="Start"
+          name="start"
+          required
+          placeholder="e.g. fri 18:00"
+          value={time(event?.startsAt ?? null)}
+        />
+        <Input
+          label="End"
+          name="end"
+          placeholder="e.g. 21:00 or 3h"
+          value={time(event?.endsAt ?? null)}
+        />
       </div>
-      <label>
-        Description
-        <textarea name="description" rows={3} maxlength={1500}>
-          {event?.description}
-        </textarea>
-      </label>
+      <Textarea
+        label="Description"
+        name="description"
+        rows={3}
+        maxlength={1500}
+      >
+        {event?.description}
+      </Textarea>
       <div class="grid">
-        <label>
-          Location
-          <input
-            name="location"
-            maxlength={200}
-            value={event?.location ?? ''}
-          />
-        </label>
-        <label>
-          Capacity
-          <input
-            name="capacity"
-            type="number"
-            min={1}
-            value={event?.capacity === null ? '' : event?.capacity}
-          />
-        </label>
+        <Input
+          label="Location"
+          name="location"
+          maxlength={200}
+          value={event?.location ?? ''}
+        />
+        <Input
+          label="Capacity"
+          name="capacity"
+          type="number"
+          min={1}
+          value={event?.capacity === null ? '' : event?.capacity}
+        />
       </div>
     </>
   );
@@ -207,16 +206,13 @@ export function eventPages({
             <EventFields time={time} />
             <div class="grid">
               <ChannelSelect server={server} />
-              <label>
-                Reminders
-                <select name="reminders">
-                  {reminderChoices.map((choice) => (
-                    <option key={choice.value} value={choice.value}>
-                      {choice.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select label="Reminders" name="reminders">
+                {reminderChoices.map((choice) => (
+                  <option key={choice.value} value={choice.value}>
+                    {choice.label}
+                  </option>
+                ))}
+              </Select>
             </div>
             <fieldset>
               <Checkbox name="native" label="Also create a Discord event" />

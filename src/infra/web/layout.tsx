@@ -1,6 +1,6 @@
 import type { Child } from 'hono/jsx';
 import { managePermissions, type Permission } from '~/domain';
-import type { Flash, Server } from './context';
+import type { Flash } from './context';
 
 const sections: ReadonlyArray<
   readonly [href: string, label: string, permission?: Permission]
@@ -98,111 +98,5 @@ export function Layout({
         </main>
       </body>
     </html>
-  );
-}
-
-export function ChannelOptions({
-  server,
-  selected,
-}: Readonly<{ server: Server; selected?: string | undefined }>) {
-  return (
-    <>
-      {server.channels.map(({ id, name }) => (
-        <option key={id} value={id} selected={selected === id}>
-          #{name}
-        </option>
-      ))}
-    </>
-  );
-}
-
-export function ChannelSelect({
-  server,
-  name = 'channelId',
-  selected,
-}: Readonly<{ server: Server; name?: string; selected?: string | undefined }>) {
-  return (
-    <label>
-      Channel
-      <select name={name} required>
-        <ChannelOptions server={server} selected={selected} />
-      </select>
-    </label>
-  );
-}
-
-export function Checkbox({
-  name,
-  label,
-  checked = false,
-  value = '1',
-}: Readonly<{
-  name: string;
-  label: string;
-  checked?: boolean;
-  value?: string;
-}>) {
-  return (
-    <label>
-      <input type="checkbox" name={name} value={value} checked={checked} />
-      {label}
-    </label>
-  );
-}
-
-export function ActionButton({
-  action,
-  label,
-}: Readonly<{ action: string; label: string }>) {
-  return (
-    <form method="post" action={action}>
-      <button type="submit" class="secondary outline">
-        {label}
-      </button>
-    </form>
-  );
-}
-
-export type Choice = { name: string; value: string; label: string };
-
-export function MultiSelect({
-  label,
-  placeholder,
-  choices,
-  selected,
-}: Readonly<{
-  label: string;
-  placeholder: string;
-  choices: readonly Choice[];
-  selected: ReadonlySet<string>;
-}>) {
-  const picked = choices.filter(({ value }) => selected.has(value));
-
-  return (
-    <fieldset>
-      <legend>{label}</legend>
-      <details class="dropdown">
-        <summary>
-          {picked.length === 0
-            ? placeholder
-            : picked.map((choice) => choice.label).join(', ')}
-        </summary>
-        <ul>
-          {choices.map((choice) => (
-            <li key={`${choice.name}:${choice.value}`}>
-              <label>
-                <input
-                  type="checkbox"
-                  name={choice.name}
-                  value={choice.value}
-                  checked={selected.has(choice.value)}
-                />
-                {choice.label}
-              </label>
-            </li>
-          ))}
-        </ul>
-      </details>
-    </fieldset>
   );
 }

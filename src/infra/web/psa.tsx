@@ -1,3 +1,4 @@
+import { FormActions, Input, Textarea, ActionButton, MultiSelect } from './ui';
 import { Hono } from 'hono';
 import type { Child } from 'hono/jsx';
 import type { Announcement } from '~/core/ports';
@@ -14,7 +15,8 @@ import {
   type Server,
   type WebDeps,
 } from './context';
-import { ActionButton, ChannelSelect, Layout, MultiSelect } from './layout';
+import { Layout } from './layout';
+import { ChannelSelect } from './selectors';
 import { MessagePreview } from './preview';
 
 const title = 'Public service announcements';
@@ -89,27 +91,25 @@ function Composer({
   return (
     <form method="post" action="/psa">
       <ChannelSelect server={server} selected={draft?.channelId} />
-      <label>
-        Title
-        <input name="title" maxlength={256} value={draft?.title} />
-      </label>
-      <label>
-        Message
-        <textarea name="content" rows={8} maxlength={1900} required>
-          {draft?.content}
-        </textarea>
-      </label>
+      <Input label="Title" name="title" maxlength={256} value={draft?.title} />
+      <Textarea
+        label="Message"
+        name="content"
+        rows={8}
+        maxlength={1900}
+        required
+      >
+        {draft?.content}
+      </Textarea>
       <MentionPicker server={server} draft={draft} />
-      <label>
-        Publish later
-        <input
-          name="when"
-          value={draft?.when}
-          placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
-        />
-      </label>
+      <Input
+        label="Publish later"
+        name="when"
+        value={draft?.when}
+        placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
+      />
       {preview}
-      <div role="group">
+      <FormActions>
         {actions
           .filter(([, , , needs]) => needs === undefined || can.has(needs))
           .map(([value, label, variant]) => (
@@ -123,7 +123,7 @@ function Composer({
               {label}
             </button>
           ))}
-      </div>
+      </FormActions>
     </form>
   );
 }

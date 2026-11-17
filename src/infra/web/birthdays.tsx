@@ -1,3 +1,4 @@
+import { FormActions, Input, Select } from './ui';
 import { Hono } from 'hono';
 import {
   allows,
@@ -7,7 +8,8 @@ import {
   type Env,
   type WebDeps,
 } from './context';
-import { ChannelOptions, ChannelSelect, Layout } from './layout';
+import { Layout } from './layout';
+import { ChannelOptions, ChannelSelect } from './selectors';
 
 const dayMonth = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -51,33 +53,28 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
               <form method="post" action="/birthdays">
                 <ChannelSelect server={server} selected={settings?.channelId} />
                 <div class="grid">
-                  <label>
-                    Role for the day
-                    <select name="roleId">
-                      <option value="">None</option>
-                      {roles.map(({ id, name }) => (
-                        <option
-                          key={id}
-                          value={id}
-                          selected={settings?.roleId === id}
-                        >
-                          @{name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Hour
-                    <input
-                      name="hour"
-                      type="number"
-                      min={0}
-                      max={23}
-                      value={String(settings?.hour ?? 9)}
-                    />
-                  </label>
+                  <Select label="Role for the day" name="roleId">
+                    <option value="">None</option>
+                    {roles.map(({ id, name }) => (
+                      <option
+                        key={id}
+                        value={id}
+                        selected={settings?.roleId === id}
+                      >
+                        @{name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Hour"
+                    name="hour"
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={String(settings?.hour ?? 9)}
+                  />
                 </div>
-                <div role="group">
+                <FormActions>
                   <button type="submit" name="action" value="save">
                     Save
                   </button>
@@ -91,7 +88,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
                       Turn off
                     </button>
                   )}
-                </div>
+                </FormActions>
               </form>
               <h2>Sign-up message</h2>
               <p>

@@ -1,7 +1,9 @@
+import { Select } from './ui';
 import { Hono } from 'hono';
 import { selfAssignProblem, UserError } from '~/domain';
 import { back, field, flashOf, type Env, type WebDeps } from './context';
-import { ChannelSelect, Layout } from './layout';
+import { Layout } from './layout';
+import { ChannelSelect } from './selectors';
 
 const emojis = [
   '1️⃣',
@@ -209,17 +211,14 @@ export function rolePages({ services }: WebDeps) {
                 <fieldset class="role-add">
                   <legend>Add a role</legend>
                   <div class="role-add-fields">
-                    <label>
-                      Role
-                      <select name="new-role">
-                        <option value="">Choose a role…</option>
-                        {available.map((role) => (
-                          <option key={role.id} value={role.id}>
-                            {role.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <Select label="Role" name="new-role">
+                      <option value="">Choose a role…</option>
+                      {available.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </Select>
                     <label>
                       Reaction
                       <EmojiSelect

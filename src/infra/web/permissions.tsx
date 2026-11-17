@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { PermissionDefinition, RoleInfo } from '~/domain';
 import { back, flashOf, type Env, type WebDeps } from './context';
 import { Layout } from './layout';
+import { Checkbox, FormActions } from './ui';
 
 const title = (name: string) =>
   `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
@@ -32,7 +33,7 @@ function RolePicker({
 }>) {
   return (
     <form method="get" action="/permissions">
-      <div role="group">
+      <FormActions>
         <select name="role" aria-label="Role" required>
           <option value="" disabled selected={selected === undefined}>
             Pick a role
@@ -50,7 +51,7 @@ function RolePicker({
         <button type="submit" class="secondary">
           Open
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }
@@ -71,15 +72,17 @@ function RoleForm({
         <fieldset key={group}>
           <legend>{group}</legend>
           {permissions.map((permission) => (
-            <label key={permission.id}>
-              <input
-                type="checkbox"
-                name="permission"
-                value={permission.id}
-                checked={granted.has(permission.id)}
-              />
-              {permission.description} <small>{permission.id}</small>
-            </label>
+            <Checkbox
+              key={permission.id}
+              name="permission"
+              value={permission.id}
+              checked={granted.has(permission.id)}
+              label={
+                <>
+                  {permission.description} <small>{permission.id}</small>
+                </>
+              }
+            />
           ))}
         </fieldset>
       ))}

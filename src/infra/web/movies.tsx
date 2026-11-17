@@ -1,8 +1,9 @@
+import { Input, Textarea, ActionButton } from './ui';
 import { Hono } from 'hono';
 import type { MovieSuggestion } from '~/core/ports';
 import { movieLabel, movieLinks } from '~/domain';
 import { back, field, flashOf, owns, type Env, type WebDeps } from './context';
-import { ActionButton, Layout } from './layout';
+import { Layout } from './layout';
 
 const linksOf = (value: string | undefined) =>
   (value ?? '').split('\n').filter((line) => line.trim() !== '');
@@ -111,27 +112,22 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         >
           <form method="post" action="/movies">
             <div class="grid">
-              <label>
-                Title
-                <input name="title" required maxlength={200} />
-              </label>
-              <label>
-                Year
-                <input name="year" type="number" min={1880} max={2100} />
-              </label>
-            </div>
-            <label>
-              Why watch it?
-              <input name="note" maxlength={300} />
-            </label>
-            <label>
-              Links (one per line)
-              <textarea
-                name="links"
-                rows={2}
-                placeholder="https://letterboxd.com/film/…"
+              <Input label="Title" name="title" required maxlength={200} />
+              <Input
+                label="Year"
+                name="year"
+                type="number"
+                min={1880}
+                max={2100}
               />
-            </label>
+            </div>
+            <Input label="Why watch it?" name="note" maxlength={300} />
+            <Textarea
+              label="Links (one per line)"
+              name="links"
+              rows={2}
+              placeholder="https://letterboxd.com/film/…"
+            />
             <button type="submit">Suggest</button>
           </form>
         </Layout>,
