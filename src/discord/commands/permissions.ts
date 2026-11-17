@@ -1,3 +1,4 @@
+import { UserError } from '~/core/errors';
 import {
   InteractionContextType,
   SlashCommandBuilder,
@@ -5,7 +6,7 @@ import {
 } from 'discord.js';
 import type { PermissionService } from '~/features/permissions/service';
 import { managePermissions } from '~/core/permission';
-import { roleMention } from '~/core/message';
+import { roleMention, userMention } from '~/core/message';
 import { toActor } from '~/discord/interactions/actor';
 import { bySubcommand, deferred } from './handlers';
 import type { Feature } from '~/discord/contracts';
@@ -26,19 +27,21 @@ const data = new SlashCommandBuilder()
     sub
       .setName('grant')
       .setDescription('Grant a permission to a role')
-      .addRoleOption((o) =>
-        o.setName('role').setDescription('Role').setRequired(true),
-      )
-      .addStringOption(permissionOption),
+      .addStringOption(permissionOption)
+      .addRoleOption((o) => o.setName('role').setDescription('Role'))
+      .addUserOption((o) =>
+        o.setName('user').setDescription('Member (choose a role or member)'),
+      ),
   )
   .addSubcommand((sub) =>
     sub
       .setName('revoke')
       .setDescription('Revoke a permission from a role')
-      .addRoleOption((o) =>
-        o.setName('role').setDescription('Role').setRequired(true),
-      )
-      .addStringOption(permissionOption),
+      .addStringOption(permissionOption)
+      .addRoleOption((o) => o.setName('role').setDescription('Role'))
+      .addUserOption((o) =>
+        o.setName('user').setDescription('Member (choose a role or member)'),
+      ),
   )
   .addSubcommand((sub) =>
     sub
@@ -50,19 +53,28 @@ const data = new SlashCommandBuilder()
 export function permissionCommands(permissions: PermissionService): Feature {
   const change = (action: 'grant' | 'revoke') =>
     deferred(async (interaction) => {
-      const role = interaction.options.getRole('role', true);
+      const role = interaction.options.getRole('role');
+      const user = interaction.options.getUser('user');
+      const targetId = role?.id ?? user?.id;
+
+      if (targetId === undefined || (role !== null && user !== null)) {
+        throw new UserError('Choose exactly one role or member.');
+      }
+
       const permission = interaction.options.getString('permission', true);
       const changed = await permissions[action](
         toActor(interaction.member),
-        role.id,
+        targetId,
         permission,
+        user ? 'user' : 'role',
       );
       const verb = action === 'grant' ? 'Granted' : 'Revoked';
+      const mention = user ? userMention(targetId) : roleMention(targetId);
 
       await respond(
         interaction,
         changed
-          ? `${verb} "${permission}" for ${roleMention(role.id)}.`
+          ? `${verb} "${permission}" for ${mention}.`
           : 'Nothing changed.',
       );
     });
@@ -88,7 +100,8 @@ export function permissionCommands(permissions: PermissionService): Feature {
               ...(role ? [role.id] : []),
             );
             const lines = grants.map(
-              (g) => `${roleMention(g.roleId)} - "${g.permission}"`,
+              (g) =>
+                `${g.subjectType === 'user' ? userMention(g.roleId) : roleMention(g.roleId)} - "${g.permission}"`,
             );
 
             await respond(

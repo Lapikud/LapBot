@@ -1,3 +1,4 @@
+import { configureApplicationAdminRole } from '~/discord/interactions/actor';
 import { randomBytes } from 'node:crypto';
 import { Events, type Client } from 'discord.js';
 import type { Config } from '~/config/env';
@@ -70,6 +71,7 @@ function legacyPanel(config: Config): LegacyPanel | undefined {
 }
 
 export function compose(config: Config, log: Logger) {
+  configureApplicationAdminRole(config.JUHATUS_ROLE_ID, config.DISCORD_GUILD_ID);
   const database = connectDatabase(config.DATABASE_URL);
   const client = createClient();
   const grants = createGrantRepository(database.db);

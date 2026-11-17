@@ -1,5 +1,6 @@
 import { checkDelegation } from '~/core/helpers/permissions';
 import {
+  applicationAdmin,
   managePermissions,
   type Permission,
   type PermissionDefinition,
@@ -10,12 +11,18 @@ import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
 import type { Directory } from '~/core/ports/directory';
 import type { Logger } from '~/core/ports/logger';
-import type { GrantRepository } from './model';
+import type { GrantRepository, GrantSubject } from './model';
 
 export function createAuthorizer(grants: GrantRepository): Authorizer {
   const can = async (actor: Actor, permission: Permission) =>
     actor.administrator ||
-    (await grants.holds(actor.guildId, actor.roleIds, permission));
+    (permission !== applicationAdmin &&
+      (await grants.holds(
+        actor.guildId,
+        actor.roleIds,
+        permission,
+        actor.userId,
+      )));
 
   return {
     can,
@@ -31,9 +38,16 @@ export function createAuthorizer(grants: GrantRepository): Authorizer {
         return new Set(permissions);
       }
 
-      const held = new Set(await grants.held(actor.guildId, actor.roleIds));
+      const held = new Set(
+        await grants.held(actor.guildId, actor.roleIds, actor.userId),
+      );
 
-      return new Set(permissions.filter((permission) => held.has(permission)));
+      return new Set(
+        permissions.filter(
+          (permission) =>
+            permission !== applicationAdmin && held.has(permission),
+        ),
+      );
     },
   };
 }
@@ -50,6 +64,12 @@ export function createPermissionService(deps: Deps) {
   const { grants, directory, authz, log, known } = deps;
 
   const definition = (value: string): PermissionDefinition => {
+    if (value === applicationAdmin) {
+      throw new UserError(
+        'Application administrator access cannot be granted as a bot permission.',
+      );
+    }
+
     const found = [...known().values()].find((p) => p.id === value);
 
     if (!found) {
@@ -63,12 +83,25 @@ export function createPermissionService(deps: Deps) {
     guard(
       authz,
       managePermissions,
-      async (actor, roleId: string, value: string) => {
+      async (
+        actor,
+        roleId: string,
+        value: string,
+        subjectType: GrantSubject = 'role',
+      ) => {
         const { id: permission } = definition(value);
-        const role = await directory.role(actor.guildId, roleId);
+        const role =
+          subjectType === 'user'
+            ? await directory
+                .member(actor.guildId, roleId)
+                .then(
+                  (member) =>
+                    member && { position: member.highestRolePosition },
+                )
+            : await directory.role(actor.guildId, roleId);
 
         if (!role) {
-          throw new UserError('That role does not exist.');
+          throw new UserError('That member or role does not exist.');
         }
 
         checkDelegation({
@@ -78,7 +111,12 @@ export function createPermissionService(deps: Deps) {
           actorHolds: await authz.can(actor, permission),
         });
 
-        const input = { guildId: actor.guildId, roleId, permission };
+        const input = {
+          guildId: actor.guildId,
+          roleId,
+          permission,
+          subjectType,
+        };
         const changed =
           action === 'grant'
             ? await grants.grant({ ...input, grantedBy: actor.userId })
@@ -100,15 +138,18 @@ export function createPermissionService(deps: Deps) {
     catalogue: () => [...known().values()],
     grant,
     revoke,
-    list: guard(authz, managePermissions, (actor, roleId?: string) =>
-      grants.list(actor.guildId, roleId),
+    list: guard(
+      authz,
+      managePermissions,
+      (actor, roleId?: string, subjectType?: GrantSubject) =>
+        grants.list(actor.guildId, roleId, subjectType),
     ),
     setRole: guard(
       authz,
       managePermissions,
       async (actor, roleId: string, wanted: readonly string[]) => {
         const target = new Set(wanted.map((value) => definition(value).id));
-        const granted = await grants.list(actor.guildId, roleId);
+        const granted = await grants.list(actor.guildId, roleId, 'role');
         const current = new Set(granted.map((g) => g.permission));
         const toGrant = [...target].filter((p) => !current.has(p));
         const toRevoke = [...known().keys()].filter(

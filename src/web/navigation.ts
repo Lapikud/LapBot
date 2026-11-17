@@ -1,4 +1,8 @@
-import { managePermissions, type Permission } from '~/core/permission';
+import {
+  applicationAdmin,
+  managePermissions,
+  type Permission,
+} from '~/core/permission';
 
 interface PageLink {
   href: string;
@@ -33,7 +37,7 @@ export const sections: readonly Section[] = [
       { href: '/forms/movies', label: 'Movies' },
     ],
   },
-  { href: '/roles', label: 'Roles', permission: managePermissions },
+  { href: '/roles', label: 'Roles', permission: applicationAdmin },
   {
     href: '/settings',
     label: 'Settings',
@@ -44,7 +48,7 @@ export const sections: readonly Section[] = [
         label: 'Permissions',
         permission: managePermissions,
       },
-      { href: '/settings/logs', label: 'Logs', permission: managePermissions },
+      { href: '/settings/logs', label: 'Logs', permission: applicationAdmin },
     ],
   },
 ];

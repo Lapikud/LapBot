@@ -1,5 +1,8 @@
-import type { GrantRepository } from '~/features/permissions/model';
-import { and, eq, inArray } from 'drizzle-orm';
+import type {
+  GrantRepository,
+  GrantSubject,
+} from '~/features/permissions/model';
+import { and, eq, inArray, or } from 'drizzle-orm';
 import type { Db } from '../client';
 import { rolePermissions } from './table';
 
@@ -7,9 +10,11 @@ export async function hasGrant(
   db: Db,
   guildId: string,
   roleIds: readonly string[],
-  permission: string,
+  request: { permission: string; userId?: string },
 ): Promise<boolean> {
-  if (roleIds.length === 0) {
+  const { permission, userId } = request;
+
+  if (roleIds.length === 0 && userId === undefined) {
     return false;
   }
 
@@ -20,7 +25,18 @@ export async function hasGrant(
       and(
         eq(rolePermissions.guildId, guildId),
         eq(rolePermissions.permission, permission),
-        inArray(rolePermissions.roleId, [...roleIds]),
+        or(
+          and(
+            eq(rolePermissions.subjectType, 'role'),
+            inArray(rolePermissions.roleId, [...roleIds]),
+          ),
+          userId === undefined
+            ? undefined
+            : and(
+                eq(rolePermissions.subjectType, 'user'),
+                eq(rolePermissions.roleId, userId),
+              ),
+        ),
       ),
     )
     .limit(1);
@@ -32,8 +48,9 @@ export async function heldPermissions(
   db: Db,
   guildId: string,
   roleIds: readonly string[],
+  userId?: string,
 ): Promise<string[]> {
-  if (roleIds.length === 0) {
+  if (roleIds.length === 0 && userId === undefined) {
     return [];
   }
 
@@ -43,7 +60,18 @@ export async function heldPermissions(
     .where(
       and(
         eq(rolePermissions.guildId, guildId),
-        inArray(rolePermissions.roleId, [...roleIds]),
+        or(
+          and(
+            eq(rolePermissions.subjectType, 'role'),
+            inArray(rolePermissions.roleId, [...roleIds]),
+          ),
+          userId === undefined
+            ? undefined
+            : and(
+                eq(rolePermissions.subjectType, 'user'),
+                eq(rolePermissions.roleId, userId),
+              ),
+        ),
       ),
     );
 
@@ -55,6 +83,7 @@ export async function grant(
   input: {
     guildId: string;
     roleId: string;
+    subjectType?: GrantSubject;
     permission: string;
     grantedBy: string;
   },
@@ -70,7 +99,12 @@ export async function grant(
 
 export async function revoke(
   db: Db,
-  input: { guildId: string; roleId: string; permission: string },
+  input: {
+    guildId: string;
+    roleId: string;
+    permission: string;
+    subjectType?: GrantSubject;
+  },
 ): Promise<boolean> {
   const rows = await db
     .delete(rolePermissions)
@@ -78,6 +112,7 @@ export async function revoke(
       and(
         eq(rolePermissions.guildId, input.guildId),
         eq(rolePermissions.roleId, input.roleId),
+        eq(rolePermissions.subjectType, input.subjectType ?? 'role'),
         eq(rolePermissions.permission, input.permission),
       ),
     )
@@ -90,10 +125,14 @@ export async function listGrants(
   db: Db,
   guildId: string,
   roleId?: string,
-): Promise<Array<{ roleId: string; permission: string }>> {
+  subjectType?: GrantSubject,
+): Promise<
+  Array<{ roleId: string; permission: string; subjectType: GrantSubject }>
+> {
   return await db
     .select({
       roleId: rolePermissions.roleId,
+      subjectType: rolePermissions.subjectType,
       permission: rolePermissions.permission,
     })
     .from(rolePermissions)
@@ -101,6 +140,9 @@ export async function listGrants(
       and(
         eq(rolePermissions.guildId, guildId),
         roleId === undefined ? undefined : eq(rolePermissions.roleId, roleId),
+        subjectType === undefined
+          ? undefined
+          : eq(rolePermissions.subjectType, subjectType),
       ),
     )
     .orderBy(rolePermissions.roleId, rolePermissions.permission)
@@ -109,9 +151,13 @@ export async function listGrants(
 
 export function createGrantRepository(db: Db): GrantRepository {
   return {
-    holds: (guildId, roleIds, permission) =>
-      hasGrant(db, guildId, roleIds, permission),
-    held: (guildId, roleIds) => heldPermissions(db, guildId, roleIds),
+    holds: (guildId, roleIds, permission, userId) =>
+      hasGrant(db, guildId, roleIds, {
+        permission,
+        ...(userId !== undefined && { userId }),
+      }),
+    held: (guildId, roleIds, userId) =>
+      heldPermissions(db, guildId, roleIds, userId),
     grant: (change) => grant(db, change),
     revoke: (change) => revoke(db, change),
     apply: (input) =>
@@ -123,6 +169,7 @@ export function createGrantRepository(db: Db): GrantRepository {
               and(
                 eq(rolePermissions.guildId, input.guildId),
                 eq(rolePermissions.roleId, input.roleId),
+                eq(rolePermissions.subjectType, input.subjectType ?? 'role'),
                 inArray(rolePermissions.permission, [...input.revoke]),
               ),
             );
@@ -135,6 +182,7 @@ export function createGrantRepository(db: Db): GrantRepository {
               input.grant.map((permission) => ({
                 guildId: input.guildId,
                 roleId: input.roleId,
+                subjectType: input.subjectType ?? 'role',
                 grantedBy: input.grantedBy,
                 permission,
               })),
@@ -142,6 +190,7 @@ export function createGrantRepository(db: Db): GrantRepository {
             .onConflictDoNothing();
         }
       }),
-    list: (guildId, roleId) => listGrants(db, guildId, roleId),
+    list: (guildId, roleId, subjectType) =>
+      listGrants(db, guildId, roleId, subjectType),
   };
 }

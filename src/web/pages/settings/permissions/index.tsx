@@ -33,9 +33,43 @@ export function PermissionPage({
       flash={flash}
     >
       <p>
-        Server administrators can do everything, including opening this
-        dashboard. Pick a role to choose what its members may do.
+        Discord administrators and Juhatus can do everything. Pick a role to
+        choose what its members may do, or manage a member grant below.
       </p>
+      <details>
+        <summary>Individual member permissions</summary>
+        <form method="post" action="/settings/permissions/member">
+          <label>
+            Discord member ID
+            <input name="userId" required pattern="[0-9]{17,20}" />
+          </label>
+          <label>
+            Permission
+            <select name="permission" required>
+              {catalogue.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.id} — {p.description}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" name="action" value="grant">
+            Grant
+          </button>
+          <button type="submit" name="action" value="revoke">
+            Revoke
+          </button>
+        </form>
+        <ul>
+          {grants
+            .filter((g) => g.subjectType === 'user')
+            .map((g) => (
+              <li key={`${g.roleId}:${g.permission}`}>
+                {g.roleId}: {g.permission}
+              </li>
+            ))}
+        </ul>
+      </details>
       <RolePicker roles={roles} selected={selected?.id} counts={counts} />
       {selected ? (
         <RoleForm
@@ -43,7 +77,11 @@ export function PermissionPage({
           granted={
             new Set(
               grants
-                .filter((grant) => grant.roleId === selected.id)
+                .filter(
+                  (grant) =>
+                    grant.subjectType !== 'user' &&
+                    grant.roleId === selected.id,
+                )
                 .map((grant) => grant.permission),
             )
           }

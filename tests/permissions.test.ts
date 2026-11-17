@@ -41,7 +41,7 @@ import type {
 } from '~/discord/contracts';
 import { createInteractionHandler } from '~/discord/interactions/router';
 import { buildRegistry } from '~/discord/registry';
-import type { Client } from 'discord.js';
+import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
@@ -235,7 +235,7 @@ describe('permission grants', () => {
         }),
       ).toBe(false);
       expect(await listGrants(db, guildId, roleId)).toEqual([
-        { roleId, permission: 'movie:manage' },
+        { roleId, subjectType: 'role', permission: 'movie:manage' },
       ]);
       expect(
         await revoke(db, { guildId, roleId, permission: 'movie:manage' }),
@@ -268,7 +268,7 @@ describe('permission grants', () => {
         }),
       ).rejects.toThrow();
       expect(await repo.list(guildId, roleId)).toEqual([
-        { roleId, permission: 'event:create' },
+        { roleId, subjectType: 'role', permission: 'event:create' },
       ]);
       await repo.apply({
         guildId,
@@ -278,7 +278,7 @@ describe('permission grants', () => {
         revoke: ['event:create'],
       });
       expect(await repo.list(guildId, roleId)).toEqual([
-        { roleId, permission: 'poll:create' },
+        { roleId, subjectType: 'role', permission: 'poll:create' },
       ]);
     });
   });
@@ -472,7 +472,16 @@ describe('member refresh', () => {
       administrator: false,
     });
     expect(fetchMember).toHaveBeenCalledWith({ user: 'u', force: true });
-    fetchMember.mockRejectedValueOnce(new Error('Unknown member'));
+    fetchMember.mockRejectedValueOnce(
+      new DiscordAPIError(
+        { code: RESTJSONErrorCodes.UnknownMember, message: 'Unknown Member' },
+        RESTJSONErrorCodes.UnknownMember,
+        404,
+        'GET',
+        '/guilds/g/members/u',
+        {},
+      ),
+    );
     expect(await directory.member('g', 'u')).toBeUndefined();
   });
 });

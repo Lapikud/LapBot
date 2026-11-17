@@ -38,6 +38,8 @@ const envSchema = z.object({
     .default('Europe/Tallinn')
     .refine((zone) => isZone(zone), 'must be an IANA timezone'),
 
+  JUHATUS_ROLE_ID: optional(snowflake),
+
   ROLE_SELECTION_CHANNEL_ID: optional(snowflake),
   TARKVARA_ROLE_ID: optional(snowflake),
   HELPDESK_ROLE_ID: optional(snowflake),

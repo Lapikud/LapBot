@@ -7,7 +7,7 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
-import { webAccess } from '~/core/permission';
+import { applicationAdmin, webAccess } from '~/core/permission';
 import { signedInUser, signInPages } from './auth';
 import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
 import { back, serverOf, type Env, type WebDeps } from './context';
@@ -87,6 +87,7 @@ export function createWebApp(deps: WebDeps) {
     }
 
     const can = await authz.granted(actor, [
+      applicationAdmin,
       webAccess,
       ...services.permissions.catalogue().map(({ id }) => id),
     ]);

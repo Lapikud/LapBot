@@ -5,6 +5,10 @@ export const rolePermissions = pgTable(
   {
     guildId: text('guild_id').notNull(),
     roleId: text('role_id').notNull(),
+    subjectType: text('subject_type')
+      .$type<'role' | 'user'>()
+      .notNull()
+      .default('role'),
     permission: text('permission').notNull(),
     grantedBy: text('granted_by').notNull(),
     grantedAt: timestamp('granted_at', { withTimezone: true })
@@ -12,6 +16,13 @@ export const rolePermissions = pgTable(
       .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.guildId, table.roleId, table.permission] }),
+    primaryKey({
+      columns: [
+        table.guildId,
+        table.roleId,
+        table.subjectType,
+        table.permission,
+      ],
+    }),
   ],
 );
