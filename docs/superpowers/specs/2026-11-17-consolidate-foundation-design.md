@@ -1,157 +1,280 @@
-# Consolidate the foundation
+# Foundation consolidation specification
 
-Status: proposed for review; implementation has not started.
+Status: revised specification for review; implementation has not started.
 Branch: `fix/consolidate-foundation`.
 
-## Intent and success
+## 1. Outcome and constraints
 
-New features should compose reusable UI controls, application capabilities,
-and integration adapters. Existing feature rules remain explicit: birthdays
-own recurrence and privacy, events own scheduling and attendance, movies own
-suggestions and screenings, and Redmine subscriptions own notification rules.
+Make existing features compositions of small parts with explicit inputs,
+outputs, state ownership, and reasons to change. Each part does one thing
+well. Reuse before creating; composition before inheritance. A responsibility
+does not automatically require a service, class, table, or interface.
 
-The user approved consolidation along those three boundaries. This design
-assumes existing routes, commands, permissions, data, and delivery behavior
-must remain compatible. New providers and a visual redesign are outside scope.
+Retain Hono, server-rendered JSX, native HTML forms, Pico, existing persistence,
+scheduler, providers, and dependencies. Preserve commands, URLs, permissions,
+record IDs, field names/values, message output, and queued job compatibility.
+Preserve existing delivery ordering, claims, recovery, and failure behavior.
+Any discovered behavior change must be identified and reviewed separately.
 
-Success means existing features actually use the extracted foundation, a new
-form can reuse accessible controls, event and poll publication share a small
-post capability, and calendar concerns have a distinct contract and mapping.
-Documentation must identify what remains necessary to add a second calendar.
+This scope includes shared input semantics, UI composition, managed posts,
+pure message presentation, and calendar boundary extraction. It excludes custom
+forms/form builders, configurable schemas, universal response persistence,
+new providers, multi-calendar support, persisted event/poll-to-post links,
+a visual redesign, generic repositories, and workflow/provider frameworks.
+No database migration is planned; a concrete need requires a separate reviewed
+migration design, backfill verification, and rollback/recovery strategy.
 
-## Approaches considered
+## 2. Responsibility map
 
-1. Incremental extraction from existing consumers (recommended). Establish
-   the boundaries with real reuse and preserve each feature's lifecycle.
-2. Reorganize files only. Low behavioral risk, but leaves the repeated UI and
-   orchestration responsibilities largely intact.
-3. Universal form/post/integration framework. More speculative machinery and
-   a larger migration; the existing workflows do not support one lifecycle.
+| Part                | Owns                                                     |
+| ------------------- | -------------------------------------------------------- |
+| Form definition     | Fields describing information to collect                 |
+| Field definition    | One input's semantic type and supported constraints      |
+| Submission          | Values presented against a definition, before acceptance |
+| Validation result   | Accepted typed values or structured field issues         |
+| UI control          | Native control presentation and accessible associations  |
+| Message             | Content and interactive controls                         |
+| Post                | Authored content and managed publication lifecycle       |
+| Messenger           | Sending, editing, removing messages                      |
+| Schedule/job        | When an operation runs / the work performed              |
+| Feature             | Purpose-specific rules and composition                   |
+| Integration adapter | Translation to one external capability/provider          |
 
-## Boundary 1: UI composition
+An HTML form is a presentation/transport mechanism, not necessarily a domain
+Form. A submission need not be a persisted Response entity. A sent message
+need not be a Post. Features do not inherit a universal lifecycle.
 
-Keep Hono server-rendered JSX, native HTML forms, Pico, and existing CSS.
-Separate the page shell from reusable controls currently in `layout.tsx`.
-Introduce a small `src/infra/web/ui/` module with an explicit public export.
+Composition in existing features:
 
-Provide field composition (label, control, optional help and error), typed
-input/textarea/select controls, checkbox and multi-select controls, form
-actions, POST action buttons, and empty-state presentation. Control attributes
-must preserve native types, required/min/max/maxlength, selected values, and
-feature-specific names. Help/error text gets stable associations through
-`aria-describedby`; errors set `aria-invalid`. Callers supply stable IDs where
-the same field name appears more than once on a page. Use ordinary JSX
-children for unusual content; do not introduce a field schema or renderer.
+- Poll: choice input + voting policy + votes/results + message presentation.
+- Birthday registration: fixed input definition + date/privacy rules + record.
+- Announcement: Post lifecycle + existing announcement permissions and wording.
+- Event: schedule/location/attendance + message projection + optional calendar.
+- Movies: suggestions/screenings + catalog lookup + polls/events as needed.
+- Issue notifications: subscriptions/checkpoints + tracker lookup + delivery.
 
-Channel selection composes a generic select but remains server-aware web
-code. Generic controls must not import services, authorization, or directory
-lookups. Action visibility remains a caller decision; service checks remain
-authoritative. Form parsing stays separate from presentation and preserves
-the distinction between missing, empty, and explicitly cleared fields.
+## 3. Shared input semantics
 
-Migrate repeated fields and actions in birthdays, events, movies, PSAs, polls,
-roles, and permissions. Keep feature-specific structures such as movie cards
-and role-editor rows local. Auth and logs should reuse controls only where
-their behavior matches. Keep tables as native table markup unless inspection
-shows a meaningful shared behavior; do not add a configurable table engine.
-Keep the existing page shell and navigation behavior.
+### Minimum contract
 
-## Boundary 2: shared application capabilities
+Place pure definitions and validation under `src/domain/forms/`, with a public
+export through the domain module. The minimum responsibilities are:
 
-`Message`, `Messenger`, `Scheduler`, and `defineJob` are existing foundations.
-Extend these narrowly instead of replacing them.
+| Contract           | Required shape/behavior                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| FormDefinition     | Readonly collection of named field definitions; no lifecycle or stored identity |
+| FieldDefinition    | Stable key, label, semantic kind, and constraints for that kind                 |
+| Submission         | Own-property map of field keys to submitted values                              |
+| FieldIssue         | Field key and a stable issue code; feature adapters choose compatible wording   |
+| ValidationResult   | Discriminated success with typed values, or failure with issues                 |
+| validateSubmission | Pure definition + submission -> result; no I/O or authorization                 |
 
-Introduce a post capability under `src/core/` with a public module boundary.
-Its reference contains channel and message IDs; its operations publish a
-message (or an explicitly ordered sequence) and refresh an existing message.
-An ordered publication returns the final post reference for voting controls.
-It does not insert feature records, schedule work, claim deliveries, or decide
-whether a deleted message should be recreated. Refresh returns the existing
-messenger outcome; missing references are handled explicitly by callers.
-Exceptions propagate. No automatic retries or compensation are added.
+Start with integer input and choice input, including multiple choices. Choice
+values retain their actual string or number identities; poll option IDs must
+not become array positions or labels. Support required presence, integer
+bounds, permitted choices, and choice cardinality only where current consumers
+need them. Reuse existing validation tools where they satisfy the contract;
+do not implement a second general-purpose schema library beside Zod.
 
-Use it in event and poll publication and refresh, including ordered poll
-detail messages. Persist returned references through the existing feature
-repositories. Keep each feature's missing-message logging and publication
-ordering. Do not rewrite one-shot reminders merely to route every send through
-this capability. Announcement claim-before-send behavior remains local; any
-adoption there must leave the claim and failure recovery around the send.
-Role-panel recreation and reaction reconciliation remain local policies.
+Transport adapters decode HTTP/Discord inputs into semantic values. The shared
+validator checks those values without HTML, Hono, Discord SDK, database, actor,
+or scheduler dependencies. Defaults and coercion are explicit in the feature's
+input adapter, not silently introduced by the shared validator.
 
-Separate pure event and poll message construction from their use-case files
-into focused presentation modules in core. The existing `Message` model and
-Discord-compatible text are preserved. Public service exports may re-export
-existing renderer names to avoid unrelated consumer churn. These presenters
-are not advertised as fully provider-neutral: mentions and timestamps still
-use Discord syntax. A future alternate chat provider needs its own rendering
-work; moving a function alone does not solve that.
+Preserve these distinctions: absent own property means omitted; an empty
+string remains empty; null is an explicit clear only when the caller supports
+it; an empty choice array is present and can represent clearing a vote. Do not
+trim, coerce, default, deduplicate, or clear all inputs by a universal rule.
+The birthday adapter retains its current fallback to public visibility; the
+poll adapter retains existing duplicate-choice normalization.
 
-Keep scheduling keys, payloads, recurrence rules, authorization, ownership,
-visibility, and feature validation unchanged. Do not create a generic CRUD
-service, generic repository, workflow engine, or feature registry.
+Do not introduce FormService, field registries, dynamic renderers, response
+repositories, form availability state, or anonymous-response metadata.
+Unknown extra fields are not copied into accepted values; required feature
+metadata such as actor/record IDs travels separately.
 
-## Boundary 3: integration contracts and adapters
+### First proof: one operation, two consumers
 
-Separate the `Calendar` and `CalendarEvent` contracts from the chat port into
-`src/core/ports/calendar.ts`, exported through the existing ports barrel.
-Retain the calendar operations and existing opaque IDs. Separate Discord's
-calendar implementation from the combined messenger/directory adapter file.
-Keep `MovieCatalog`/TMDB and `IssueTracker`/Redmine as distinct capabilities;
-they already follow the intended contract-and-adapter pattern.
+Before migrating services, demonstrate the same permitted-choice validation
+with birthday visibility and a poll's selected option IDs. Tests must show
+both callers use one implementation with no feature-name switches, preserve
+string/numeric identities, and return field-addressable errors. This is a
+small retained foundation test, not a new product feature.
 
-Extract event-to-calendar mapping and synchronization into a focused core
-module. It accepts the calendar contract and an explicit external reference,
-maps schedule/location/default duration, and returns the updated reference.
-The event service chooses when synchronization is requested, persists the
-reference, and retains its current warning-and-continue policy on failure.
-The adapter owns Discord payload limits and SDK calls. Composition in
-`src/app.ts` chooses concrete providers and optional credentials.
+If the proof requires feature flags, a generic lifecycle, or unrelated methods,
+revise the boundary before continuing. Add integer handling for birthday day
+and month only after the choice contract works for both consumers.
 
-This foundation preserves `native` and `discordEventId` in requests/storage.
-They are compatibility constraints, not a multi-provider model. Supporting
-multiple calendars for one event requires a follow-up migration with one
-external link per event/provider/destination, durable opt-in configuration,
-backfilled Discord references, and independent sync outcomes. This design
-does not pretend a single injected Calendar can represent simultaneous
-destinations. No database migration or additional provider is included here.
+### Feature ownership and compatibility
 
-## Data flow and failure behavior
+Birthdays supply a fixed definition for day, month, and visibility. The birthday
+feature still owns real calendar-date validity, leap-day celebration, privacy,
+default visibility, persistence, and recurrence. The shared integer bounds
+cannot determine whether February 30 is valid.
 
-Web form -> feature request parser -> authorized feature service -> repository
-and shared capabilities -> concrete external adapters.
+Polls compose a choice definition from their options. Polls own eligibility,
+open/closed state, single/multiple voting policy, vote changes/clearing,
+aggregation, anonymity, result visibility, and ordered options. Cardinality
+constraints are supplied from poll policy; the form layer does not decide it.
 
-Discord commands use the same feature services. Presentation produces a
-Message; the post capability performs transport operations; feature services
-retain persistence and scheduling order. Calendar synchronization is an
-explicit side effect of event lifecycle operations.
+Existing repositories enforce some rules: birthday date validation runs in
+its repository; poll votes check current state, cardinality, and option
+membership inside a transaction. Keep transactional checks authoritative.
+Shared pure predicates may support both early input feedback and transaction
+checks, but do not replace current-state checks with a stale preflight result.
+Do not weaken repository invariants or duplicate their rule implementations.
 
-Preserve announcement claims, Redmine notification claims, birthday daily
-claims, job retry classification, missing-message behavior, mention policy,
-and cancellation semantics. Partial ordered publication may leave earlier
-messages posted, as it does today; no exactly-once guarantee is introduced.
+Reuse existing poll and birthday storage. Field errors are translated at
+feature boundaries to existing public error messages. Service request types
+remain compatible; the new concepts do not force callers into generic maps.
 
-## Verification and rollout
+## 4. UI composition
 
-Before edits, run the current static checks and test suite to establish a
-baseline. Use the dedicated test PostgreSQL if available; never run the test
-schema-reset setup against a development database. Report skipped database
-tests explicitly.
+Keep the shell/navigation in `layout.tsx`; put reusable presentation in
+`src/infra/web/ui/` with a public export. Adopt it across birthdays, polls,
+events, movies, announcements, roles, and permissions where behavior matches.
 
-Add focused behavioral coverage for accessible control output and escaping,
-submitted field compatibility, ordered publication, final references, missing
-post refresh, propagated send failures, and calendar mapping/failure behavior.
-Use existing event, poll, birthday, movie, announcement, role, permission, and
-web regression tests to verify consumers after migration. Exercise calendar
-create/update/remove with SDK fakes, without live Discord calls.
+Extract Field (label/help/error associations), typed native controls, existing
+checkbox/multi-select behavior, form actions, and small POST actions. Sections
+and empty states earn a shared component only through actual repeated use.
+A wrapper must add consistency/accessibility rather than merely rename HTML.
 
-Finish with typecheck, lint (including TSX boundary enforcement), format
-check, tests, and build. Review the diff for copied validation, unused exports,
-and helpers with no real consumer. Update README architecture and adding-a-
-feature instructions with concrete examples from migrated features.
+Preserve native attributes, submitted names/values, selection/default state,
+and ordering. Use stable control IDs, label associations, `aria-describedby`
+for help/errors, and `aria-invalid` for invalid controls. Support caller IDs
+where field names repeat. Preserve escaping.
 
-Implement in reviewable stages: UI extraction and adoption; post capability
-and presentation separation; calendar boundary and synchronization extraction;
-documentation and final verification. Each stage must preserve behavior.
-Rollback is ordinary code reversion because this scope makes no schema or
-configuration migration. Stop when the three boundaries have real consumers
-and the checks pass; do not expand into new providers or product features.
+Generic controls do no service/directory lookups, business validation, or
+request parsing. Channel/role selectors compose these controls in server-aware
+web code. Features may use definition labels/constraints, but do not render
+whole forms automatically from domain definitions. Keep specialized cards,
+role-editor rows, tables, previews, and layouts local where appropriate.
+UI action visibility does not replace service authorization.
+
+## 5. Managed posts and authorization
+
+### Model, operations, and storage
+
+Extract the existing announcement lifecycle into Post: identity, community,
+author, title/body, mentions, channel destination, publication state,
+scheduled/published time, external message reference, and failure information.
+Retain draft/scheduled/published/cancelled states. Post operations own draft
+creation, updates, allowed transitions, conditional claims, publication,
+cancellation, and delivery outcome recording. Use Messenger directly.
+
+Map a concrete PostRepository to the existing announcements table/enum.
+Preserve IDs and avoid a second table, dual writes, or mandatory physical
+renames. Retain thin Announcement compatibility exports as needed, without
+keeping duplicate lifecycle logic. Existing announcement routes/commands
+compose the post API; no UI or Discord adapter implements publication policy.
+
+### Explicit authorization boundary
+
+The first Post API is reusable within this application, not a permission-
+configurable framework. Its public user operations accept Actor and enforce
+current announcement permission IDs directly through Authorizer. Logical
+renaming does not require renaming permissions or inventing policy callbacks.
+
+Preserve the current operation checks:
+
+- Draft creation requires `announcement:create` and validates destination and
+  mention permissions before persistence.
+- Reading enforces same community and channel visibility. Unpublished content
+  is visible to its author or holders of `announcement:publish`.
+- Editing/cancelling requires that visibility plus authorship or
+  `announcement:publish`, following existing state rules.
+- Immediate publication requires `announcement:publish`; scheduling requires
+  `announcement:schedule`. Both recheck destination/mention permissions.
+
+Channel access and mention rules use Directory and Actor capabilities as
+currently implemented. A renderer cannot authorize publication. Do not expose
+an alternative public raw send/transition API that bypasses these checks.
+
+Background jobs have no initiating Actor. They use a private publication
+operation, reachable from the registered job handler after checking stored
+state and due time. Preserve current execution-time authorization semantics;
+do not invent impersonation or silently add new permission rechecks.
+
+A post consumer can use this API without importing announcement commands or
+web routes. If a future real consumer needs different permission semantics,
+review that requirement then rather than building a policy engine now.
+
+### Scheduling and delivery guarantees
+
+Keep scheduling orchestration separate from immediate publication. It validates
+time, updates state, and enqueues through existing Scheduler/defineJob. The job
+checks current state/due time, then invokes private publication. Preserve job
+names, keys, payloads, cancellation, and the existing one-hour lateness rule.
+That rule remains the current post/announcement scheduling behavior, not a
+rule for all scheduled work.
+
+Preserve claim-before-send, transient/permanent failure recovery, publication
+ordering, and suppression of repeated mentions on edit. A crash after a claim
+can lose a delivery; no exactly-once guarantee or new retry policy is added.
+Post does not own form responses, event attendance, calendar links, birthday
+recurrence, or provider SDK calls.
+
+## 6. Presentation and ordinary delivery
+
+Separate pure post, event, and poll message construction from orchestration.
+A renderer accepts data and returns Message; it performs no I/O, authorization,
+scheduling, or mutation. Keep public renderer exports compatible where useful.
+Preserve text, controls, mentions, timestamps, length checks, and preview
+construction. Existing Discord syntax is a documented transport limitation.
+
+Event and poll messages are projections of feature data, not independently
+editable duplicate content. Retain their publication reference fields and
+Messenger usage. Ordered poll detail sends, missing-message logging, and
+role-panel recreation remain explicit consumer policies.
+
+Birthday greetings, reminders, and issue notifications remain ordinary
+deliveries using Message/Messenger. Keep feature-specific recurrence, claims,
+checkpoints, and failure policies. Do not create Post records to share a send.
+
+## 7. Integration boundaries
+
+Retain capability-specific Messenger, Calendar, MovieCatalog, IssueTracker,
+and Directory ports with Discord, TMDB, and Redmine adapters. Reuse existing
+Actor, authorization, Clock, Scheduler, and repositories. Do not fragment
+Directory or add a Publisher that simply forwards Messenger methods.
+
+Move Calendar/CalendarEvent out of the chat port; isolate Discord calendar
+SDK code from the combined adapter file. Make event-to-calendar mapping pure,
+including existing default duration/location. The event service decides when
+to sync, persists references, and retains warning-and-continue behavior.
+The adapter owns SDK payloads/limits; composition chooses implementations.
+
+Keep `native` and `discordEventId` compatible. A future multi-calendar change
+needs event/provider/destination links, independent external IDs, durable
+opt-in choices, backfills, and independent outcomes. This spec does not claim
+those capabilities or add their persistence.
+
+## 8. Delivery sequence and acceptance
+
+Each slice must leave the application runnable and retain the compatibility
+requirements in section 1. Tests cover behavior rather than component names.
+
+| Slice                      | Acceptance evidence                                                                                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline                   | Record existing static-check/test/build results and relevant regressions before product edits                                                                              |
+| Input proof                | Same choice validator handles birthday visibility and poll selections without feature switches                                                                             |
+| Input adoption             | Both features compose minimal definitions; error/default/clear semantics and transactional invariants remain equivalent                                                    |
+| UI adoption                | Existing requests remain equivalent; accessible associations, native attributes, and escaping are verified                                                                 |
+| Posts                      | One lifecycle implementation; actor/visibility/mention checks, transitions, claims, schedule/lateness, edit/cancel, and recovery pass regressions against existing storage |
+| Presentation/calendar      | Equivalent render output; pure calendar mapping; adapter create/update/remove and event failure handling verified with fakes                                               |
+| Documentation/final review | Actual examples show predefined input, specialized poll input, UI controls, managed posts, ordinary delivery, and an integration adapter                                   |
+
+Reuse existing feature regressions and add focused coverage at new boundaries.
+For input, include missing/empty/null/empty-array cases, string and numeric
+choices, defaults, duplicate poll selections, and invalid calendar dates.
+For posts, include cross-community access, unpublished visibility, non-owner
+edits, destination/mention denial, and background publication compatibility.
+Test schema resets only against the dedicated disposable test database.
+
+Finish with typecheck, lint including TSX boundary enforcement, formatting,
+unit tests, available database/integration tests, and production build. Report
+skipped/unexecuted checks explicitly and distinguish baseline failures.
+Review for unconsumed abstractions, duplicated rules/lifecycles, and unintended
+behavior changes. Stop when the slices above are demonstrated and required
+checks pass; persisted post links, custom forms, and additional providers are
+not part of the completion claim.
