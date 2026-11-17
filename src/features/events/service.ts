@@ -429,15 +429,17 @@ export function createEventService(deps: Deps) {
       }
 
       const cancelled = await events.update(event.id, { status: 'cancelled' });
-
-      await Promise.all([
+      const [, , discordEventId] = await Promise.all([
         refresh(cancelled),
         scheduleReminders(cancelled, event.reminderMinutes),
-        cancelled.discordEventId === null ? undefined : syncNative(cancelled),
+        syncNative(cancelled),
       ]);
+
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event cancelled');
 
-      return cancelled;
+      return discordEventId === cancelled.discordEventId
+        ? cancelled
+        : await events.update(event.id, { discordEventId });
     },
     rsvp: async (actor: Actor, id: number, status: RsvpStatus) => {
       const event = await requireEvent(actor, id);
