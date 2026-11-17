@@ -1,4 +1,4 @@
-import { en } from 'chrono-node';
+import { en, ParsingComponents } from 'chrono-node';
 import { TZDate, tz, tzOffset } from '@date-fns/tz';
 import { addDays, addMonths, addWeeks, isValid, parse, set } from 'date-fns';
 import { UserError } from '~/core/errors';
@@ -50,19 +50,15 @@ export function parseWhen(input: string, zone: string, now = new Date()): Date {
   }
 
   const start = result.start;
-  // Chrono resolves syntax; TZDate applies IANA/DST rules to local appointments.
-  const date = start.isCertain('timezoneOffset')
-    ? result.date()
-    : new TZDate(
-        start.get('year') ?? Number.NaN,
-        (start.get('month') ?? Number.NaN) - 1,
-        start.get('day') ?? Number.NaN,
-        start.get('hour') ?? 0,
-        start.get('minute') ?? 0,
-        start.get('second') ?? 0,
-        start.get('millisecond') ?? 0,
-        zone,
-      );
+
+  if (
+    start instanceof ParsingComponents &&
+    !start.isCertain('timezoneOffset')
+  ) {
+    start.assign('timezoneOffset', tzOffset(zone, result.date()));
+  }
+
+  const date = result.date();
 
   if (!isValid(date)) {
     throw new UserError('That is not a valid time.');
