@@ -108,9 +108,10 @@ The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 [Pico.css](https://picocss.com) (classless, so plain form markup looks right),
 loaded from jsDelivr. Our own styles are in `src/web/public/app.css`; every file in
 that directory is served as is.
-Each section is a page in `src/web/pages/` that returns a small Hono app;
-to add a page, mount it with `app.route()` in `app.tsx` and add it to its
-section in `navigation.ts`. Forms
+Each flow has a local folder under `src/web/overview`, `forms`, `post`, `roles`, or `settings`.
+Its `routes.tsx` handles requests and calls services; `index.tsx` renders its main
+page, with forms and other components beside it. Components receive explicit
+data through props. Mount routes in `app.tsx` and add the flow to `navigation.ts`. Forms
 post back to the same path, so there is no client-side JavaScript.
 
 ## Permissions
@@ -261,7 +262,8 @@ src/
     discord/               SDK client, messaging, directory, calendar and API errors
     tmdb/, redmine/, scheduler/, logging/
   web/
-    pages/                 post/, forms/, settings/, and roles.tsx
+    overview/, forms/, post/, roles/, settings/
+      <flow>/              routes.tsx, index.tsx, forms and local components
     components/            shared controls, selectors and previews
     public/                styles and other static assets
     app.tsx, auth.ts, context.ts, layout.tsx, navigation.ts, server.ts
@@ -279,8 +281,9 @@ drizzle/                   SQL migrations
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
 and input definitions are pure; services orchestrate; `repository.ts` and `table.ts` own persistence.
-Web pages live in `web/pages`, grouped into `post`, `forms`, and
-`settings`, with roles at the section root. Discord commands live in
+Web flows are grouped into `web/post`, `web/forms`, `web/roles`, and
+`web/settings`. Each flow owns its routes, submission decoding and components.
+An `index.tsx` is a rendered page, never a re-export-only entry point. Discord commands live in
 `discord/commands`; gateway event listeners live in
 `discord/events`. All tests live under
 `tests/`: feature tests in `tests/features/<name>/`,

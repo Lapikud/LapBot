@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
 import { type WebDeps, type Env, serverOf } from '~/web/context';
 import { visibleRecords } from '~/core/helpers/visibility';
-import { eventPages } from '~/web/pages/post/events';
-import { pollPages } from '~/web/pages/post/polls';
-import { psaPages } from '~/web/pages/post/announcements';
-import { birthdayPages } from '~/web/pages/forms/birthdays';
+import { eventRoutes } from '~/web/post/events/routes';
+import { pollRoutes } from '~/web/post/polls/routes';
+import { announcementRoutes } from '~/web/post/announcements/routes';
+import { birthdayRoutes } from '~/web/forms/birthdays/routes';
 import { actor, fakeDirectory } from '../fakes';
 
 const channels = [
@@ -60,8 +60,8 @@ it('hides private event and poll records from dashboard lists', async () => {
   } as unknown as WebDeps;
 
   for (const [pages, visible, hidden] of [
-    [eventPages(deps), 'Visible event', 'Secret event'],
-    [pollPages(deps), 'Visible poll', 'Secret poll'],
+    [eventRoutes(deps), 'Visible event', 'Secret event'],
+    [pollRoutes(deps), 'Visible poll', 'Secret poll'],
   ] as const) {
     const html = await (await appFor(pages).request('/')).text();
 
@@ -81,7 +81,7 @@ it('preserves the channel and scheduling time through PSA previews', async () =>
       announcements: { view: () => ({ content: 'Hello' }) },
     },
   } as unknown as WebDeps;
-  const response = await appFor(psaPages(deps)).request('/', {
+  const response = await appFor(announcementRoutes(deps)).request('/', {
     method: 'POST',
     body: new URLSearchParams({
       action: 'preview',
@@ -108,7 +108,7 @@ it('selects the saved birthday announcement channel', async () => {
       },
     },
   } as unknown as WebDeps;
-  const html = await (await appFor(birthdayPages(deps)).request('/')).text();
+  const html = await (await appFor(birthdayRoutes(deps)).request('/')).text();
 
   expect(html).toMatch(/value="private" selected/);
 });
@@ -121,7 +121,7 @@ it('submits explicit nulls when event fields are cleared', async () => {
     services: { events: { edit } },
   } as unknown as WebDeps;
 
-  await appFor(eventPages(deps)).request('/1', {
+  await appFor(eventRoutes(deps)).request('/1', {
     method: 'POST',
     body: new URLSearchParams({
       title: 'Event',

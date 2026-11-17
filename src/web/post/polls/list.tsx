@@ -1,0 +1,41 @@
+import type { Poll } from '~/features/polls/model';
+import { ActionButton } from '~/web/components/actions';
+
+interface Props {
+  readonly open: Poll[];
+  readonly date: (value: Date | null) => string;
+  readonly canManage: (ownerId: string) => boolean;
+}
+export function PollList({ open, date, canManage }: Props) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Question</th>
+          <th>Closes</th>
+          <th />
+        </tr>
+      </thead>
+      <tbody>
+        {open.map((p) => (
+          <tr key={p.id}>
+            <td>{p.id}</td>
+            <td>{p.question}</td>
+            <td>{date(p.closesAt)}</td>
+            <td>
+              {canManage(p.creatorId) ? (
+                <>
+                  <ActionButton
+                    action={`/post/polls/${p.id}/close`}
+                    label="Close"
+                  />
+                </>
+              ) : null}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
