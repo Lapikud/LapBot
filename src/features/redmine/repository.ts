@@ -37,7 +37,7 @@ export async function removeSubscription(
 }
 
 export async function listSubscriptions(db: Db, afterId = 0, limit = 50) {
-  return db
+  return await db
     .select()
     .from(redmineSubscriptions)
     .where(gt(redmineSubscriptions.id, afterId))

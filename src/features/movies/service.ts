@@ -43,7 +43,7 @@ export function createMovieService(deps: Deps) {
     title: string,
     year: number | null,
   ): Promise<MovieDetails | null> =>
-    catalog ? catalog.lookup(title, year).catch(() => null) : null;
+    catalog ? await catalog.lookup(title, year).catch(() => null) : null;
 
   const requireOwned = async (actor: Actor, id: number) => {
     const movie = await movies.find(actor.guildId, id);

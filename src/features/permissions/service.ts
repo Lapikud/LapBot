@@ -15,7 +15,7 @@ import type { GrantRepository } from './model';
 export function createAuthorizer(grants: GrantRepository): Authorizer {
   const can = async (actor: Actor, permission: Permission) =>
     actor.administrator ||
-    grants.holds(actor.guildId, actor.roleIds, permission);
+    (await grants.holds(actor.guildId, actor.roleIds, permission));
 
   return {
     can,

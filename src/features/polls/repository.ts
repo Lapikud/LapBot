@@ -19,7 +19,7 @@ export async function insertPoll(
     input.options.map((option) => option.label),
   );
 
-  return db.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const { options, ...values } = input;
     const [poll] = await tx.insert(polls).values(values).returning();
 
@@ -164,7 +164,7 @@ export async function finishPoll(
   id: number,
   status: 'closed' | 'cancelled',
 ): Promise<Poll | undefined> {
-  return db.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const [poll] = await tx
       .select()
       .from(polls)
@@ -204,7 +204,7 @@ export async function setPollMessage(
 }
 
 export async function listOpenPolls(db: Db, guildId: string): Promise<Poll[]> {
-  return db
+  return await db
     .select()
     .from(polls)
     .where(and(eq(polls.guildId, guildId), eq(polls.status, 'open')))

@@ -74,7 +74,7 @@ export function eventRoutes({
 
       return back(c, '/post/events', { notice: `Event #${event.id} created.` });
     })
-    .get('/:id{\\d+}', async (c) => {
+    .get(String.raw`/:id{\d+}`, async (c) => {
       const event = await services.events.get(
         c.var.actor,
         Number(c.req.param('id')),
@@ -93,7 +93,7 @@ export function eventRoutes({
         />,
       );
     })
-    .post('/:id{\\d+}', async (c) => {
+    .post(String.raw`/:id{\d+}`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.events.edit(
@@ -104,7 +104,7 @@ export function eventRoutes({
 
       return back(c, '/post/events', { notice: `Event #${id} updated.` });
     })
-    .post('/:id{\\d+}/cancel', async (c) => {
+    .post(String.raw`/:id{\d+}/cancel`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.events.cancel(c.var.actor, id);

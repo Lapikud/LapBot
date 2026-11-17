@@ -112,7 +112,7 @@ export async function listUnwatched(
   guildId: string,
   limit = 25,
 ): Promise<MovieSuggestion[]> {
-  return db
+  return await db
     .select()
     .from(movieSuggestions)
     .where(
@@ -193,7 +193,7 @@ export async function markWatched(
 }
 
 export async function watchHistory(db: Db, guildId: string, limit = 25) {
-  return db
+  return await db
     .select({
       title: movieSuggestions.title,
       year: movieSuggestions.year,

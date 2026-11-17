@@ -36,7 +36,7 @@ export async function listAnnouncements(
   guildId: string,
   limit = 50,
 ): Promise<AnnouncementRow[]> {
-  return db
+  return await db
     .select()
     .from(posts)
     .where(eq(posts.guildId, guildId))

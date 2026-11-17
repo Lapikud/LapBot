@@ -17,7 +17,7 @@ export async function insertReminder(
     );
   }
 
-  return db.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const [active] = await tx
       .select({ total: count() })
       .from(reminders)
@@ -59,7 +59,7 @@ export async function listActiveReminders(
   guildId: string,
   userId: string,
 ): Promise<Reminder[]> {
-  return db
+  return await db
     .select()
     .from(reminders)
     .where(

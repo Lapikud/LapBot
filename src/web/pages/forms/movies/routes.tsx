@@ -53,7 +53,7 @@ export function movieRoutes({ guildId, services, directory }: WebDeps) {
         notice: `Added ${movieLabel(movie)}.`,
       });
     })
-    .post('/:id{\\d+}/links', async (c) => {
+    .post(String.raw`/:id{\d+}/links`, async (c) => {
       const form = await c.req.formData();
       const movie = await services.movies.addLinks(
         c.var.actor,
@@ -65,7 +65,7 @@ export function movieRoutes({ guildId, services, directory }: WebDeps) {
         notice: `Link added to ${movie.title}.`,
       });
     })
-    .post('/:id{\\d+}/remove', async (c) => {
+    .post(String.raw`/:id{\d+}/remove`, async (c) => {
       const movie = await services.movies.remove(
         c.var.actor,
         Number(c.req.param('id')),

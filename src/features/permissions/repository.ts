@@ -69,7 +69,7 @@ export async function listGrants(
   guildId: string,
   roleId?: string,
 ): Promise<Array<{ roleId: string; permission: string }>> {
-  return db
+  return await db
     .select({
       roleId: rolePermissions.roleId,
       permission: rolePermissions.permission,

@@ -68,7 +68,7 @@ export function parseWhen(input: string, zone: string, now = new Date()): Date {
     throw new UserError('That is not a valid time.');
   }
 
-  return new Date(date.getTime());
+  return new Date(date);
 }
 
 export function parseFutureWhen(
@@ -90,7 +90,7 @@ export function nextOccurrence(
   recurrence: Recurrence,
   zone: string,
 ): Date {
-  return new Date(steps[recurrence](from, 1, { in: tz(zone) }).getTime());
+  return new Date(steps[recurrence](from, 1, { in: tz(zone) }));
 }
 
 export function nextFutureOccurrence(
@@ -120,7 +120,7 @@ export function nextDailyRun(
   );
   const next = today <= now ? addDays(today, 1, { in: tz(zone) }) : today;
 
-  return new Date(next.getTime());
+  return new Date(next);
 }
 
 export function calendarDay(date: Date, zone: string): CalendarDay {
@@ -142,7 +142,7 @@ export function sameCalendarDay(a: Date, b: Date, zone: string): boolean {
 
 export function zonedTime(day: CalendarDay, hour: number, zone: string): Date {
   return new Date(
-    new TZDate(day.year, day.month - 1, day.day, hour, 0, 0, zone).getTime(),
+    new TZDate(day.year, day.month - 1, day.day, hour, 0, 0, zone),
   );
 }
 

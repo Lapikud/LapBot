@@ -134,7 +134,7 @@ export function pollCommands(
         await polls.vote(
           toActor(interaction.member),
           parseId(id),
-          interaction.values.map((value) => Number(value)),
+          interaction.values.map(Number),
         ),
       );
     },

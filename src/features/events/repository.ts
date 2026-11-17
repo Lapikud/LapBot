@@ -33,7 +33,7 @@ export async function listUpcoming(
   guildId: string,
   limit = 25,
 ): Promise<Event[]> {
-  return db
+  return await db
     .select()
     .from(events)
     .where(
@@ -134,7 +134,7 @@ export async function listAttendees(
   db: Db,
   eventId: number,
 ): Promise<Array<{ userId: string; status: RsvpStatus }>> {
-  return db
+  return await db
     .select({ userId: eventRsvps.userId, status: eventRsvps.status })
     .from(eventRsvps)
     .where(eq(eventRsvps.eventId, eventId))

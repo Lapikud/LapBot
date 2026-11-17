@@ -124,7 +124,7 @@ export function createPollService(deps: Deps) {
   };
 
   const isManager = async (actor: Actor, poll: Poll) =>
-    poll.creatorId === actor.userId || authz.can(actor, 'poll:manage');
+    poll.creatorId === actor.userId || (await authz.can(actor, 'poll:manage'));
 
   const requireManager = async (actor: Actor, id: number) => {
     const poll = await requirePoll(actor, id);

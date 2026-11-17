@@ -30,6 +30,10 @@ interface Deps {
   log: Logger;
   legacy?: LegacyPanel | undefined;
 }
+interface Choice {
+  roleId: string;
+  emoji: string;
+}
 
 function panelContent(entries: readonly PanelRole[]) {
   return [
@@ -180,10 +184,6 @@ export function createRoleService(deps: Deps) {
     return panels.list(actor.guildId);
   };
 
-  interface Choice {
-    roleId: string;
-    emoji: string;
-  }
   const validateChoices = async (
     guildId: string,
     choices: readonly Choice[],

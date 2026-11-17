@@ -90,7 +90,6 @@ export function renderPoll(
   };
 }
 
-// Option details are static; only the final message owns voting controls and counts.
 export function pollDetails(
   input: Pick<NewPoll, 'question' | 'options'>,
 ): Message[] {

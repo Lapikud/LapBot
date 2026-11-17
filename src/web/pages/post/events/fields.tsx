@@ -49,7 +49,7 @@ export function EventFields({
           name="capacity"
           type="number"
           min={1}
-          value={event?.capacity === null ? '' : event?.capacity}
+          value={event?.capacity ?? ''}
         />
       </div>
     </>
