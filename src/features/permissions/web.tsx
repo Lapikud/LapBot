@@ -141,7 +141,7 @@ export function permissionPages({ services }: WebDeps) {
         </Layout>,
       );
     })
-    .post('/:roleId{[0-9]+}', async (c) => {
+    .post('/:roleId{\\d+}', async (c) => {
       const roleId = c.req.param('roleId');
       const form = await c.req.formData();
       const { granted, revoked } = await services.permissions.setRole(

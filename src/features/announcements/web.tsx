@@ -298,14 +298,14 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
 
       return back(c, '/psa', { notice: `Draft #${created.id} saved.` });
     })
-    .post('/:id{[0-9]+}/publish', async (c) => {
+    .post(String.raw`/:id{\d+}/publish`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.announcements.publish(c.var.actor, id);
 
       return back(c, '/psa', { notice: `PSA #${id} published.` });
     })
-    .post('/:id{[0-9]+}/cancel', async (c) => {
+    .post(String.raw`/:id{\d+}/cancel`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.announcements.cancel(c.var.actor, id);

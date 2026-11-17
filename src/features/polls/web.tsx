@@ -128,7 +128,7 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
 
       return back(c, '/polls', { notice: `Poll #${poll.id} started.` });
     })
-    .post('/:id{[0-9]+}/close', async (c) => {
+    .post('/:id{\\d+}/close', async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.polls.close(c.var.actor, id);

@@ -233,7 +233,7 @@ export function eventPages({
 
       return back(c, '/events', { notice: `Event #${event.id} created.` });
     })
-    .get('/:id{[0-9]+}', async (c) => {
+    .get('/:id{\\d+}', async (c) => {
       const event = await services.events.get(
         c.var.actor,
         Number(c.req.param('id')),
@@ -264,7 +264,7 @@ export function eventPages({
         </Layout>,
       );
     })
-    .post('/:id{[0-9]+}', async (c) => {
+    .post('/:id{\\d+}', async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.events.edit(
@@ -275,7 +275,7 @@ export function eventPages({
 
       return back(c, '/events', { notice: `Event #${id} updated.` });
     })
-    .post('/:id{[0-9]+}/cancel', async (c) => {
+    .post('/:id{\\d+}/cancel', async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.events.cancel(c.var.actor, id);
