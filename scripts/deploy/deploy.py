@@ -8,23 +8,23 @@ from datetime import datetime
 from fcntl import LOCK_EX, flock
 from pathlib import Path
 
-root = Path(os.environ.get("LAPBOT_ROOT", "/opt/lapbot"))
+root_dir = Path(os.environ.get("LAPBOT_ROOT", "/opt/lapbot"))
 service = os.environ.get("LAPBOT_SERVICE", "lapbot")
 ready_timeout = int(os.environ.get("LAPBOT_READY_TIMEOUT", "90"))
 keep_releases = 3
 
-env_file = root / ".env"
-lock_file = root / ".deploy.lock"
-restart_file = root / ".restart"
-repo = root / "repo"
-releases = root / "releases"
-current = root / "current"
-logs = root / "logs"
+env_file = root_dir / ".env"
+lock_file = root_dir / ".deploy.lock"
+restart_file = root_dir / ".restart"
+repo_dir = root_dir / "repo"
+releases_dir = root_dir / "releases"
+current_link = root_dir / "current"
+logs_dir = root_dir / "logs"
 
 
 def main():
-    if not root.is_dir():
-        sys.exit(f"root: {root} does not exist")
+    if not root_dir.is_dir():
+        sys.exit(f"root: {root_dir} does not exist")
 
     lock = lock_file.open("w")
     flock(lock, LOCK_EX)
@@ -34,7 +34,7 @@ def main():
 
     update_code()
     commit = git("rev-parse", "--short", "HEAD")
-    release = releases / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
+    release = releases_dir / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
     previous = live()
 
     try:
@@ -63,7 +63,7 @@ def run(*command, cwd=None, stdin=None):
 
 def git(*args):
     result = subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ["git", "-C", str(repo_dir), *args], check=True, capture_output=True, text=True
     )
 
     return result.stdout.strip()
@@ -82,44 +82,44 @@ def remote():
     ).stdout.strip()
 
     if not own:
-        sys.exit(f"repo: {repo} is missing and LAPBOT_REMOTE is not set")
+        sys.exit(f"repo: {repo_dir} is missing and LAPBOT_REMOTE is not set")
 
     return own
 
 
 def live():
-    return Path(os.readlink(current)) if current.is_symlink() else None
+    return Path(os.readlink(current_link)) if current_link.is_symlink() else None
 
 
 def update_code():
-    if not (repo / ".git").is_dir():
-        run("git", "clone", "--quiet", remote(), str(repo))
-        print(f"code: cloned into {repo}")
+    if not (repo_dir / ".git").is_dir():
+        run("git", "clone", remote(), str(repo_dir))
+        print(f"code: cloned into {repo_dir}")
 
-    git("fetch", "--quiet", "origin", "main")
-    git("reset", "--quiet", "--hard", "origin/main")
+    git("fetch", "origin", "main")
+    git("reset", "--hard", "origin/main")
     print(f"code: at {git('log', '-1', '--format=%h %s')}")
 
 
 def build(release):
     release.mkdir(parents=True)
-    logs.mkdir(exist_ok=True)
+    logs_dir.mkdir(exist_ok=True)
     archive = subprocess.run(
-        ["git", "-C", str(repo), "archive", "HEAD"], check=True, capture_output=True
+        ["git", "-C", str(repo_dir), "archive", "HEAD"], check=True, capture_output=True
     ).stdout
     run("tar", "-x", "-C", str(release), stdin=archive)
     (release / ".env").symlink_to(env_file)
-    (release / "logs").symlink_to(logs)
+    (release / "logs").symlink_to(logs_dir)
     run("pnpm", "install", "--frozen-lockfile", cwd=release)
     run("pnpm", "build", cwd=release)
     print(f"build: {release}")
 
 
 def switch_to(release):
-    staged = root / "current.next"
+    staged = root_dir / "current.next"
     staged.unlink(missing_ok=True)
     staged.symlink_to(release)
-    staged.replace(current)
+    staged.replace(current_link)
     print(f"release: current is {release}")
 
 
@@ -174,7 +174,7 @@ def discard(release):
 
 def prune():
     live_release = live()
-    built = sorted((path for path in releases.iterdir() if path.is_dir()), reverse=True)
+    built = sorted((path for path in releases_dir.iterdir() if path.is_dir()), reverse=True)
 
     for old in built[keep_releases:]:
         if old != live_release:
