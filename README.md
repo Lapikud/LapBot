@@ -15,14 +15,11 @@ pnpm dev
 
 Migrations and command registration run on start.
 
-### Discord application
+### Discord permissions
 
-1. Create an application at <https://discord.com/developers/applications>
-   and put the bot token and application ID in `.env`.
-2. Invite it with the `bot` and `applications.commands` scopes and View
-   Channels, Send Messages, Embed Links, Read Message History, Add Reactions,
-   Manage Messages, Manage Roles and Mention Everyone.
-3. Move its role above every role it hands out.
+View Channels, Send Messages, Embed Links, Read Message History, Add Reactions,
+Manage Messages, Manage Roles and Mention Everyone. The bot's role must be
+above every role it hands out.
 
 ### Configuration
 
