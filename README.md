@@ -93,6 +93,9 @@ As root, with PostgreSQL running:
    runuser -u lapbot -- git clone https://git.lapikud.ee/<owner>/lapbot.git /opt/lapbot/repo
    ```
 
+   The clone must be at `/opt/lapbot/repo`: `deploy.py` builds every release
+   from it.
+
 3. Write `/opt/lapbot/.env` (owner `lapbot`, mode `600`).
 4. Add `/etc/systemd/system/lapbot.service`:
 
