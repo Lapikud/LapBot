@@ -27,7 +27,7 @@ export function eventView(event: Event, counts: RsvpCounts): Message {
       ? 't'
       : 'f';
   const end =
-    event.endsAt === null ? '' : ` – ${discordTime(event.endsAt, endStyle)}`;
+    event.endsAt === null ? '' : ` - ${discordTime(event.endsAt, endStyle)}`;
   const going =
     event.capacity === null
       ? String(counts.going)

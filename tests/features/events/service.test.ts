@@ -57,7 +57,7 @@ describe('event helpers', () => {
       eventView({ ...event, icons }, counts).content ?? '';
 
     expect(text(true)).toContain('🗓️ <t:');
-    expect(text(true)).toContain('🕐 <t:1795190400:t> – <t:1795201200:t>');
+    expect(text(true)).toContain('🕐 <t:1795190400:t> - <t:1795201200:t>');
     expect(text(true)).toContain('📍 Room 101');
     expect(text(false)).not.toMatch(/🗓️|🕐|📍/u);
   });

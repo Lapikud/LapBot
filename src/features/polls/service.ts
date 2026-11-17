@@ -80,7 +80,7 @@ export function createPollService(deps: Deps) {
     }
 
     if (input.question.trim() === '' || input.question.length > 256) {
-      throw new UserError('Poll questions must be 1–256 characters.');
+      throw new UserError('Poll questions must be 1-256 characters.');
     }
 
     const details = pollDetails(input);

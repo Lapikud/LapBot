@@ -86,7 +86,7 @@ Paths below are relative to the repository root. Consumers use the corresponding
 
 **Interfaces:**
 
-- `birthdayForm: FormDefinition<{ day: number; month: number; visibility: BirthdayVisibility }>`; integer day 1–31, month 1–12, existing visibility choices.
+- `birthdayForm: FormDefinition<{ day: number; month: number; visibility: BirthdayVisibility }>`; integer day 1-31, month 1-12, existing visibility choices.
 - `pollResponseForm(options: readonly { id: number; label: string }[], multiple: boolean): FormDefinition<{ choices: number[] }>`; empty array allowed for clearing; single-choice cardinality applies after existing deduplication.
 - Existing `validateBirthday(month, day): void`, repository methods, and service request signatures stay compatible. Features translate generic issues into current UserError messages.
 
@@ -184,11 +184,11 @@ Paths below are relative to the repository root. Consumers use the corresponding
 
 **Interfaces:** Produces final branch evidence and practical extension examples; no new product API.
 
-- [x] Document predefined birthday input, specialized poll input, accessible UI controls, managed posts, ordinary Message delivery, and calendar adapters using actual exports from Tasks 2–8. Explicitly identify existing Discord syntax and deferred persisted links.
+- [x] Document predefined birthday input, specialized poll input, accessible UI controls, managed posts, ordinary Message delivery, and calendar adapters using actual exports from Tasks 2-8. Explicitly identify existing Discord syntax and deferred persisted links.
 - [x] Run `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm build`, and dedicated database integration tests when available. Record failures/skips accurately; do not count skipped tests as passed.
-- [x] Review the full branch diff against spec sections 1–8: inspect authorization, transaction checks, jobs/payloads, mentions, duplicated lifecycle/rules, unused abstractions, and accidental formatting churn. Run `git diff --check`.
+- [x] Review the full branch diff against spec sections 1-8: inspect authorization, transaction checks, jobs/payloads, mentions, duplicated lifecycle/rules, unused abstractions, and accidental formatting churn. Run `git diff --check`.
 - [x] Commit docs/check evidence with `docs: describe consolidated foundation and validation`. Report changes, verification, and limitations. No merge, push, deployment, or scope expansion is implied.
 
 ## Plan self-review
 
-Spec coverage: input contracts/proof/adoption (Tasks 2–3), UI/accessibility (4–5), presentation/ordinary deliveries (6), managed lifecycle/authorization/storage/scheduling (7), integrations (8), compatibility and evidence (1/9). All five Review Focus conditions are assigned above. Post aliases preserve service signatures, UI exports do not import feature services, and transaction checks are retained. Custom forms, persistent links, and new providers remain excluded.
+Spec coverage: input contracts/proof/adoption (Tasks 2-3), UI/accessibility (4-5), presentation/ordinary deliveries (6), managed lifecycle/authorization/storage/scheduling (7), integrations (8), compatibility and evidence (1/9). All five Review Focus conditions are assigned above. Post aliases preserve service signatures, UI exports do not import feature services, and transaction checks are retained. Custom forms, persistent links, and new providers remain excluded.

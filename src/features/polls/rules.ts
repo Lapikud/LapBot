@@ -46,7 +46,7 @@ export function validatePollOptions(labels: readonly string[]): string[] {
   }
 
   if (trimmed.some((label) => label === '' || label.length > maxOptionLength)) {
-    throw new UserError(`Options must be 1–${maxOptionLength} characters.`);
+    throw new UserError(`Options must be 1-${maxOptionLength} characters.`);
   }
 
   if (

@@ -186,7 +186,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
       draft.content.trim() === '' ||
       draft.content.length > maxAnnouncementLength
     ) {
-      throw new UserError(`Write 1–${maxAnnouncementLength} characters.`);
+      throw new UserError(`Write 1-${maxAnnouncementLength} characters.`);
     }
   };
 

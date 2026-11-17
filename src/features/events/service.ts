@@ -47,7 +47,7 @@ const maxDescriptionLength = 1500;
 
 function requireText(title: string, description?: string | null) {
   if (title.trim() === '' || title.length > maxTitleLength) {
-    throw new UserError(`Give a title of 1–${maxTitleLength} characters.`);
+    throw new UserError(`Give a title of 1-${maxTitleLength} characters.`);
   }
 
   if ((description?.length ?? 0) > maxDescriptionLength) {

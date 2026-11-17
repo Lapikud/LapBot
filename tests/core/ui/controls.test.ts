@@ -9,7 +9,7 @@ describe('accessible web controls', async () => {
       name: 'day',
       id: 'birthday-day',
       label: 'Day',
-      help: '1–31',
+      help: '1-31',
       error: 'Invalid date',
       required: true,
       type: 'number',
