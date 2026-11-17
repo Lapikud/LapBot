@@ -69,7 +69,7 @@ function EmojiSelect({
   const options = emojis.includes(selected) ? emojis : [selected, ...emojis];
 
   return (
-    <select name={name} aria-label={label} class="role-emoji">
+    <select id={name} name={name} aria-label={label} class="role-emoji">
       {options
         .filter((emoji) => emoji === selected || !used.has(emoji))
         .map((emoji) => (
@@ -226,7 +226,7 @@ export function rolePages({ services }: WebDeps) {
                         </option>
                       ))}
                     </Select>
-                    <label>
+                    <label htmlFor="new-emoji">
                       Reaction
                       <EmojiSelect
                         name="new-emoji"

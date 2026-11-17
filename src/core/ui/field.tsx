@@ -10,7 +10,7 @@ export type FieldProps = Readonly<{
 
 export function Field({ id, label, help, error, children }: FieldProps) {
   return (
-    <label for={id}>
+    <label htmlFor={id}>
       {label}
       {children}
       {help === undefined ? null : <small id={`${id}-help`}>{help}</small>}
