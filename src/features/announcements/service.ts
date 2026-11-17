@@ -14,6 +14,7 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger, Sent } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
+import { visibleRecords } from '~/core/helpers/visibility';
 
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
@@ -204,17 +205,8 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
           record.authorId === actor.userId ||
           publisher,
       );
-      const channels = [
-        ...new Set(accessible.map((record) => record.channelId)),
-      ];
-      const allowed = await Promise.all(
-        channels.map(async (id) =>
-          (await directory.canView(actor, id)) ? [id] : [],
-        ),
-      );
-      const visible = new Set(allowed.flat());
 
-      return accessible.filter((record) => visible.has(record.channelId));
+      return visibleRecords(directory, actor, accessible);
     },
     get: requireReadable,
     draft: guard(
