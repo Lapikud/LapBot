@@ -103,7 +103,7 @@ const noDiscordImport = {
 const modulePatterns = [
   {
     regex:
-      '^~/(config|domain|lib|core/ports|core/services|infra/[a-z-]+|features/[a-z-]+)/',
+      '^~/(config|domain|lib|core/ports|core/services|core/presentation|core/calendar|infra/[a-z-]+|features/[a-z-]+)/',
     message: 'Import from the module barrel, not a file inside it.',
   },
   {
@@ -325,7 +325,12 @@ export default defineConfig(
   },
 
   {
-    files: ['src/**/*.ts', 'tests/**/*.ts', 'scripts/**/*.ts', '*.config.ts'],
+    files: [
+      'src/**/*.{ts,tsx}',
+      'tests/**/*.ts',
+      'scripts/**/*.ts',
+      '*.config.ts',
+    ],
     languageOptions: {
       globals: globals.node,
     },
@@ -393,7 +398,7 @@ export default defineConfig(
   },
 
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', { patterns: modulePatterns }],
     },

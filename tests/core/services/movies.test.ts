@@ -4,7 +4,6 @@ import {
   createEventService,
   createMovieService,
   createPollService,
-  pollView,
 } from '~/core/services';
 import {
   createEventRepository,
@@ -59,6 +58,7 @@ describe.skipIf(noDatabase)('movie service', () => {
       movies,
       polls,
       pollRepository,
+      messenger,
       member: actor({ guildId: snowflake(), userId: snowflake() }),
     };
   };
@@ -130,8 +130,8 @@ describe.skipIf(noDatabase)('movie service', () => {
     expect(updated.links).toHaveLength(2);
   });
 
-  it('links each poll option to the movie trailer or link', async () => {
-    const { movies, pollRepository, member } = setup();
+  it('publishes movie links in ordered details before voting controls', async () => {
+    const { movies, messenger, member } = setup();
 
     await movies.suggest(member, {
       ...suggestion('Papa John'),
@@ -140,15 +140,17 @@ describe.skipIf(noDatabase)('movie service', () => {
     await movies.suggest(member, suggestion('Plain'));
 
     const poll = await movies.vote(member, { channelId: 'c' });
-    const view = pollView(poll, await pollRepository.results(poll));
 
     expect(poll.options.map((option) => option.url)).toEqual([
       'https://youtu.be/W7bSunrD4WY',
       null,
     ]);
-    expect(view.content).toContain(
-      '[Papa John](<https://youtu.be/W7bSunrD4WY>)',
+    expect(messenger.send.mock.calls[0]?.[1].content).toContain(
+      '[1. Papa John](<https://youtu.be/W7bSunrD4WY>)',
     );
+    expect(messenger.send.mock.calls[0]?.[1].suppressEmbeds).toBe(true);
+    expect(messenger.send.mock.calls[0]?.[1].controls).toBeUndefined();
+    expect(messenger.send.mock.calls[1]?.[1].controls).toBeDefined();
   });
 
   it('votes through the poll service and refuses ties', async () => {

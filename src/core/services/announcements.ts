@@ -1,17 +1,14 @@
+import { postView as announcementView } from '~/core/presentation';
 import { z } from 'zod';
 import {
   channelMention,
-  maxContentLength,
   parseFutureWhen,
   PermanentError,
   requireMentionable,
-  roleMention,
   UserError,
   type Actor,
-  type Message,
 } from '~/domain';
 import type {
-  Announcement,
   AnnouncementRepository,
   AnnouncementStatus,
   Authorizer,
@@ -38,31 +35,6 @@ export type AnnouncementDraft = {
   mentionRoleIds?: readonly string[];
   mentionEveryone?: boolean;
 };
-
-export function announcementView(announcement: Announcement): Message {
-  const pings = [
-    ...(announcement.mentionEveryone ? ['@everyone'] : []),
-    ...announcement.mentionRoleIds.map((id) => roleMention(id)),
-  ].join(' ');
-  const mentions = {
-    everyone: announcement.mentionEveryone,
-    roles: announcement.mentionRoleIds,
-  };
-
-  const heading =
-    announcement.title === null ? '' : `# ${announcement.title}\n`;
-  const content = [pings, `${heading}${announcement.content}`]
-    .filter(Boolean)
-    .join('\n');
-
-  if (content.length > maxContentLength) {
-    throw new UserError(
-      'Announcements are limited to 2000 characters, including the title and mentions.',
-    );
-  }
-
-  return { content, mentions };
-}
 
 type Deps = {
   announcements: AnnouncementRepository;
@@ -376,3 +348,5 @@ export function createAnnouncementService(deps: Deps) {
 }
 
 export type AnnouncementService = ReturnType<typeof createAnnouncementService>;
+
+export { postView as announcementView } from '~/core/presentation';
