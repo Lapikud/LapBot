@@ -1,11 +1,11 @@
 #!/usr/bin/env -S python3 -u
-import fcntl
 import os
 import shutil
 import subprocess
 import sys
 import time
 from datetime import datetime
+from fcntl import LOCK_EX, flock
 from pathlib import Path
 
 root = Path(os.environ.get("LAPBOT_ROOT", "/opt/lapbot"))
@@ -13,18 +13,25 @@ service = os.environ.get("LAPBOT_SERVICE", "lapbot")
 ready_timeout = int(os.environ.get("LAPBOT_READY_TIMEOUT", "90"))
 keep_releases = 3
 
+env_file = root / ".env"
+lock_file = root / ".deploy.lock"
+restart_file = root / ".restart"
+repo = root / "repo"
+releases = root / "releases"
+current = root / "current"
+logs = root / "logs"
+
 
 def main():
-    os.chdir(root)
-    lock = open(".deploy.lock", "w")
-    fcntl.flock(lock, fcntl.LOCK_EX)
+    lock = lock_file.open("w")
+    flock(lock, LOCK_EX)
 
-    if not Path(".env").is_file():
-        sys.exit(f"env: {root}/.env is missing")
+    if not env_file.is_file():
+        sys.exit(f"env: {env_file} is missing\nCheck .env.example")
 
     update_code()
-    commit = output("git", "-C", "repo", "rev-parse", "--short", "HEAD")
-    release = Path("releases") / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
+    commit = git("rev-parse", "--short", "HEAD")
+    release = releases / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
     previous = live()
 
     try:
@@ -39,7 +46,7 @@ def main():
     if not ready(started):
         roll_back(previous)
 
-        if live() != str(release):
+        if live() != release:
             discard(release)
 
         sys.exit(1)
@@ -51,49 +58,49 @@ def run(*command, cwd=None, stdin=None):
     subprocess.run(command, cwd=cwd, input=stdin, check=True)
 
 
-def output(*command):
-    result = subprocess.run(command, check=True, capture_output=True, text=True)
+def git(*args):
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+    )
 
     return result.stdout.strip()
 
 
 def live():
-    current = Path("current")
-
-    return os.readlink(current) if current.is_symlink() else None
+    return Path(os.readlink(current)) if current.is_symlink() else None
 
 
 def update_code():
-    run("git", "-C", "repo", "fetch", "--quiet", "origin", "main")
-    run("git", "-C", "repo", "reset", "--quiet", "--hard", "origin/main")
-    print(f"code: at {output('git', '-C', 'repo', 'log', '-1', '--format=%h %s')}")
+    git("fetch", "--quiet", "origin", "main")
+    git("reset", "--quiet", "--hard", "origin/main")
+    print(f"code: at {git('log', '-1', '--format=%h %s')}")
 
 
 def build(release):
     release.mkdir(parents=True)
-    Path("logs").mkdir(exist_ok=True)
+    logs.mkdir(exist_ok=True)
     archive = subprocess.run(
-        ["git", "-C", "repo", "archive", "HEAD"], check=True, capture_output=True
+        ["git", "-C", str(repo), "archive", "HEAD"], check=True, capture_output=True
     ).stdout
     run("tar", "-x", "-C", str(release), stdin=archive)
-    (release / ".env").symlink_to(root / ".env")
-    (release / "logs").symlink_to(root / "logs")
+    (release / ".env").symlink_to(env_file)
+    (release / "logs").symlink_to(logs)
     run("pnpm", "install", "--frozen-lockfile", cwd=release)
     run("pnpm", "build", cwd=release)
     print(f"build: {release}")
 
 
 def switch_to(release):
-    staged = Path("current.next")
+    staged = root / "current.next"
     staged.unlink(missing_ok=True)
     staged.symlink_to(release)
-    os.replace(staged, "current")
+    staged.replace(current)
     print(f"release: current is {release}")
 
 
 def restart():
     started = datetime.now()
-    Path(".restart").write_text(f"{live()}\n")
+    restart_file.write_text(f"{live()}\n")
     print(f"service: requested a restart of {service}")
 
     return started
@@ -104,11 +111,11 @@ def ready(started):
     journal = ["journalctl", "-u", service, "--since", since, "--no-pager"]
 
     for _ in range(ready_timeout):
-        logs = subprocess.run(
+        entries = subprocess.run(
             [*journal, "-o", "cat"], capture_output=True, text=True
         ).stdout
 
-        if '"msg":"Ready"' in logs:
+        if '"msg":"Ready"' in entries:
             print(f"health: {service} is ready")
 
             return True
@@ -141,13 +148,11 @@ def discard(release):
 
 
 def prune():
-    current = live()
-    releases = sorted(
-        (path for path in Path("releases").iterdir() if path.is_dir()), reverse=True
-    )
+    live_release = live()
+    built = sorted((path for path in releases.iterdir() if path.is_dir()), reverse=True)
 
-    for old in releases[keep_releases:]:
-        if str(old) != current:
+    for old in built[keep_releases:]:
+        if old != live_release:
             shutil.rmtree(old)
             print(f"prune: removed {old}")
 

@@ -118,7 +118,7 @@ release_count() {
 }
 
 newest_release() {
-  find "$work/root/releases" -mindepth 1 -maxdepth 1 -type d -printf 'releases/%f\n' | sort | tail -n 1
+  find "$work/root/releases" -mindepth 1 -maxdepth 1 -type d -printf '%p\n' | sort | tail -n 1
 }
 
 expect_equal() {
