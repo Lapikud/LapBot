@@ -2,12 +2,12 @@ import type { Permission } from '~/core/permission';
 import { Layout } from '~/web/layout';
 
 interface Props {
-  readonly title: string;
-  readonly text: string;
-  readonly can?: ReadonlySet<Permission>;
+  title: string;
+  text: string;
+  can?: ReadonlySet<Permission>;
 }
 
-export function StatusPage({ title, text, can }: Props) {
+export function StatusPage({ title, text, can }: Readonly<Props>) {
   return (
     <Layout title={title} path="" {...(can && { can })}>
       <p>{text}</p>

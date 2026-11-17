@@ -2,11 +2,11 @@ import type { Poll } from '~/features/polls/model';
 import { ActionButton } from '~/web/components/actions';
 
 interface Props {
-  readonly open: Poll[];
-  readonly date: (value: Date | null) => string;
-  readonly canManage: (ownerId: string) => boolean;
+  open: Poll[];
+  date: (value: Date | null) => string;
+  canManage: (ownerId: string) => boolean;
 }
-export function PollList({ open, date, canManage }: Props) {
+export function PollList({ open, date, canManage }: Readonly<Props>) {
   return (
     <table>
       <thead>

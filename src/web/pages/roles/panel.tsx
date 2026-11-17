@@ -5,15 +5,15 @@ import type { Server } from '~/web/context';
 import { EmojiSelect } from './emoji-select';
 
 interface Props {
-  readonly channelId: string;
-  readonly server: Server;
-  readonly guildId: string;
-  readonly unavailable: PanelRole[];
-  readonly panel: RolePanel | undefined;
-  readonly entries: PanelRole[];
-  readonly available: RoleInfo[];
-  readonly nextEmoji: string;
-  readonly used: ReadonlySet<string | null>;
+  channelId: string;
+  server: Server;
+  guildId: string;
+  unavailable: PanelRole[];
+  panel: RolePanel | undefined;
+  entries: PanelRole[];
+  available: RoleInfo[];
+  nextEmoji: string;
+  used: ReadonlySet<string | null>;
 }
 export function RolePanelForm({
   channelId,
@@ -25,7 +25,7 @@ export function RolePanelForm({
   available,
   nextEmoji,
   used,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <form method="post" action="/roles">
       <input type="hidden" name="channelId" value={channelId} />

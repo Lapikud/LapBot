@@ -7,17 +7,17 @@ import { RoleChannelPicker } from './channel-picker';
 import { RolePanelForm } from './panel';
 
 interface Props {
-  readonly channelId: string | undefined;
-  readonly unavailable: PanelRole[];
-  readonly panel: RolePanel | undefined;
-  readonly entries: PanelRole[];
-  readonly available: RoleInfo[];
-  readonly nextEmoji: string;
-  readonly used: ReadonlySet<string | null>;
-  readonly server: Server;
-  readonly guildId: string;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  channelId: string | undefined;
+  unavailable: PanelRole[];
+  panel: RolePanel | undefined;
+  entries: PanelRole[];
+  available: RoleInfo[];
+  nextEmoji: string;
+  used: ReadonlySet<string | null>;
+  server: Server;
+  guildId: string;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
 export function RolePage({
@@ -32,7 +32,7 @@ export function RolePage({
   guildId,
   can,
   flash,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout title="Roles" path="/roles" can={can} flash={flash}>
       <p>

@@ -7,13 +7,13 @@ import { RoleForm } from './form';
 import { RolePicker } from './picker';
 
 interface Props {
-  readonly roles: RoleInfo[];
-  readonly selected: RoleInfo | undefined;
-  readonly counts: ReadonlyMap<string, number>;
-  readonly grants: Grant[];
-  readonly catalogue: PermissionDefinition[];
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  roles: RoleInfo[];
+  selected: RoleInfo | undefined;
+  counts: ReadonlyMap<string, number>;
+  grants: Grant[];
+  catalogue: PermissionDefinition[];
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
 export function PermissionPage({
@@ -24,7 +24,7 @@ export function PermissionPage({
   catalogue,
   can,
   flash,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout
       can={can}

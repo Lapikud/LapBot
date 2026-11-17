@@ -2,11 +2,11 @@ import type { LogEntry } from '~/integrations/logging/store';
 import { levels } from './filters';
 
 interface Props {
-  readonly entries: LogEntry[];
-  readonly date: Intl.DateTimeFormat;
-  readonly timezone: string;
+  entries: LogEntry[];
+  date: Intl.DateTimeFormat;
+  timezone: string;
 }
-export function LogEntries({ entries, date, timezone }: Props) {
+export function LogEntries({ entries, date, timezone }: Readonly<Props>) {
   return (
     <div class="log-table">
       <table>

@@ -5,14 +5,20 @@ import { Layout } from '~/web/layout';
 import { MovieCard } from './card';
 
 interface Props {
-  readonly list: MovieSuggestion[];
-  readonly names: string[];
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
-  readonly canManage: (ownerId: string) => boolean;
+  list: MovieSuggestion[];
+  names: string[];
+  can: ReadonlySet<Permission>;
+  flash: Flash;
+  canManage: (ownerId: string) => boolean;
 }
 
-export function MoviePage({ list, names, can, flash, canManage }: Props) {
+export function MoviePage({
+  list,
+  names,
+  can,
+  flash,
+  canManage,
+}: Readonly<Props>) {
   return (
     <Layout
       can={can}

@@ -2,17 +2,17 @@ import type { Permission } from '~/core/permission';
 import { Layout } from '~/web/layout';
 
 interface Props {
-  readonly can: ReadonlySet<Permission>;
-  readonly pendingCount: number;
-  readonly eventCount: number;
-  readonly pollCount: number;
+  can: ReadonlySet<Permission>;
+  pendingCount: number;
+  eventCount: number;
+  pollCount: number;
 }
 export function OverviewPage({
   can,
   pendingCount,
   eventCount,
   pollCount,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout can={can} title="Overview" path="/">
       <ul>

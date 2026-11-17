@@ -3,12 +3,17 @@ import { ActionButton } from '~/web/components/actions';
 import type { Server } from '~/web/context';
 
 interface Props {
-  readonly upcoming: Event[];
-  readonly date: (value: Date | null) => string;
-  readonly server: Server;
-  readonly canManage: (ownerId: string) => boolean;
+  upcoming: Event[];
+  date: (value: Date | null) => string;
+  server: Server;
+  canManage: (ownerId: string) => boolean;
 }
-export function EventList({ upcoming, date, server, canManage }: Props) {
+export function EventList({
+  upcoming,
+  date,
+  server,
+  canManage,
+}: Readonly<Props>) {
   return (
     <table>
       <thead>

@@ -5,12 +5,12 @@ import { Layout } from '~/web/layout';
 import { EventList } from './list';
 
 interface Props {
-  readonly upcoming: Event[];
-  readonly date: (value: Date | null) => string;
-  readonly server: Server;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
-  readonly canManage: (ownerId: string) => boolean;
+  upcoming: Event[];
+  date: (value: Date | null) => string;
+  server: Server;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
+  canManage: (ownerId: string) => boolean;
 }
 
 export function EventPage({
@@ -20,7 +20,7 @@ export function EventPage({
   can,
   flash,
   canManage,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout
       can={can}

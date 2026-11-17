@@ -7,13 +7,18 @@ import { Composer } from './form';
 import type { Draft } from './submission';
 
 interface Props {
-  readonly server: Server;
-  readonly can: ReadonlySet<Permission>;
-  readonly draft: Draft;
-  readonly view: Message;
+  server: Server;
+  can: ReadonlySet<Permission>;
+  draft: Draft;
+  view: Message;
 }
 
-export function AnnouncementPreviewPage({ server, can, draft, view }: Props) {
+export function AnnouncementPreviewPage({
+  server,
+  can,
+  draft,
+  view,
+}: Readonly<Props>) {
   return (
     <Layout can={can} title="New PSA" path="/post/announcements">
       <Composer

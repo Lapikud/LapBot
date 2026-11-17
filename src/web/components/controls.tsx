@@ -2,12 +2,12 @@ import type { Child, JSX } from 'hono/jsx';
 import { Field } from './field';
 
 interface Presentation {
-  readonly name: string;
-  readonly id?: string;
-  readonly label: Child;
-  readonly help?: string;
-  readonly error?: string;
-  readonly 'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
+  name: string;
+  id?: string;
+  label: Child;
+  help?: string;
+  error?: string;
+  'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
 }
 type InputProps = Presentation & JSX.IntrinsicElements['input'];
 type TextareaProps = Presentation & JSX.IntrinsicElements['textarea'];
@@ -33,7 +33,13 @@ function describedBy(
   );
 }
 
-export function Input({ label, help, error, id, ...props }: InputProps) {
+export function Input({
+  label,
+  help,
+  error,
+  id,
+  ...props
+}: Readonly<InputProps>) {
   const controlId = id ?? props.name;
 
   return (
@@ -53,7 +59,13 @@ export function Input({ label, help, error, id, ...props }: InputProps) {
   );
 }
 
-export function Textarea({ label, help, error, id, ...props }: TextareaProps) {
+export function Textarea({
+  label,
+  help,
+  error,
+  id,
+  ...props
+}: Readonly<TextareaProps>) {
   const controlId = id ?? props.name;
 
   return (
@@ -73,7 +85,13 @@ export function Textarea({ label, help, error, id, ...props }: TextareaProps) {
   );
 }
 
-export function Select({ label, help, error, id, ...props }: SelectProps) {
+export function Select({
+  label,
+  help,
+  error,
+  id,
+  ...props
+}: Readonly<SelectProps>) {
   const controlId = id ?? props.name;
 
   return (

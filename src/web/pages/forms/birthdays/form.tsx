@@ -6,11 +6,15 @@ import { ChannelSelect } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
 interface Props {
-  readonly settings: BirthdaySettings | undefined;
-  readonly server: Server;
-  readonly roles: RoleInfo[];
+  settings: BirthdaySettings | undefined;
+  server: Server;
+  roles: RoleInfo[];
 }
-export function BirthdaySettingsForm({ settings, server, roles }: Props) {
+export function BirthdaySettingsForm({
+  settings,
+  server,
+  roles,
+}: Readonly<Props>) {
   return (
     <form method="post" action="/forms/birthdays">
       <ChannelSelect server={server} selected={settings?.channelId} />

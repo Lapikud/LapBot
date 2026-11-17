@@ -6,13 +6,13 @@ import { Layout } from '~/web/layout';
 import { EventFields } from './fields';
 
 interface Props {
-  readonly event: Event;
-  readonly time: (value: Date | null) => string;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  event: Event;
+  time: (value: Date | null) => string;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
-export function EditEventPage({ event, time, can, flash }: Props) {
+export function EditEventPage({ event, time, can, flash }: Readonly<Props>) {
   return (
     <Layout
       can={can}

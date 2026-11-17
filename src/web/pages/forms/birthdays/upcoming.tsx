@@ -7,10 +7,10 @@ const dayMonth = new Intl.DateTimeFormat('en-GB', {
 });
 
 interface Props {
-  readonly upcoming: Birthday[];
-  readonly names: string[];
+  upcoming: Birthday[];
+  names: string[];
 }
-export function UpcomingBirthdays({ upcoming, names }: Props) {
+export function UpcomingBirthdays({ upcoming, names }: Readonly<Props>) {
   return (
     <>
       <h2>Coming up</h2>

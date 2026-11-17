@@ -8,13 +8,13 @@ import { BirthdaySignup } from './signup';
 import { UpcomingBirthdays } from './upcoming';
 
 interface Props {
-  readonly settings: BirthdaySettings | undefined;
-  readonly upcoming: Birthday[];
-  readonly names: string[];
-  readonly roles: RoleInfo[];
-  readonly server: Server;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  settings: BirthdaySettings | undefined;
+  upcoming: Birthday[];
+  names: string[];
+  roles: RoleInfo[];
+  server: Server;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
 export function BirthdayPage({
@@ -25,7 +25,7 @@ export function BirthdayPage({
   server,
   can,
   flash,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout can={can} title="Birthdays" path="/forms/birthdays" flash={flash}>
       <p>

@@ -5,14 +5,20 @@ import { Layout } from '~/web/layout';
 import { PollList } from './list';
 
 interface Props {
-  readonly open: Poll[];
-  readonly date: (value: Date | null) => string;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
-  readonly canManage: (ownerId: string) => boolean;
+  open: Poll[];
+  date: (value: Date | null) => string;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
+  canManage: (ownerId: string) => boolean;
 }
 
-export function PollPage({ open, date, can, flash, canManage }: Props) {
+export function PollPage({
+  open,
+  date,
+  can,
+  flash,
+  canManage,
+}: Readonly<Props>) {
   return (
     <Layout
       can={can}

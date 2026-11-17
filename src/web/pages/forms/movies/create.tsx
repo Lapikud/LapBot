@@ -4,11 +4,11 @@ import { Layout } from '~/web/layout';
 import { MovieForm } from './form';
 
 interface Props {
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
-export function NewMoviePage({ can, flash }: Props) {
+export function NewMoviePage({ can, flash }: Readonly<Props>) {
   return (
     <Layout
       can={can}

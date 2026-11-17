@@ -2,10 +2,10 @@ import { ChannelSelect } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
 interface Props {
-  readonly server: Server;
-  readonly channelId: string | undefined;
+  server: Server;
+  channelId: string | undefined;
 }
-export function RoleChannelPicker({ server, channelId }: Props) {
+export function RoleChannelPicker({ server, channelId }: Readonly<Props>) {
   return (
     <form method="get" action="/roles" class="role-channel">
       <ChannelSelect server={server} name="channel" selected={channelId} />

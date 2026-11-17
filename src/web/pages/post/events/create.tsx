@@ -8,13 +8,13 @@ import { Layout } from '~/web/layout';
 import { EventFields } from './fields';
 
 interface Props {
-  readonly time: (value: Date | null) => string;
-  readonly server: Server;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  time: (value: Date | null) => string;
+  server: Server;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
-export function NewEventPage({ time, server, can, flash }: Props) {
+export function NewEventPage({ time, server, can, flash }: Readonly<Props>) {
   return (
     <Layout can={can} title="New event" path="/post/events" flash={flash}>
       <form method="post" action="/post/events">

@@ -6,18 +6,18 @@ import { LogEntries } from './entries';
 import { LogFilters } from './filter-form';
 
 interface Props {
-  readonly entries: LogEntry[];
-  readonly hasMore: boolean;
-  readonly live: boolean;
-  readonly date: Intl.DateTimeFormat;
-  readonly toggle: URLSearchParams;
-  readonly older: URLSearchParams;
-  readonly latest: URLSearchParams;
-  readonly minimum: { name: string; value: number };
-  readonly query: string;
-  readonly before: number | undefined;
-  readonly timezone: string;
-  readonly can: ReadonlySet<Permission>;
+  entries: LogEntry[];
+  hasMore: boolean;
+  live: boolean;
+  date: Intl.DateTimeFormat;
+  toggle: URLSearchParams;
+  older: URLSearchParams;
+  latest: URLSearchParams;
+  minimum: { name: string; value: number };
+  query: string;
+  before: number | undefined;
+  timezone: string;
+  can: ReadonlySet<Permission>;
 }
 
 export function LogPage({
@@ -33,7 +33,7 @@ export function LogPage({
   before,
   timezone,
   can,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout
       title="Logs"

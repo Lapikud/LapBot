@@ -4,12 +4,12 @@ import { Layout } from '~/web/layout';
 import { PollForm } from './form';
 
 interface Props {
-  readonly server: Server;
-  readonly can: ReadonlySet<Permission>;
-  readonly flash: Flash;
+  server: Server;
+  can: ReadonlySet<Permission>;
+  flash: Flash;
 }
 
-export function NewPollPage({ server, can, flash }: Props) {
+export function NewPollPage({ server, can, flash }: Readonly<Props>) {
   return (
     <Layout can={can} title="New poll" path="/post/polls" flash={flash}>
       <PollForm server={server} />

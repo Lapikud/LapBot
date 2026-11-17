@@ -1,11 +1,11 @@
 import { levels } from './filters';
 
 interface Props {
-  readonly live: boolean;
-  readonly minimum: { name: string; value: number };
-  readonly query: string;
+  live: boolean;
+  minimum: { name: string; value: number };
+  query: string;
 }
-export function LogFilters({ live, minimum, query }: Props) {
+export function LogFilters({ live, minimum, query }: Readonly<Props>) {
   return (
     <form method="get" action="/settings/logs">
       <input type="hidden" name="live" value={live ? '1' : '0'} />

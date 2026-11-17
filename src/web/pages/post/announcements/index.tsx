@@ -7,12 +7,12 @@ import { Recent } from './list';
 const title = 'Announcements';
 
 interface Props {
-  readonly list: Announcement[];
-  readonly server: Server;
-  readonly date: (value: Date | null) => string;
-  readonly can: ReadonlySet<Permission>;
-  readonly userId: string;
-  readonly flash: Flash;
+  list: Announcement[];
+  server: Server;
+  date: (value: Date | null) => string;
+  can: ReadonlySet<Permission>;
+  userId: string;
+  flash: Flash;
 }
 
 export function AnnouncementPage({
@@ -22,7 +22,7 @@ export function AnnouncementPage({
   can,
   userId,
   flash,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Layout
       can={can}

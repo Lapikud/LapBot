@@ -2,9 +2,9 @@ import { ChannelOptions } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
 interface Props {
-  readonly server: Server;
+  server: Server;
 }
-export function BirthdaySignup({ server }: Props) {
+export function BirthdaySignup({ server }: Readonly<Props>) {
   return (
     <>
       <h2>Sign-up message</h2>

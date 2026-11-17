@@ -4,9 +4,9 @@ import { ChannelSelect } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
 interface Props {
-  readonly server: Server;
+  server: Server;
 }
-export function PollForm({ server }: Props) {
+export function PollForm({ server }: Readonly<Props>) {
   return (
     <form method="post" action="/post/polls">
       <Input label="Question" name="question" required maxlength={256} />
