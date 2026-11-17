@@ -169,7 +169,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/movies', moviePages(deps));
   app.route('/roles', rolePages(deps));
   app.route('/permissions', permissionPages(deps));
-  app.route('/logs', logPages(deps.timezone));
+  app.route('/logs', logPages(deps.timezone, deps.logs));
 
   app.notFound((c) =>
     c.html(<Message title="Not found" text="There is no such page." />, 404),

@@ -1,14 +1,30 @@
 import { Hono } from 'hono';
-import { expect, it } from 'vitest';
-import { createLogBuffer } from '~/infra/logging';
+import { afterEach, expect, it } from 'vitest';
+import { createLogStore } from '~/infra/logging';
 import { logPages } from '~/infra/web/logs';
 import type { Env, WebDeps } from '~/infra/web/context';
 import { createWebApp } from '~/infra/web';
 import { setSignedCookie } from 'hono/cookie';
 import { actor, fakeDirectory, allowAll, silentLog } from '../../fakes';
 
+const archives: Array<ReturnType<typeof createLogStore>> = [];
+
+function memoryLogs() {
+  const logs = createLogStore(':memory:');
+
+  archives.push(logs);
+
+  return logs;
+}
+
+afterEach(() => {
+  for (const logs of archives.splice(0)) {
+    logs.close();
+  }
+});
+
 function setup(administrator = true) {
-  const logs = createLogBuffer();
+  const logs = memoryLogs();
   const app = new Hono<Env>();
 
   logs.write(
@@ -82,6 +98,7 @@ it('requires sign-in on the mounted dashboard route', async () => {
     directory,
     authz: allowAll,
     log: silentLog,
+    logs: memoryLogs(),
     signIn: {
       clientId: 'c',
       clientSecret: 's',
@@ -120,4 +137,41 @@ it('requires sign-in on the mounted dashboard route', async () => {
   expect((await app.request('/logs', { headers })).status).toBe(403);
   directory.member.mockResolvedValue(actor({ administrator: true }));
   expect((await app.request('/logs', { headers })).status).toBe(200);
+});
+
+it('preserves filters when browsing archived entries and pauses refresh on older pages', async () => {
+  const logs = memoryLogs();
+
+  for (let index = 0; index < 105; index++) {
+    logs.write(
+      JSON.stringify({
+        time: Date.now(),
+        level: 50,
+        msg: `Archived ${index}`,
+        service: 'polls',
+      }),
+    );
+  }
+
+  const app = new Hono<Env>();
+
+  app.use(async (c, next) => {
+    c.set('actor', actor({ administrator: true }));
+    c.set('can', new Set(['permissions:manage'] as const));
+    await next();
+  });
+  app.route('/logs', logPages('UTC', logs));
+  const latest = await app.request('/logs?level=error&q=Archived');
+  const html = await latest.text();
+
+  expect(html).toContain('Older entries');
+  expect(html).toContain('before=6');
+  const older = await app.request('/logs?level=error&q=Archived&before=6');
+  const olderHtml = await older.text();
+
+  expect(older.headers.get('refresh')).toBeNull();
+  expect(olderHtml).toContain('Archived 0');
+  expect(olderHtml).not.toContain('Archived 104');
+  expect(olderHtml).toContain('Latest entries');
+  logs.close();
 });

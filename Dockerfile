@@ -20,5 +20,6 @@ COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
 COPY public ./public
 COPY package.json ./
+RUN mkdir -p /app/logs && chown node:node /app/logs
 USER node
 CMD ["node", "--enable-source-maps", "dist/index.mjs"]

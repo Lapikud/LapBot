@@ -21,6 +21,7 @@ import {
 } from '~/infra/db';
 import type { Permission, PermissionDefinition } from '~/domain';
 import { createWebApp, type WebApp } from '~/infra/web';
+import { createLogStore } from '~/infra/logging';
 import { noDatabase, snowflake, testDb } from '../../db';
 import {
   actor,
@@ -109,6 +110,7 @@ describe.skipIf(noDatabase)('web UI', () => {
       },
       directory,
       log: silentLog,
+      logs: createLogStore(':memory:'),
       services: {
         roles: createRoleService({
           panels: createRolePanelRepository(db),

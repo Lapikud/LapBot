@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { logCapacity, recentLogs } from '~/infra/logging';
+import { logPageSize, type LogStore } from '~/infra/logging';
 import type { Env } from './context';
 import { Layout } from './layout';
 
@@ -12,7 +12,13 @@ const levels = [
   { name: 'fatal', value: 60 },
 ] as const;
 
-export function logPages(timezone: string, logs = recentLogs) {
+function logCursor(value: string | undefined): number | undefined {
+  const cursor = Number(value);
+
+  return Number.isSafeInteger(cursor) && cursor > 0 ? cursor : undefined;
+}
+
+export function logPages(timezone: string, logs: LogStore) {
   const date = new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'medium',
     timeStyle: 'medium',
@@ -34,22 +40,21 @@ export function logPages(timezone: string, logs = recentLogs) {
     const minimum =
       levels.find((level) => level.name === c.req.query('level')) ?? levels[0];
     const query = (c.req.query('q') ?? '').slice(0, 200);
-    const needle = query.toLowerCase();
-    const live = c.req.query('live') !== '0';
-    const entries = logs
-      .entries()
-      .filter(
-        (entry) =>
-          entry.level >= minimum.value &&
-          `${entry.message} ${entry.source} ${entry.details}`
-            .toLowerCase()
-            .includes(needle),
-      );
-    const toggle = new URLSearchParams({
-      level: minimum.name,
-      q: query,
-      live: live ? '0' : '1',
+    const before = logCursor(c.req.query('before'));
+    const live = c.req.query('live') !== '0' && before === undefined;
+    const { entries, hasMore } = logs.page({
+      level: minimum.value,
+      query,
+      before,
     });
+    const filters = { level: minimum.name, q: query };
+    const toggle = new URLSearchParams({ ...filters, live: live ? '0' : '1' });
+    const older = new URLSearchParams({
+      ...filters,
+      before: String(entries.at(-1)?.id ?? 0),
+      live: '0',
+    });
+    const latest = new URLSearchParams({ ...filters, live: '1' });
 
     if (live) {
       c.header('Refresh', '10');
@@ -71,8 +76,8 @@ export function logPages(timezone: string, logs = recentLogs) {
         }
       >
         <p>
-          Latest {logCapacity} entries, newest first. History resets when the
-          bot restarts.
+          All saved logs, newest first. Showing up to {logPageSize} entries per
+          page.
         </p>
         <form method="get" action="/logs">
           <input type="hidden" name="live" value={live ? '1' : '0'} />
@@ -113,6 +118,22 @@ export function logPages(timezone: string, logs = recentLogs) {
             enabled by LOG_LEVEL appear.
           </small>
         </p>
+        <nav aria-label="Log history">
+          <ul>
+            <li>
+              {before === undefined ? null : (
+                <a href={`/logs?${latest.toString()}`}>Latest entries</a>
+              )}
+            </li>
+          </ul>
+          <ul>
+            <li>
+              {hasMore ? (
+                <a href={`/logs?${older.toString()}`}>Older entries</a>
+              ) : null}
+            </li>
+          </ul>
+        </nav>
         {entries.length === 0 ? (
           <p>No matching log entries.</p>
         ) : (

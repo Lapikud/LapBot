@@ -217,9 +217,12 @@ published outside the Compose network. Back up the `pgdata` volume.
 Server administrators can open **Logs** in the dashboard to filter recent
 entries by minimum level or search messages, sources and details. The page
 refreshes every 10 seconds and can be paused while inspecting an entry.
-It keeps the latest 500 entries in memory (with bounded message/detail sizes);
-this history resets on restart. Entries use the same `LOG_LEVEL` and field
-redaction as stdout. Use Docker logs for older entries.
+All emitted entries are saved in full to SQLite at `LOG_DATABASE_PATH`
+(default `logs/lapbot.sqlite`) and retained across restarts without automatic
+deletion. The UI shows 100 entries per page and searches the complete archive.
+Entries use the same `LOG_LEVEL` and field redaction as stdout. Docker Compose
+persists the archive in the `botlogs` volume; back it up alongside `pgdata`.
+Storage failures are reported to stderr while stdout logging continues.
 
 ## Architecture
 

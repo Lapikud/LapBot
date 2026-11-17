@@ -1,3 +1,4 @@
+import type { LogStore } from '~/infra/logging';
 import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
@@ -32,6 +33,7 @@ export type WebDeps = {
   authz: Authorizer;
   services: WebServices;
   log: Logger;
+  logs: LogStore;
 };
 
 export type Server = {

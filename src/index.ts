@@ -1,6 +1,6 @@
 import { startApp } from '~/app';
 import { loadConfig } from '~/config';
-import { createLogger } from '~/infra/logging';
+import { createLogger, createLogStore } from '~/infra/logging';
 
 let config: ReturnType<typeof loadConfig>;
 
@@ -11,14 +11,15 @@ try {
   process.exit(1);
 }
 
-const log = createLogger(config.LOG_LEVEL);
+const logs = createLogStore(config.LOG_DATABASE_PATH);
+const log = createLogger(config.LOG_LEVEL, logs);
 
 process.on('unhandledRejection', (reason) => {
   log.error({ err: reason }, 'Unhandled promise rejection');
 });
 
 try {
-  const stop = await startApp(config, log);
+  const stop = await startApp(config, log, logs);
   let stopping = false;
   const shutdown = (signal: NodeJS.Signals) => {
     if (stopping) {
@@ -28,9 +29,13 @@ try {
     stopping = true;
     log.info({ signal }, 'Shutting down');
     stop().then(
-      () => process.exit(0),
+      () => {
+        logs.close();
+        process.exit(0);
+      },
       (error: unknown) => {
         log.error({ err: error }, 'Shutdown failed');
+        logs.close();
         process.exit(1);
       },
     );
@@ -40,5 +45,6 @@ try {
   process.once('SIGTERM', shutdown);
 } catch (error) {
   log.fatal({ err: error }, 'Startup failed');
+  logs.close();
   process.exitCode = 1;
 }

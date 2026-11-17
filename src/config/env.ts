@@ -16,6 +16,7 @@ const envSchema = z.object({
 
   DATABASE_URL: z.url(),
 
+  LOG_DATABASE_PATH: z.string().min(1).default('logs/lapbot.sqlite'),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),

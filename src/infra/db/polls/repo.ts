@@ -115,7 +115,6 @@ export async function getResults(
   db: Db,
   poll: PollWithOptions,
 ): Promise<PollResults> {
-  // The scalar aggregate and grouped counts share one PostgreSQL snapshot.
   const counts = await db
     .select({
       optionId: pollVotes.optionId,

@@ -32,7 +32,7 @@ import {
   type LegacyPanel,
 } from '~/core/services';
 import type { AppContext, Feature, Registry } from '~/infra/discord';
-import type { Logger } from '~/infra/logging';
+import type { Logger, LogStore } from '~/infra/logging';
 import { PgBoss } from 'pg-boss';
 import { createJobQueue, startJobs } from '~/infra/scheduler';
 import {
@@ -246,6 +246,7 @@ async function startWeb(
     authz: Authorizer;
     services: WebServices;
     log: Logger;
+    logs: LogStore;
   },
 ): Promise<() => Promise<void>> {
   const port = config.WEB_PORT;
@@ -278,6 +279,7 @@ async function startWeb(
     directory: deps.directory,
     services: deps.services,
     log: deps.log,
+    logs: deps.logs,
   });
 
   return startWebServer(app, { port, host: config.WEB_HOST, log: deps.log });
@@ -293,6 +295,7 @@ function waitForReady(client: Client, token: string): Promise<Client<true>> {
 export async function startApp(
   config: Config,
   log: Logger,
+  logs: LogStore,
 ): Promise<() => Promise<void>> {
   const { database, boss, client, authz, registry, directory, jobs, web } =
     compose(config, log);
@@ -349,6 +352,7 @@ export async function startApp(
       authz,
       services: web,
       log: log.child({ component: 'web' }),
+      logs,
     });
 
     log.info(
