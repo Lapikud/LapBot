@@ -4,8 +4,8 @@ import {
   UserError,
   type Message,
 } from '~/domain';
-import type { Announcement } from '~/core/ports';
-export function postView(announcement: Announcement): Message {
+import type { Post } from '~/core/ports';
+export function postView(announcement: Post): Message {
   const pings = [
     ...(announcement.mentionEveryone ? ['@everyone'] : []),
     ...announcement.mentionRoleIds.map((id) => roleMention(id)),
@@ -23,7 +23,7 @@ export function postView(announcement: Announcement): Message {
 
   if (content.length > maxContentLength) {
     throw new UserError(
-      'Announcements are limited to 2000 characters, including the title and mentions.',
+      'Posts are limited to 2000 characters, including the title and mentions.',
     );
   }
 

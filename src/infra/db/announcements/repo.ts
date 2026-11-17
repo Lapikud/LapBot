@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type {
   AnnouncementChanges,
-  AnnouncementRepository,
+  PostRepository,
   NewAnnouncement,
 } from '~/core/ports';
 import type { Db } from '../client';
@@ -67,7 +67,7 @@ export async function updateAnnouncement(
   return row;
 }
 
-export function createAnnouncementRepository(db: Db): AnnouncementRepository {
+export function createPostRepository(db: Db): PostRepository {
   return {
     insert: (announcement) => insertAnnouncement(db, announcement),
     find: (id) => getAnnouncement(db, id),
@@ -76,3 +76,5 @@ export function createAnnouncementRepository(db: Db): AnnouncementRepository {
       updateAnnouncement(db, id, changes, onlyIf),
   };
 }
+
+export const createAnnouncementRepository = createPostRepository;

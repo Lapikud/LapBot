@@ -19,7 +19,7 @@ import {
   permissionCommands,
 } from '~/infra/discord';
 import {
-  createAnnouncementService,
+  createPostService,
   createAuthorizer,
   createRedmineService,
   createBirthdayService,
@@ -45,7 +45,7 @@ import { webAccess } from '~/domain';
 import { createWebApp, startWebServer, type WebServices } from '~/infra/web';
 import {
   connectDatabase,
-  createAnnouncementRepository,
+  createPostRepository,
   createEventRepository,
   createBirthdayRepository,
   createGrantRepository,
@@ -102,8 +102,8 @@ export function compose(config: Config, log: Logger) {
     authz,
     timezone,
   });
-  const announcements = createAnnouncementService({
-    announcements: createAnnouncementRepository(database.db),
+  const announcements = createPostService({
+    posts: createPostRepository(database.db),
     scheduler,
     messenger,
     directory,
