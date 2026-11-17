@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt, ne, or } from 'drizzle-orm';
 import type { CalendarDay } from '~/core/helpers/time';
 import type { BirthdayRepository } from './model';
 import type { Db } from '~/integrations/db/client';
@@ -123,7 +123,7 @@ export async function releaseClaims(
 
   await db
     .update(birthdays)
-    .set({ lastAnnouncedYear: sql`${year} - 1` })
+    .set({ lastAnnouncedYear: year - 1 })
     .where(
       and(
         eq(birthdays.guildId, guildId),

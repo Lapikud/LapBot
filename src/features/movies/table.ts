@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -33,7 +33,7 @@ export const movieSuggestions = pgTable(
   (table) => [
     uniqueIndex('movie_suggestions_unique_idx')
       .on(table.guildId, table.normalizedTitle)
-      .where(sql`${table.removedAt} IS NULL`),
+      .where(isNull(table.removedAt)),
   ],
 );
 

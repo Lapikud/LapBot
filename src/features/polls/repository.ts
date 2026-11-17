@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq } from 'drizzle-orm';
 import type {
   NewPoll,
   PollResults,
@@ -104,19 +104,21 @@ export async function getResults(
   db: Db,
   poll: PollWithOptions,
 ): Promise<PollResults> {
+  const totals = db
+    .select({ voters: countDistinct(pollVotes.userId).as('voters') })
+    .from(pollVotes)
+    .where(eq(pollVotes.pollId, poll.id))
+    .as('totals');
   const counts = await db
     .select({
       optionId: pollVotes.optionId,
       votes: count(),
-      voters: sql<number>`(
-        select count(distinct ${pollVotes.userId})
-        from ${pollVotes}
-        where ${pollVotes.pollId} = ${poll.id}
-      )`.mapWith(Number),
+      voters: totals.voters,
     })
     .from(pollVotes)
+    .crossJoin(totals)
     .where(eq(pollVotes.pollId, poll.id))
-    .groupBy(pollVotes.optionId);
+    .groupBy(pollVotes.optionId, totals.voters);
 
   return tally(
     poll.options,
@@ -162,18 +164,35 @@ export async function finishPoll(
   id: number,
   status: 'closed' | 'cancelled',
 ): Promise<Poll | undefined> {
-  const [row] = await db
-    .update(polls)
-    .set({
-      status,
-      ...(status === 'closed' && {
-        closesAt: sql`least(${polls.closesAt}, now())`,
-      }),
-    })
-    .where(and(eq(polls.id, id), eq(polls.status, 'open')))
-    .returning();
+  return db.transaction(async (tx) => {
+    const [poll] = await tx
+      .select()
+      .from(polls)
+      .where(and(eq(polls.id, id), eq(polls.status, 'open')))
+      .for('update');
 
-  return row;
+    if (!poll) {
+      return poll;
+    }
+
+    const [row] = await tx
+      .update(polls)
+      .set({
+        status,
+        ...(status === 'closed' && {
+          closesAt: new Date(
+            Math.min(
+              poll.closesAt?.getTime() ?? Number.POSITIVE_INFINITY,
+              Date.now(),
+            ),
+          ),
+        }),
+      })
+      .where(eq(polls.id, id))
+      .returning();
+
+    return row;
+  });
 }
 
 export async function setPollMessage(
