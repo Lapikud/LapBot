@@ -6,7 +6,15 @@ import {
 } from 'discord.js';
 import type { Directory } from '~/core/ports/directory';
 import { toActor, toRoleInfo } from '~/discord/interactions/actor';
-import { permanent } from './errors';
+import { isPermanentDiscordError, permanent } from './errors';
+
+function absentOrThrow(error: unknown): null {
+  if (isPermanentDiscordError(error)) {
+    return null;
+  }
+
+  throw error;
+}
 
 export function createDiscordDirectory(client: Client): Directory {
   const guild = (id: string): Promise<Guild> =>
@@ -14,7 +22,9 @@ export function createDiscordDirectory(client: Client): Directory {
 
   return {
     guildOf: async (channelId) => {
-      const channel = await client.channels.fetch(channelId).catch(() => null);
+      const channel = await client.channels
+        .fetch(channelId)
+        .catch(absentOrThrow);
 
       return channel && !channel.isDMBased() ? channel.guildId : undefined;
     },
@@ -47,7 +57,7 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     role: async (guildId, roleId) => {
       const found = await guild(guildId);
-      const role = await found.roles.fetch(roleId).catch(() => null);
+      const role = await found.roles.fetch(roleId).catch(absentOrThrow);
 
       return role ? toRoleInfo(role) : undefined;
     },
@@ -55,21 +65,21 @@ export function createDiscordDirectory(client: Client): Directory {
       const found = await guild(guildId);
       const member = await found.members
         .fetch({ user: userId, force: true })
-        .catch(() => null);
+        .catch(absentOrThrow);
 
       return member ? toActor(member) : undefined;
     },
     displayName: async (guildId, userId) => {
       const found = await guild(guildId);
-      const member = await found.members.fetch(userId).catch(() => null);
+      const member = await found.members.fetch(userId).catch(absentOrThrow);
 
       return member?.displayName;
     },
     canView: async (actor, channelId) => {
       const found = await guild(actor.guildId);
       const [channel, member] = await Promise.all([
-        found.channels.fetch(channelId).catch(() => null),
-        found.members.fetch(actor.userId).catch(() => null),
+        found.channels.fetch(channelId).catch(absentOrThrow),
+        found.members.fetch(actor.userId).catch(absentOrThrow),
       ]);
 
       return (
@@ -81,8 +91,8 @@ export function createDiscordDirectory(client: Client): Directory {
     canPost: async (actor, channelId) => {
       const found = await guild(actor.guildId);
       const [channel, member] = await Promise.all([
-        found.channels.fetch(channelId).catch(() => null),
-        found.members.fetch(actor.userId).catch(() => null),
+        found.channels.fetch(channelId).catch(absentOrThrow),
+        found.members.fetch(actor.userId).catch(absentOrThrow),
       ]);
 
       if (!channel || !member) {
@@ -98,7 +108,9 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     isPublic: async (guildId, channelId) => {
       const found = await guild(guildId);
-      const channel = await found.channels.fetch(channelId).catch(() => null);
+      const channel = await found.channels
+        .fetch(channelId)
+        .catch(absentOrThrow);
 
       return (
         !!channel &&

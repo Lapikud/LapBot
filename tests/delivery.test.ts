@@ -104,14 +104,19 @@ describe('announcement publication', () => {
         cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
       };
       const repository = createAnnouncementRepository(testDb());
+      const directory = fakeDirectory(
+        [role({ id: 'team' }), role({ id: 'secret', mentionable: false })],
+        { canPost: true },
+      );
+
+      directory.member.mockImplementation(async (guildId, userId) =>
+        actor({ guildId, userId }),
+      );
       const service = createAnnouncementService({
         posts: repository,
         scheduler,
         messenger,
-        directory: fakeDirectory(
-          [role({ id: 'team' }), role({ id: 'secret', mentionable: false })],
-          { canPost: true },
-        ),
+        directory,
         authz: allowAll,
         log: silentLog,
         clock: { now: () => new Date() },
@@ -173,6 +178,8 @@ describe('announcement lifecycle', () => {
         role({ id: 'team' }),
         role({ id: 'secret', mentionable: false }),
       ]);
+
+      directory.member.mockResolvedValue(author);
       const { messenger } = fakeMessenger();
       const scheduler = {
         schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
@@ -209,6 +216,78 @@ describe('announcement lifecycle', () => {
         },
       };
     };
+
+    it('rejects edits after create permission is revoked', async () => {
+      const { service, author, draft } = await setup();
+      const post = await draft();
+      const grants = createGrantRepository(testDb());
+
+      await grants.revoke({
+        guildId: author.guildId,
+        roleId: 'staff',
+        permission: 'announcement:create',
+      });
+      await expect(
+        service.edit(author, post.id, { content: 'Changed' }),
+      ).rejects.toThrow('announcement:create');
+    });
+
+    it('does not publish after scheduling permission is revoked', async () => {
+      const { service, author, posts, messenger, draft, advance } =
+        await setup();
+      const post = await draft();
+
+      await service.schedule(author, post.id, '1h');
+      advance(new Date('2026-11-17T13:00:00Z'));
+      await createGrantRepository(testDb()).revoke({
+        guildId: author.guildId,
+        roleId: 'staff',
+        permission: 'announcement:schedule',
+      });
+      await service.jobs[0]?.run({ announcementId: post.id });
+      expect(messenger.send).not.toHaveBeenCalled();
+      expect(await posts.find(post.id)).toMatchObject({ status: 'draft' });
+    });
+
+    it('does not publish after destination access is revoked', async () => {
+      const { service, author, directory, posts, messenger, draft, advance } =
+        await setup();
+      const post = await draft();
+
+      await service.schedule(author, post.id, '1h');
+      advance(new Date('2026-11-17T13:00:00Z'));
+      directory.canPost.mockResolvedValue(false);
+      await service.jobs[0]?.run({ announcementId: post.id });
+      expect(messenger.send).not.toHaveBeenCalled();
+      expect(await posts.find(post.id)).toMatchObject({ status: 'draft' });
+    });
+
+    it('does not publish after the author leaves', async () => {
+      const { service, author, directory, posts, messenger, draft, advance } =
+        await setup();
+      const post = await draft();
+
+      await service.schedule(author, post.id, '1h');
+      advance(new Date('2026-11-17T13:00:00Z'));
+      directory.member.mockResolvedValue(undefined);
+      await service.jobs[0]?.run({ announcementId: post.id });
+      expect(messenger.send).not.toHaveBeenCalled();
+      expect(await posts.find(post.id)).toMatchObject({ status: 'draft' });
+    });
+
+    it('retries transient membership lookup failures', async () => {
+      const { service, author, directory, posts, draft, advance } =
+        await setup();
+      const post = await draft();
+
+      await service.schedule(author, post.id, '1h');
+      advance(new Date('2026-11-17T13:00:00Z'));
+      directory.member.mockRejectedValue(new Error('Discord unavailable'));
+      await expect(
+        service.jobs[0]?.run({ announcementId: post.id }),
+      ).rejects.toThrow('Discord unavailable');
+      expect(await posts.find(post.id)).toMatchObject({ status: 'scheduled' });
+    });
 
     it('splits long announcements, pinging only the first message', async () => {
       const { service, author, messenger, posts } = await setup();

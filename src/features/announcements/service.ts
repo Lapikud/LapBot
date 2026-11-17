@@ -177,6 +177,37 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         return null;
       }
 
+      const author = await directory.member(post.guildId, post.authorId);
+
+      try {
+        if (!author) {
+          throw new UserError('The author is no longer a server member.');
+        }
+
+        await authz.require(author, 'announcement:create');
+        await authz.require(author, 'announcement:schedule');
+        await checkTargets(author, post);
+      } catch (error) {
+        if (!(error instanceof UserError)) {
+          throw error;
+        }
+
+        await posts.update(
+          announcementId,
+          {
+            status: 'draft',
+            failure: `Not posted: ${error.message}`,
+          },
+          ['scheduled'],
+        );
+        log.warn(
+          { announcementId, reason: error.message },
+          'Scheduled announcement authorization revoked',
+        );
+
+        return null;
+      }
+
       await publish(announcementId, ['scheduled']);
 
       return null;
@@ -239,6 +270,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
       id: number,
       changes: { title?: string; content: string },
     ) => {
+      await authz.require(actor, 'announcement:create');
       const post = await requireEditable(actor, id);
 
       validate({ channelId: post.channelId, content: changes.content });
