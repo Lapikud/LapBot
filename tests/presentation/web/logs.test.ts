@@ -49,20 +49,20 @@ function setup(administrator = true) {
     c.set('can', new Set(['permissions:manage'] as const));
     await next();
   });
-  app.route('/logs', logPages('UTC', logs));
+  app.route('/settings/logs', logPages('UTC', logs));
 
   return app;
 }
 
 it('renders escaped structured logs with refresh and level/text filters', async () => {
   const app = setup();
-  const response = await app.request('/logs?level=error&q=discord');
+  const response = await app.request('/settings/logs?level=error&q=discord');
   const html = await response.text();
 
   expect(response.status).toBe(200);
   expect(response.headers.get('cache-control')).toBe('no-store');
   expect(response.headers.get('refresh')).toBe('10');
-  expect(html).toContain('href="/logs"');
+  expect(html).toContain('href="/settings/logs"');
   expect(html).toContain('&lt;script&gt;');
   expect(html).not.toContain('<script>');
   expect(html).toContain('Discord unavailable');
@@ -72,7 +72,9 @@ it('renders escaped structured logs with refresh and level/text filters', async 
 });
 
 it('allows pausing refresh without losing filters and handles empty results', async () => {
-  const response = await setup().request('/logs?level=fatal&q=polls&live=0');
+  const response = await setup().request(
+    '/settings/logs?level=fatal&q=polls&live=0',
+  );
   const html = await response.text();
 
   expect(response.headers.get('refresh')).toBeNull();
@@ -83,7 +85,7 @@ it('allows pausing refresh without losing filters and handles empty results', as
 });
 
 it('denies non-administrators even if a dashboard permission is present', async () => {
-  const response = await setup(false).request('/logs');
+  const response = await setup(false).request('/settings/logs');
 
   expect(response.status).toBe(403);
   expect(await response.text()).not.toContain('Discord unavailable');
@@ -113,7 +115,7 @@ it('requires sign-in on the mounted dashboard route', async () => {
       },
     },
   } as unknown as WebDeps);
-  const anonymous = await app.request('/logs');
+  const anonymous = await app.request('/settings/logs');
 
   expect(anonymous.status).toBe(303);
   expect(anonymous.headers.get('location')).toBe('/login');
@@ -134,9 +136,9 @@ it('requires sign-in on the mounted dashboard route', async () => {
   };
 
   directory.member.mockResolvedValue(actor({ administrator: false }));
-  expect((await app.request('/logs', { headers })).status).toBe(403);
+  expect((await app.request('/settings/logs', { headers })).status).toBe(403);
   directory.member.mockResolvedValue(actor({ administrator: true }));
-  expect((await app.request('/logs', { headers })).status).toBe(200);
+  expect((await app.request('/settings/logs', { headers })).status).toBe(200);
 });
 
 it('preserves filters when browsing archived entries and pauses refresh on older pages', async () => {
@@ -160,13 +162,15 @@ it('preserves filters when browsing archived entries and pauses refresh on older
     c.set('can', new Set(['permissions:manage'] as const));
     await next();
   });
-  app.route('/logs', logPages('UTC', logs));
-  const latest = await app.request('/logs?level=error&q=Archived');
+  app.route('/settings/logs', logPages('UTC', logs));
+  const latest = await app.request('/settings/logs?level=error&q=Archived');
   const html = await latest.text();
 
   expect(html).toContain('Older entries');
   expect(html).toContain('before=6');
-  const older = await app.request('/logs?level=error&q=Archived&before=6');
+  const older = await app.request(
+    '/settings/logs?level=error&q=Archived&before=6',
+  );
   const olderHtml = await older.text();
 
   expect(older.headers.get('refresh')).toBeNull();

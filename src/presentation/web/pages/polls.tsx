@@ -37,10 +37,12 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
         <Layout
           can={c.var.can}
           title="Polls"
-          path="/polls"
+          path="/post/polls"
           flash={flashOf(c)}
           actions={
-            allows(c, 'poll:create') ? <a href="/polls/new">New poll</a> : null
+            allows(c, 'poll:create') ? (
+              <a href="/post/polls/new">New poll</a>
+            ) : null
           }
         >
           <table>
@@ -62,7 +64,7 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
                     {owns(c, p.creatorId, 'poll:manage') ? (
                       <>
                         <ActionButton
-                          action={`/polls/${p.id}/close`}
+                          action={`/post/polls/${p.id}/close`}
                           label="Close"
                         />
                       </>
@@ -84,10 +86,10 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
         <Layout
           can={c.var.can}
           title="New poll"
-          path="/polls"
+          path="/post/polls"
           flash={flashOf(c)}
         >
-          <form method="post" action="/polls">
+          <form method="post" action="/post/polls">
             <Input label="Question" name="question" required maxlength={256} />
             <Textarea
               label="Options (one per line, up to 10)"
@@ -130,13 +132,13 @@ export function pollPages({ guildId, services, timezone, directory }: WebDeps) {
         ...(closes !== undefined && { closes }),
       });
 
-      return back(c, '/polls', { notice: `Poll #${poll.id} started.` });
+      return back(c, '/post/polls', { notice: `Poll #${poll.id} started.` });
     })
     .post('/:id{\\d+}/close', async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.polls.close(c.var.actor, id);
 
-      return back(c, '/polls', { notice: `Poll #${id} closed.` });
+      return back(c, '/post/polls', { notice: `Poll #${id} closed.` });
     });
 }

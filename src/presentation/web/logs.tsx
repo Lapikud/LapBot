@@ -30,7 +30,7 @@ export function logPages(timezone: string, logs: LogStore) {
 
     if (!c.var.actor.administrator) {
       return c.html(
-        <Layout can={c.var.can} title="Logs" path="/logs">
+        <Layout can={c.var.can} title="Logs" path="/settings/logs">
           <p>Only server administrators can view logs.</p>
         </Layout>,
         403,
@@ -63,10 +63,13 @@ export function logPages(timezone: string, logs: LogStore) {
     return c.html(
       <Layout
         title="Logs"
-        path="/logs"
+        path="/settings/logs"
         can={c.var.can}
         actions={
-          <a href={`/logs?${toggle.toString()}`} class="secondary outline">
+          <a
+            href={`/settings/logs?${toggle.toString()}`}
+            class="secondary outline"
+          >
             {live ? 'Pause refresh' : 'Resume refresh'}
           </a>
         }
@@ -75,7 +78,7 @@ export function logPages(timezone: string, logs: LogStore) {
           All saved logs, newest first. Showing up to {logPageSize} entries per
           page.
         </p>
-        <form method="get" action="/logs">
+        <form method="get" action="/settings/logs">
           <input type="hidden" name="live" value={live ? '1' : '0'} />
           <div class="grid">
             <label>
@@ -118,14 +121,16 @@ export function logPages(timezone: string, logs: LogStore) {
           <ul>
             <li>
               {before === undefined ? null : (
-                <a href={`/logs?${latest.toString()}`}>Latest entries</a>
+                <a href={`/settings/logs?${latest.toString()}`}>
+                  Latest entries
+                </a>
               )}
             </li>
           </ul>
           <ul>
             <li>
               {hasMore ? (
-                <a href={`/logs?${older.toString()}`}>Older entries</a>
+                <a href={`/settings/logs?${older.toString()}`}>Older entries</a>
               ) : null}
             </li>
           </ul>

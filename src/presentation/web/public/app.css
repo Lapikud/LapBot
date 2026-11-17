@@ -253,3 +253,24 @@ td form:last-child {
   overflow: auto;
   font-size: 0.8em;
 }
+
+nav[aria-label='Primary'] {
+  flex-wrap: wrap;
+  column-gap: 1rem;
+}
+
+nav[aria-label='Primary'] > ul:nth-child(2),
+.section-nav ul {
+  flex-wrap: wrap;
+}
+
+.section-nav {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+nav a[aria-current='page'] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.35em;
+}

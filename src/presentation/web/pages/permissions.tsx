@@ -39,7 +39,7 @@ function RolePicker({
   counts: ReadonlyMap<string, number>;
 }>) {
   return (
-    <form method="get" action="/permissions">
+    <form method="get" action="/settings/permissions">
       <FormActions>
         <select name="role" aria-label="Role" required>
           <option value="" disabled selected={selected === undefined}>
@@ -73,7 +73,7 @@ function RoleForm({
   catalogue: readonly PermissionDefinition[];
 }>) {
   return (
-    <form method="post" action={`/permissions/${role.id}`}>
+    <form method="post" action={`/settings/permissions/${role.id}`}>
       <h2>{roleName(role)}</h2>
       {groupsOf(catalogue).map(([group, permissions]) => (
         <fieldset key={group}>
@@ -117,7 +117,7 @@ export function permissionPages({ services }: WebDeps) {
         <Layout
           can={c.var.can}
           title="Permissions"
-          path="/permissions"
+          path="/settings/permissions"
           flash={flashOf(c)}
         >
           <p>
@@ -150,7 +150,7 @@ export function permissionPages({ services }: WebDeps) {
         form.getAll('permission').map(String),
       );
 
-      return back(c, `/permissions?role=${roleId}`, {
+      return back(c, `/settings/permissions?role=${roleId}`, {
         notice:
           granted + revoked === 0
             ? 'Nothing changed.'

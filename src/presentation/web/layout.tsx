@@ -1,20 +1,7 @@
 import type { Child } from 'hono/jsx';
-import { managePermissions, type Permission } from '~/core/permission';
+import { type Permission } from '~/core/permission';
 import type { Flash } from './context';
-
-const sections: ReadonlyArray<
-  readonly [href: string, label: string, permission?: Permission]
-> = [
-  ['/', 'Overview'],
-  ['/events', 'Events'],
-  ['/polls', 'Polls'],
-  ['/birthdays', 'Birthdays'],
-  ['/movies', 'Movies'],
-  ['/psa', 'PSAs', 'announcement:create'],
-  ['/roles', 'Self-selection roles', managePermissions],
-  ['/permissions', 'Permissions', managePermissions],
-  ['/logs', 'Logs', managePermissions],
-];
+import { containsPath, sections, visibleLinks } from './navigation';
 
 const pico =
   'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css';
@@ -34,10 +21,12 @@ export function Layout({
   actions?: Child;
   children?: Child;
 }>) {
-  const visible = sections.filter(
-    ([, , permission]) =>
-      permission === undefined || can?.has(permission) === true,
-  );
+  const visible = visibleLinks(sections, can);
+  const section = visible.find(({ href }) => containsPath(href, path));
+  const pages = visibleLinks(section?.pages ?? [], can);
+  const heading = pages.map(({ label }) => label).includes(title)
+    ? section?.label
+    : title;
 
   return (
     <html lang="en">
@@ -50,18 +39,18 @@ export function Layout({
       </head>
       <body>
         <header class="container">
-          <nav>
+          <nav aria-label="Primary">
             <ul>
               <li>
                 <strong>LAPbot</strong>
               </li>
             </ul>
             <ul>
-              {(can === undefined ? [] : visible).map(([href, label]) => (
+              {visible.map(({ href, label }) => (
                 <li key={href}>
                   <a
                     href={href}
-                    aria-current={path === href ? 'page' : undefined}
+                    aria-current={section?.href === href ? 'page' : undefined}
                   >
                     {label}
                   </a>
@@ -80,8 +69,26 @@ export function Layout({
           </nav>
         </header>
         <main class="container">
+          {pages.length === 0 ? null : (
+            <nav class="section-nav" aria-label={`${section?.label} pages`}>
+              <ul>
+                {pages.map(({ href, label }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      aria-current={
+                        containsPath(href, path) ? 'page' : undefined
+                      }
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
           <div class="page-title">
-            <h1>{title}</h1>
+            <h1>{heading}</h1>
             {actions}
           </div>
           {flash.notice === undefined ? null : (

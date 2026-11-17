@@ -143,6 +143,10 @@ describe.skipIf(noDatabase)('web UI', () => {
           known: () =>
             new Map<Permission, PermissionDefinition>([
               [
+                'permissions:manage',
+                { id: 'permissions:manage', description: 'Manage permissions' },
+              ],
+              [
                 'event:create',
                 { id: 'event:create', description: 'Create events' },
               ],
@@ -210,10 +214,35 @@ describe.skipIf(noDatabase)('web UI', () => {
     expect((await get('/')).status).toBe(200);
   });
 
-  it('renders the PSA composer with channels and mentionable roles', async () => {
-    expect(await (await get('/psa')).text()).toContain('href="/psa/new"');
+  it('opens each grouped section at its first available page', async () => {
+    for (const [path, destination] of [
+      ['/post', '/post/announcements'],
+      ['/forms', '/forms/birthdays'],
+      ['/settings', '/settings/permissions'],
+    ]) {
+      const response = await get(path ?? '/');
 
-    const response = await get('/psa/new');
+      expect(response.status).toBe(303);
+      expect(response.headers.get('location')).toBe(destination);
+    }
+  });
+
+  it('preserves legacy paths, query strings and form methods when redirecting', async () => {
+    const page = await get('/events/new?notice=saved');
+    const form = await post('/psa/12/publish', {});
+
+    expect(page.status).toBe(307);
+    expect(page.headers.get('location')).toBe('/post/events/new?notice=saved');
+    expect(form.status).toBe(307);
+    expect(form.headers.get('location')).toBe('/post/announcements/12/publish');
+  });
+
+  it('renders the PSA composer with channels and mentionable roles', async () => {
+    expect(await (await get('/post/announcements')).text()).toContain(
+      'href="/post/announcements/new"',
+    );
+
+    const response = await get('/post/announcements/new');
     const page = await response.text();
 
     expect(response.status).toBe(200);
@@ -233,7 +262,7 @@ describe.skipIf(noDatabase)('web UI', () => {
 
   it('rejects forms posted from another site', async () => {
     const response = await post(
-      '/psa',
+      '/post/announcements',
       { channelId: 'general', content: 'x', action: 'publish' },
       'https://evil.example',
     );
@@ -243,7 +272,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('previews without posting, escaping user text', async () => {
-    const response = await post('/psa', {
+    const response = await post('/post/announcements', {
       channelId: 'general',
       title: '<b>Hi</b>',
       content: `Meeting <@&${teamId}> **now**`,
@@ -258,7 +287,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('publishes a PSA with the chosen role mentions', async () => {
-    const response = await post('/psa', {
+    const response = await post('/post/announcements', {
       channelId: 'general',
       title: 'Hackathon',
       content: 'Sign up today',
@@ -278,7 +307,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('shows service errors as a message instead of failing', async () => {
-    const response = await post('/psa', {
+    const response = await post('/post/announcements', {
       channelId: 'general',
       content: ' ',
       action: 'draft',
@@ -291,7 +320,7 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('creates polls', async () => {
-    const poll = await post('/polls', {
+    const poll = await post('/post/polls', {
       question: 'Lunch?',
       options: 'Pizza\nSushi',
       channelId: 'general',
@@ -301,20 +330,20 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('saves birthday settings and lists upcoming birthdays', async () => {
-    const saved = await post('/birthdays', {
+    const saved = await post('/forms/birthdays', {
       channelId: 'general',
       roleId: '',
       hour: '8',
       action: 'save',
     });
-    const page = await (await get('/birthdays')).text();
+    const page = await (await get('/forms/birthdays')).text();
 
     expect(saved.status).toBe(303);
     expect(page).toContain('Announced in #general at 8:00');
   });
 
   it('creates an event and edits it', async () => {
-    const created = await post('/events', {
+    const created = await post('/post/events', {
       title: 'Board games',
       start: '2030-05-10 18:00',
       channelId: 'general',
@@ -325,8 +354,8 @@ describe.skipIf(noDatabase)('web UI', () => {
       'http://localhost',
     ).searchParams.get('notice');
     const id = /Event #(\d+)/.exec(notice ?? '')?.[1];
-    const form = await (await get(`/events/${id}`)).text();
-    const edited = await post(`/events/${id}`, {
+    const form = await (await get(`/post/events/${id}`)).text();
+    const edited = await post(`/post/events/${id}`, {
       title: 'Board games night',
       start: '2030-05-10 18:00',
       location: 'Room 101',
@@ -334,11 +363,15 @@ describe.skipIf(noDatabase)('web UI', () => {
 
     expect(form).toContain('value="2030-05-10 18:00"');
     expect(edited.status).toBe(303);
-    expect(await (await get('/events')).text()).toContain('Board games night');
+    expect(await (await get('/post/events')).text()).toContain(
+      'Board games night',
+    );
   });
 
   it('posts the birthday sign-up message with its button', async () => {
-    const response = await post('/birthdays/signup', { channelId: 'general' });
+    const response = await post('/forms/birthdays/signup', {
+      channelId: 'general',
+    });
 
     expect(response.status).toBe(303);
     expect(messenger.send).toHaveBeenCalledWith(
@@ -350,12 +383,12 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('suggests movies with links and lists them', async () => {
-    const added = await post('/movies', {
+    const added = await post('/forms/movies', {
       title: 'Paprika',
       year: '2006',
       links: 'https://letterboxd.com/film/paprika-2006/',
     });
-    const page = await (await get('/movies')).text();
+    const page = await (await get('/forms/movies')).text();
 
     expect(added.status).toBe(303);
     expect(page).toContain('Paprika (2006)');
@@ -371,9 +404,11 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('sets the permissions of a role from the checkboxes', async () => {
-    const page = await (await get(`/permissions?role=${teamId}`)).text();
+    const page = await (
+      await get(`/settings/permissions?role=${teamId}`)
+    ).text();
     const notice = async (fields: Record<string, string | string[]>) => {
-      const response = await post(`/permissions/${teamId}`, fields);
+      const response = await post(`/settings/permissions/${teamId}`, fields);
 
       return new URL(
         response.headers.get('location') ?? '',
@@ -392,25 +427,35 @@ describe.skipIf(noDatabase)('web UI', () => {
   });
 
   it('shows members only the parts they may use', async () => {
-    await post(`/permissions/${teamId}`, { permission: 'web:access' });
+    await post(`/settings/permissions/${teamId}`, { permission: 'web:access' });
     directory.member.mockResolvedValueOnce(
       actor({ guildId, userId: '42', roleIds: [teamId] }),
     );
 
-    const page = await (await get('/events')).text();
+    const section = await get('/post');
 
-    expect(page).toContain('href="/movies"');
-    expect(page).not.toContain('href="/permissions"');
-    expect(page).not.toContain('href="/psa"');
+    expect(section.headers.get('location')).toBe('/post/events');
+    directory.member.mockResolvedValueOnce(
+      actor({ guildId, userId: '42', roleIds: [teamId] }),
+    );
+    expect((await get('/settings')).status).toBe(403);
+    directory.member.mockResolvedValueOnce(
+      actor({ guildId, userId: '42', roleIds: [teamId] }),
+    );
+    const page = await (await get('/post/events')).text();
+
+    expect(page).toContain('href="/forms"');
+    expect(page).not.toContain('href="/settings"');
+    expect(page).not.toContain('href="/post/announcements"');
     expect(page).not.toContain('New event');
 
-    await post(`/permissions/${teamId}`, {});
+    await post(`/settings/permissions/${teamId}`, {});
   });
 
   it('opens the event form on its own page and returns to it on errors', async () => {
-    const list = await (await get('/events')).text();
-    const form = await (await get('/events/new')).text();
-    const failed = await app.request('http://localhost/events', {
+    const list = await (await get('/post/events')).text();
+    const form = await (await get('/post/events/new')).text();
+    const failed = await app.request('http://localhost/post/events', {
       method: 'POST',
       body: new URLSearchParams({
         title: 'x',
@@ -420,14 +465,16 @@ describe.skipIf(noDatabase)('web UI', () => {
       headers: {
         Origin: 'http://localhost',
         Cookie: cookie,
-        Referer: 'http://localhost/events/new',
+        Referer: 'http://localhost/post/events/new',
       },
     });
 
-    expect(list).toContain('href="/events/new"');
+    expect(list).toContain('href="/post/events/new"');
     expect(list).not.toContain('Create event');
     expect(form).toContain('Create event');
-    expect(failed.headers.get('location')).toMatch(/^\/events\/new\?error=/);
+    expect(failed.headers.get('location')).toMatch(
+      /^\/post\/events\/new\?error=/,
+    );
   });
 
   it('returns 404 for unknown pages', async () => {

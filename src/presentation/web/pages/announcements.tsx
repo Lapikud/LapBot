@@ -25,7 +25,7 @@ import { Layout } from '~/presentation/web/layout';
 import { ChannelSelect } from '~/presentation/web/selectors';
 import { MessagePreview } from '~/presentation/web/preview';
 
-const title = 'Public service announcements';
+const title = 'Announcements';
 
 function draftOf(form: Form) {
   const content = form.get('content');
@@ -95,7 +95,7 @@ function Composer({
   preview?: Child;
 }>) {
   return (
-    <form method="post" action="/psa">
+    <form method="post" action="/post/announcements">
       <ChannelSelect server={server} selected={draft?.channelId} />
       <Input label="Title" name="title" maxlength={256} value={draft?.title} />
       <Textarea
@@ -182,13 +182,13 @@ function Recent({
                 <>
                   {publisher ? (
                     <ActionButton
-                      action={`/psa/${a.id}/publish`}
+                      action={`/post/announcements/${a.id}/publish`}
                       label="Publish"
                     />
                   ) : null}
                   {publisher || a.authorId === userId ? (
                     <ActionButton
-                      action={`/psa/${a.id}/cancel`}
+                      action={`/post/announcements/${a.id}/cancel`}
                       label="Cancel"
                     />
                   ) : null}
@@ -220,9 +220,9 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         <Layout
           can={c.var.can}
           title={title}
-          path="/psa"
+          path="/post/announcements"
           flash={flashOf(c)}
-          actions={<a href="/psa/new">New PSA</a>}
+          actions={<a href="/post/announcements/new">New PSA</a>}
         >
           <Recent
             list={list}
@@ -236,7 +236,12 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
     })
     .get('/new', (c) =>
       c.html(
-        <Layout can={c.var.can} title="New PSA" path="/psa" flash={flashOf(c)}>
+        <Layout
+          can={c.var.can}
+          title="New PSA"
+          path="/post/announcements"
+          flash={flashOf(c)}
+        >
           <Composer server={c.var.server} can={c.var.can} />
         </Layout>,
       ),
@@ -263,7 +268,7 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
         });
 
         return c.html(
-          <Layout can={c.var.can} title="New PSA" path="/psa">
+          <Layout can={c.var.can} title="New PSA" path="/post/announcements">
             <Composer
               can={c.var.can}
               server={server}
@@ -284,7 +289,9 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
       if (action === 'publish') {
         await services.announcements.publish(actor, created.id);
 
-        return back(c, '/psa', { notice: `PSA #${created.id} published.` });
+        return back(c, '/post/announcements', {
+          notice: `PSA #${created.id} published.`,
+        });
       }
 
       if (action === 'schedule') {
@@ -294,25 +301,31 @@ export function psaPages({ guildId, services, timezone }: WebDeps) {
           field(form, 'when') ?? '',
         );
 
-        return back(c, '/psa', {
+        return back(c, '/post/announcements', {
           notice: `PSA #${created.id} scheduled for ${date(scheduled.scheduledAt)}.`,
         });
       }
 
-      return back(c, '/psa', { notice: `Draft #${created.id} saved.` });
+      return back(c, '/post/announcements', {
+        notice: `Draft #${created.id} saved.`,
+      });
     })
     .post(String.raw`/:id{\d+}/publish`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.announcements.publish(c.var.actor, id);
 
-      return back(c, '/psa', { notice: `PSA #${id} published.` });
+      return back(c, '/post/announcements', {
+        notice: `PSA #${id} published.`,
+      });
     })
     .post(String.raw`/:id{\d+}/cancel`, async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.announcements.cancel(c.var.actor, id);
 
-      return back(c, '/psa', { notice: `PSA #${id} cancelled.` });
+      return back(c, '/post/announcements', {
+        notice: `PSA #${id} cancelled.`,
+      });
     });
 }

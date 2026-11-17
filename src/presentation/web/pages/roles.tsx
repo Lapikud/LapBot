@@ -128,12 +128,7 @@ export function rolePages({ services }: WebDeps) {
         ) ?? '⭐';
 
       return c.html(
-        <Layout
-          title="Self-selection roles"
-          path="/roles"
-          can={c.var.can}
-          flash={flashOf(c)}
-        >
+        <Layout title="Roles" path="/roles" can={c.var.can} flash={flashOf(c)}>
           <p>
             Members react in Discord to get a role. Removing their reaction
             removes the role.

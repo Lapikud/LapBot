@@ -40,7 +40,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
         <Layout
           can={c.var.can}
           title="Birthdays"
-          path="/birthdays"
+          path="/forms/birthdays"
           flash={flashOf(c)}
         >
           <p>
@@ -51,7 +51,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
           </p>
           {allows(c, 'birthday:manage') ? (
             <>
-              <form method="post" action="/birthdays">
+              <form method="post" action="/forms/birthdays">
                 <ChannelSelect server={server} selected={settings?.channelId} />
                 <div class="grid">
                   <Select label="Role for the day" name="roleId">
@@ -96,7 +96,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
                 Post a message with an <q>Add my birthday</q> button. It keeps
                 working after restarts, so one post is enough.
               </p>
-              <form method="post" action="/birthdays/signup">
+              <form method="post" action="/forms/birthdays/signup">
                 <label htmlFor="signup-channel">Channel</label>
                 <fieldset class="grid">
                   <select id="signup-channel" name="channelId" required>
@@ -148,7 +148,7 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
             },
       );
 
-      return back(c, '/birthdays', { notice: message });
+      return back(c, '/forms/birthdays', { notice: message });
     })
     .post('/signup', async (c) => {
       const form = await c.req.formData();
@@ -158,6 +158,6 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
         field(form, 'channelId') ?? '',
       );
 
-      return back(c, '/birthdays', { notice: 'Sign-up message posted.' });
+      return back(c, '/forms/birthdays', { notice: 'Sign-up message posted.' });
     });
 }

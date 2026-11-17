@@ -72,12 +72,16 @@ The server's IANA timezone and DST rules apply to local appointments.
 ## Web UI
 
 Set `WEB_PORT` (and `DISCORD_GUILD_ID`) to start a small web UI next to the bot:
-<http://localhost:3000>. It covers:
+<http://localhost:3000>. Its five main sections are:
 
-- **PSAs:** write an announcement, choose one channel and exactly which roles
-  (or @everyone) it mentions, preview it as Discord will show it, then publish
-  now, schedule it, or save a draft.
-- **Events, polls and permissions.**
+- **Overview:** upcoming activity and pending posts.
+- **Post:** announcements, events, and polls, with shared section navigation.
+- **Forms:** birthday and movie submissions.
+- **Roles:** role selection and assignment.
+- **Settings:** permissions and logs.
+
+Post, Forms, and Settings open their first accessible subpage. Existing feature
+URLs redirect to their grouped locations, preserving form methods and query strings.
 
 The UI uses the same services as the slash commands, so the same rules apply:
 it only posts where the bot can post, and only mentionable roles can be pinged
@@ -105,7 +109,8 @@ The pages are server-rendered [Hono](https://hono.dev) JSX styled by
 loaded from jsDelivr. Our own styles are in `src/presentation/web/public/app.css`; every file in
 that directory is served as is.
 Each section is a page in `src/presentation/web/pages/` that returns a small Hono app;
-to add a page, write one and mount it with `app.route()` in `app.tsx`. Forms
+to add a page, mount it with `app.route()` in `app.tsx` and add it to its
+section in `navigation.ts`. Forms
 post back to the same path, so there is no client-side JavaScript.
 
 ## Permissions

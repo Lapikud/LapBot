@@ -48,7 +48,7 @@ function MovieCard({
         </p>
         {editable ? (
           <>
-            <form method="post" action={`/movies/${movie.id}/links`}>
+            <form method="post" action={`/forms/movies/${movie.id}/links`}>
               <fieldset class="grid" aria-label="Add a movie link">
                 <input
                   name="url"
@@ -63,7 +63,7 @@ function MovieCard({
               </fieldset>
             </form>
             <ActionButton
-              action={`/movies/${movie.id}/remove`}
+              action={`/forms/movies/${movie.id}/remove`}
               label="Remove"
             />
           </>
@@ -89,9 +89,9 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         <Layout
           can={c.var.can}
           title="Movies"
-          path="/movies"
+          path="/forms/movies"
           flash={flashOf(c)}
-          actions={<a href="/movies/new">Suggest a movie</a>}
+          actions={<a href="/forms/movies/new">Suggest a movie</a>}
         >
           {list.length === 0 ? (
             <p>No suggestions yet. Be the first to suggest one.</p>
@@ -112,10 +112,10 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         <Layout
           can={c.var.can}
           title="Suggest a movie"
-          path="/movies"
+          path="/forms/movies"
           flash={flashOf(c)}
         >
-          <form method="post" action="/movies">
+          <form method="post" action="/forms/movies">
             <div class="grid">
               <Input label="Title" name="title" required maxlength={200} />
               <Input
@@ -148,7 +148,9 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         links: linksOf(field(form, 'links')),
       });
 
-      return back(c, '/movies', { notice: `Added ${movieLabel(movie)}.` });
+      return back(c, '/forms/movies', {
+        notice: `Added ${movieLabel(movie)}.`,
+      });
     })
     .post('/:id{\\d+}/links', async (c) => {
       const form = await c.req.formData();
@@ -158,7 +160,9 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         linksOf(field(form, 'url')),
       );
 
-      return back(c, '/movies', { notice: `Link added to ${movie.title}.` });
+      return back(c, '/forms/movies', {
+        notice: `Link added to ${movie.title}.`,
+      });
     })
     .post('/:id{\\d+}/remove', async (c) => {
       const movie = await services.movies.remove(
@@ -166,6 +170,6 @@ export function moviePages({ guildId, services, directory }: WebDeps) {
         Number(c.req.param('id')),
       );
 
-      return back(c, '/movies', { notice: `Removed ${movie.title}.` });
+      return back(c, '/forms/movies', { notice: `Removed ${movie.title}.` });
     });
 }

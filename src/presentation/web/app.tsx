@@ -15,6 +15,7 @@ import { eventPages } from '~/presentation/web/pages/events';
 import { moviePages } from '~/presentation/web/pages/movies';
 import { logPages } from './logs';
 import { Layout } from './layout';
+import { containsPath, sections, visibleLinks } from './navigation';
 import { permissionPages } from '~/presentation/web/pages/permissions';
 import { rolePages } from '~/presentation/web/pages/roles';
 import { pollPages } from '~/presentation/web/pages/polls';
@@ -36,10 +37,12 @@ function Message({
 }
 
 function returnPath(referer: string | undefined, path: string): string {
-  const section = `/${path.split('/')[1] ?? ''}`;
+  const parts = path.split('/').filter(Boolean);
+  const depth = ['post', 'forms', 'settings'].includes(parts[0] ?? '') ? 2 : 1;
+  const section = `/${parts.slice(0, depth).join('/')}`;
   const from = referer === undefined ? null : URL.parse(referer);
 
-  if (from?.pathname.startsWith(section) !== true) {
+  if (from === null || !containsPath(section, from.pathname)) {
     return section;
   }
 
@@ -131,6 +134,52 @@ export function createWebApp(deps: WebDeps) {
     return next();
   });
 
+  const legacyRoutes = [
+    ['/psa', '/post/announcements'],
+    ['/events', '/post/events'],
+    ['/polls', '/post/polls'],
+    ['/birthdays', '/forms/birthdays'],
+    ['/movies', '/forms/movies'],
+    ['/permissions', '/settings/permissions'],
+    ['/logs', '/settings/logs'],
+  ] as const;
+
+  app.use(async (c, next) => {
+    const legacy = legacyRoutes.find(([old]) => containsPath(old, c.req.path));
+
+    if (legacy === undefined) {
+      return next();
+    }
+
+    const [old, current] = legacy;
+    const url = new URL(c.req.url);
+
+    return c.redirect(
+      `${current}${c.req.path.slice(old.length)}${url.search}`,
+      307,
+    );
+  });
+
+  for (const section of sections.filter(({ pages }) => pages !== undefined)) {
+    app.get(section.href, (c) => {
+      const allowed = visibleLinks([section], c.var.can)[0];
+      const first = visibleLinks(allowed?.pages ?? [], c.var.can)[0];
+
+      if (first === undefined) {
+        return c.html(
+          <Message
+            title="No access"
+            text="You do not have access to this section."
+            can={c.var.can}
+          />,
+          403,
+        );
+      }
+
+      return c.redirect(`${first.href}${new URL(c.req.url).search}`, 303);
+    });
+  }
+
   app.get('/', async (c) => {
     const [announcements, events, polls] = await Promise.all([
       services.announcements.list(c.var.actor),
@@ -150,27 +199,29 @@ export function createWebApp(deps: WebDeps) {
         <ul>
           {c.var.can.has('announcement:create') ? (
             <li>
-              <a href="/psa">{pending.length} PSA drafts and scheduled posts</a>
+              <a href="/post/announcements">
+                {pending.length} PSA drafts and scheduled posts
+              </a>
             </li>
           ) : null}
           <li>
-            <a href="/events">{visibleEvents.length} upcoming events</a>
+            <a href="/post/events">{visibleEvents.length} upcoming events</a>
           </li>
           <li>
-            <a href="/polls">{visiblePolls.length} open polls</a>
+            <a href="/post/polls">{visiblePolls.length} open polls</a>
           </li>
         </ul>
       </Layout>,
     );
   });
-  app.route('/psa', psaPages(deps));
-  app.route('/events', eventPages(deps));
-  app.route('/polls', pollPages(deps));
-  app.route('/birthdays', birthdayPages(deps));
-  app.route('/movies', moviePages(deps));
+  app.route('/post/announcements', psaPages(deps));
+  app.route('/post/events', eventPages(deps));
+  app.route('/post/polls', pollPages(deps));
+  app.route('/forms/birthdays', birthdayPages(deps));
+  app.route('/forms/movies', moviePages(deps));
   app.route('/roles', rolePages(deps));
-  app.route('/permissions', permissionPages(deps));
-  app.route('/logs', logPages(deps.timezone, deps.logs));
+  app.route('/settings/permissions', permissionPages(deps));
+  app.route('/settings/logs', logPages(deps.timezone, deps.logs));
 
   app.notFound((c) =>
     c.html(<Message title="Not found" text="There is no such page." />, 404),

@@ -143,11 +143,11 @@ export function eventPages({
         <Layout
           can={c.var.can}
           title="Events"
-          path="/events"
+          path="/post/events"
           flash={flashOf(c)}
           actions={
             allows(c, 'event:create') ? (
-              <a href="/events/new">New event</a>
+              <a href="/post/events/new">New event</a>
             ) : null
           }
         >
@@ -171,11 +171,14 @@ export function eventPages({
                   <td>
                     {owns(c, e.organizerId, 'event:manage') ? (
                       <>
-                        <a href={`/events/${e.id}`} class="secondary outline">
+                        <a
+                          href={`/post/events/${e.id}`}
+                          class="secondary outline"
+                        >
                           Edit
                         </a>{' '}
                         <ActionButton
-                          action={`/events/${e.id}/cancel`}
+                          action={`/post/events/${e.id}/cancel`}
                           label="Cancel"
                         />
                       </>
@@ -199,10 +202,10 @@ export function eventPages({
         <Layout
           can={c.var.can}
           title="New event"
-          path="/events"
+          path="/post/events"
           flash={flashOf(c)}
         >
-          <form method="post" action="/events">
+          <form method="post" action="/post/events">
             <EventFields time={time} />
             <div class="grid">
               <ChannelSelect server={server} />
@@ -235,7 +238,7 @@ export function eventPages({
         ...(reminders !== undefined && { reminders }),
       });
 
-      return back(c, '/events', { notice: `Event #${event.id} created.` });
+      return back(c, '/post/events', { notice: `Event #${event.id} created.` });
     })
     .get('/:id{\\d+}', async (c) => {
       const event = await services.events.get(
@@ -251,10 +254,10 @@ export function eventPages({
         <Layout
           can={c.var.can}
           title={`Edit event #${event.id}`}
-          path="/events"
+          path="/post/events"
           flash={flashOf(c)}
         >
-          <form method="post" action={`/events/${event.id}`}>
+          <form method="post" action={`/post/events/${event.id}`}>
             <EventFields event={event} time={time} />
             <fieldset>
               <Checkbox
@@ -277,13 +280,13 @@ export function eventPages({
         changesOf(await c.req.formData()),
       );
 
-      return back(c, '/events', { notice: `Event #${id} updated.` });
+      return back(c, '/post/events', { notice: `Event #${id} updated.` });
     })
     .post('/:id{\\d+}/cancel', async (c) => {
       const id = Number(c.req.param('id'));
 
       await services.events.cancel(c.var.actor, id);
 
-      return back(c, '/events', { notice: `Event #${id} cancelled.` });
+      return back(c, '/post/events', { notice: `Event #${id} cancelled.` });
     });
 }
