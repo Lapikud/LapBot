@@ -1,8 +1,9 @@
+import { subcommandPath } from '../commands/handlers';
+import { respond } from './responses';
 import { randomUUID } from 'node:crypto';
 import {
   MessageFlags,
   type AutocompleteInteraction,
-  type BaseMessageOptions,
   type Interaction,
 } from 'discord.js';
 import { ignore, UserError } from '~/core/errors';
@@ -11,62 +12,10 @@ import type {
   CommandInteraction,
   ComponentInteraction,
   MessageCommandInteraction,
-} from './module';
-import type { Message as DomainMessage } from '~/core/message';
+  Repliable,
+} from '~/presentation/discord/contracts';
 import { toActor } from './actor';
-import { render } from './render';
-import { parseCustomId, type Registry } from './registry';
-
-type Repliable =
-  CommandInteraction | ComponentInteraction | MessageCommandInteraction;
-
-export async function respond(
-  interaction: Repliable,
-  content: string | Pick<BaseMessageOptions, 'content' | 'embeds'>,
-): Promise<void> {
-  const message = {
-    ...(typeof content === 'string' ? { content } : content),
-    allowedMentions: { parse: [] },
-  };
-
-  if (interaction.replied) {
-    await interaction.followUp({ ...message, flags: MessageFlags.Ephemeral });
-  } else if (interaction.deferred) {
-    await interaction.editReply(message);
-  } else {
-    await interaction.reply({ ...message, flags: MessageFlags.Ephemeral });
-  }
-}
-
-export async function respondView(
-  interaction: Repliable,
-  view: DomainMessage,
-): Promise<void> {
-  const { content, embeds, components } = render(view);
-  const message = {
-    content,
-    embeds,
-    components,
-    allowedMentions: { parse: [] },
-  };
-
-  if (interaction.replied) {
-    await interaction.followUp({ ...message, flags: MessageFlags.Ephemeral });
-  } else if (interaction.deferred) {
-    await interaction.editReply(message);
-  } else {
-    await interaction.reply({ ...message, flags: MessageFlags.Ephemeral });
-  }
-}
-
-export function subcommandPath(interaction: CommandInteraction): string {
-  return [
-    interaction.options.getSubcommandGroup(false),
-    interaction.options.getSubcommand(false),
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
+import { parseCustomId, type Registry } from '~/presentation/discord/registry';
 
 async function runCommand(
   registry: Registry,

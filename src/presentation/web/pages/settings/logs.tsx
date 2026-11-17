@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { logPageSize, type LogStore } from '~/integrations/logging/store';
-import type { Env } from './context';
-import { Layout } from './layout';
+import type { Env } from '~/presentation/web/context';
+import { Layout } from '~/presentation/web/layout';
 
 const levels = [
   { name: 'trace', value: 10 },

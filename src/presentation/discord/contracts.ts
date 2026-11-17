@@ -47,6 +47,9 @@ export type ComponentInteraction =
   | AnySelectMenuInteraction<'cached'>
   | ModalSubmitInteraction<'cached'>;
 
+export type Repliable =
+  CommandInteraction | ComponentInteraction | MessageCommandInteraction;
+
 export interface ComponentHandler {
   prefix: string;
   permission?: Permission;

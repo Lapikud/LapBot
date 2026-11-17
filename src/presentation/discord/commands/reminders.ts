@@ -10,10 +10,10 @@ import type { Reminder } from '~/features/reminders/model';
 import type { ReminderService } from '~/features/reminders/service';
 import { channelMention } from '~/core/message';
 import { discordTime, recurrences } from '~/core/helpers/time';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand } from '~/presentation/discord/define';
-import type { Feature } from '~/presentation/discord/module';
-import { respond } from '~/presentation/discord/router';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand } from './handlers';
+import type { Feature } from '~/presentation/discord/contracts';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 export function describeReminder(reminder: Reminder): string {
   const where =

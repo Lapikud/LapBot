@@ -1,5 +1,5 @@
 import type { Message } from '~/core/message';
-import type { Server } from './context';
+import type { Server } from '~/presentation/web/context';
 
 const token = /(<@&\d+>|<@\d+>|<#\d+>|@everyone|\*\*[^*]+\*\*)/;
 

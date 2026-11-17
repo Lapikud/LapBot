@@ -3,7 +3,7 @@ import type {
   Feature,
   MessageCommand,
   SlashCommand,
-} from './module';
+} from './contracts';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 
 export interface Registry {

@@ -10,11 +10,14 @@ import { describeOutcome } from '~/presentation/messages/polls';
 import type { PollService } from '~/features/polls/service';
 import { channelMention, userMention } from '~/core/message';
 import { UserError } from '~/core/errors';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand, deferred } from '~/presentation/discord/define';
-import type { ComponentHandler, Feature } from '~/presentation/discord/module';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand, deferred } from './handlers';
+import type {
+  ComponentHandler,
+  Feature,
+} from '~/presentation/discord/contracts';
 import { render } from '~/presentation/discord/render';
-import { respond } from '~/presentation/discord/router';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 const idOption = (o: SlashCommandIntegerOption) =>
   o

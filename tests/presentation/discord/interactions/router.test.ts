@@ -1,9 +1,9 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 import { UserError } from '~/core/errors';
-import type { AppContext, Feature } from '~/presentation/discord/module';
+import type { AppContext, Feature } from '~/presentation/discord/contracts';
 import { buildRegistry } from '~/presentation/discord/registry';
-import { createInteractionHandler } from '~/presentation/discord/router';
+import { createInteractionHandler } from '~/presentation/discord/interactions/router';
 
 function context(allowed: boolean) {
   const require = vi.fn(async () => {

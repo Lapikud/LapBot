@@ -5,13 +5,13 @@ import {
 } from 'discord.js';
 import type { RedmineService } from '~/features/redmine/service';
 import { channelMention } from '~/core/message';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand, deferred } from '~/presentation/discord/define';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand, deferred } from './handlers';
 import type {
   CommandInteraction,
   Feature,
-} from '~/presentation/discord/module';
-import { respond } from '~/presentation/discord/router';
+} from '~/presentation/discord/contracts';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 const data = new SlashCommandBuilder()
   .setName('redmine')

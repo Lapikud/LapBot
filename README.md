@@ -264,21 +264,22 @@ src/
     polls/, movies/, permissions/, redmine/, reminders/, roles/
   integrations/            shared platform/provider implementations
     db/client.ts           connection and migrations
-    discord/               SDK client, messaging, directory and calendar
+    discord/               SDK client, messaging, directory, calendar and API errors
     tmdb/                  catalog provider client
     redmine/               issue tracker provider client
     scheduler/, logging/
   presentation/
     web/
-      pages/               all feature pages and HTTP routes
+      pages/               post/, forms/, settings/, and roles.tsx
       components/          shared accessible controls and actions
       public/              styles and other static assets
       app.tsx, auth.ts     HTTP composition, middleware and sign-in
-      layout.tsx, context.ts, selectors.tsx, preview.tsx, logs.tsx, server.ts
+      layout.tsx, context.ts, navigation.ts, server.ts
     discord/
-      commands/            all feature slash/context commands and components
-      actor.ts, define.ts, errors.ts, module.ts, registry.ts, router.ts
-      registration.ts, render.ts
+      commands/            slash/context commands, components and handlers.ts
+      events/              event registration and reaction-role listeners
+      interactions/        actor conversion, responses and routing
+      contracts.ts, registry.ts, registration.ts, render.ts
     messages/              pure message views shared by services and adapters
 tests/
   features/<name>/         feature rules, services and persistence tests
@@ -292,8 +293,10 @@ drizzle/                   unchanged SQL migrations
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
 and input definitions are pure; services orchestrate; `repository.ts` and `table.ts` own persistence.
-Web pages live in `presentation/web/pages`, and Discord commands live in
-`presentation/discord/commands`, named after their feature. All tests live under
+Web pages live in `presentation/web/pages`, grouped into `post`, `forms`, and
+`settings`, with roles at the section root. Discord commands live in
+`presentation/discord/commands`; gateway event listeners live in
+`presentation/discord/events`. All tests live under
 `tests/`: feature tests in `tests/features/<name>/`,
 primitive tests in `tests/core/` (helpers in `tests/core/helpers/`), provider tests in `tests/integrations/`, and presentation tests in `tests/presentation/`.
 Cross-feature regressions live in `tests/regressions/`.
@@ -363,7 +366,7 @@ and timestamp syntax; transport-neutral values do not imply portable text.
 **UI primitives stay small.** Feature pages compose `presentation/web/components/controls`,
 `choices`, `field`, and `actions`. Labels, help and errors are linked to control
 IDs. Supply distinct IDs for repeated names. Shared channel selectors in
-`presentation/web/selectors.tsx` use already-loaded server data. Controls perform
+`presentation/web/components/selectors.tsx` use already-loaded server data. Controls perform
 no service or directory lookups. Keep transport input decoding in the page and authoritative
 permissions in the service.
 

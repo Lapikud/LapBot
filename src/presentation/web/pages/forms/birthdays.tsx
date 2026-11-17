@@ -10,7 +10,10 @@ import {
   type WebDeps,
 } from '~/presentation/web/context';
 import { Layout } from '~/presentation/web/layout';
-import { ChannelOptions, ChannelSelect } from '~/presentation/web/selectors';
+import {
+  ChannelOptions,
+  ChannelSelect,
+} from '~/presentation/web/components/selectors';
 
 const dayMonth = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',

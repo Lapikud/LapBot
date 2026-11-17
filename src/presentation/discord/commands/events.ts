@@ -12,15 +12,18 @@ import { rsvpLabels } from '~/presentation/messages/events';
 import { channelMention, userMention } from '~/core/message';
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand, deferred } from '~/presentation/discord/define';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand, deferred } from './handlers';
 import type {
   CommandInteraction,
   ComponentHandler,
   Feature,
-} from '~/presentation/discord/module';
+} from '~/presentation/discord/contracts';
 import { render } from '~/presentation/discord/render';
-import { respond, respondView } from '~/presentation/discord/router';
+import {
+  respond,
+  respondView,
+} from '~/presentation/discord/interactions/responses';
 
 const idOption = (o: SlashCommandIntegerOption) =>
   o

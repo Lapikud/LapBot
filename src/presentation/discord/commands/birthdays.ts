@@ -16,10 +16,13 @@ import {
   birthdayVisibilities,
   birthdayVisibilityLabels,
 } from '~/features/birthdays/rules';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand } from '~/presentation/discord/define';
-import type { ComponentHandler, Feature } from '~/presentation/discord/module';
-import { respond } from '~/presentation/discord/router';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand } from './handlers';
+import type {
+  ComponentHandler,
+  Feature,
+} from '~/presentation/discord/contracts';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 const months = [
   'January',

@@ -24,7 +24,7 @@ import {
   type WebDeps,
 } from '~/presentation/web/context';
 import { Layout } from '~/presentation/web/layout';
-import { ChannelSelect } from '~/presentation/web/selectors';
+import { ChannelSelect } from '~/presentation/web/components/selectors';
 
 const textFields = [
   'title',

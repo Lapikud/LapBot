@@ -22,8 +22,8 @@ import {
   type WebDeps,
 } from '~/presentation/web/context';
 import { Layout } from '~/presentation/web/layout';
-import { ChannelSelect } from '~/presentation/web/selectors';
-import { MessagePreview } from '~/presentation/web/preview';
+import { ChannelSelect } from '~/presentation/web/components/selectors';
+import { MessagePreview } from '~/presentation/web/components/preview';
 
 const title = 'Announcements';
 

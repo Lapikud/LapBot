@@ -13,10 +13,10 @@ import {
   movieLinks,
   type MovieLink,
 } from '~/features/movies/rules';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand, deferred } from '~/presentation/discord/define';
-import type { Feature } from '~/presentation/discord/module';
-import { respond } from '~/presentation/discord/router';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand, deferred } from './handlers';
+import type { Feature } from '~/presentation/discord/contracts';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 const linkLine = (links: readonly MovieLink[]) =>
   links.map(({ label, url }) => `[${label}](${url})`).join(' · ');

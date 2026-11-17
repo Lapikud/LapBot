@@ -6,8 +6,8 @@ import {
   type User,
 } from 'discord.js';
 import type { RoleService } from '~/features/roles/service';
-import { defineListener } from '~/presentation/discord/define';
-import type { Feature } from '~/presentation/discord/module';
+import { createEventListener } from './listener';
+import type { Feature } from '~/presentation/discord/contracts';
 
 function reactionOf(
   reaction: MessageReaction | PartialMessageReaction,
@@ -29,8 +29,8 @@ function reactionOf(
   };
 }
 
-export function roleCommands(roles: RoleService): Feature {
-  const added = defineListener(
+export function roleEvents(roles: RoleService): Feature {
+  const added = createEventListener(
     Events.MessageReactionAdd,
     async (_ctx, reaction, user) => {
       const key = reactionOf(reaction, user);
@@ -40,7 +40,7 @@ export function roleCommands(roles: RoleService): Feature {
       }
     },
   );
-  const removed = defineListener(
+  const removed = createEventListener(
     Events.MessageReactionRemove,
     async (_ctx, reaction, user) => {
       const key = reactionOf(reaction, user);

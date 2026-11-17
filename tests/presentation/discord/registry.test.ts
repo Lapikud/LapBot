@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Feature } from '~/presentation/discord/module';
+import type { Feature } from '~/presentation/discord/contracts';
 import { controlId } from '~/core/message';
 import { buildRegistry, parseCustomId } from '~/presentation/discord/registry';
 

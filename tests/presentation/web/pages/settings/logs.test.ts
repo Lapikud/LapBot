@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { afterEach, expect, it } from 'vitest';
 import { createLogStore } from '~/integrations/logging/store';
-import { logPages } from '~/presentation/web/logs';
+import { logPages } from '~/presentation/web/pages/settings/logs';
 import type { Env, WebDeps } from '~/presentation/web/context';
 import { createWebApp } from '~/presentation/web/app';
 import { setSignedCookie } from 'hono/cookie';
-import { actor, fakeDirectory, allowAll, silentLog } from '../../fakes';
+import { actor, fakeDirectory, allowAll, silentLog } from '../../../../fakes';
 
 const archives: Array<ReturnType<typeof createLogStore>> = [];
 

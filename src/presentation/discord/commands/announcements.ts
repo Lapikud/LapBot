@@ -18,15 +18,18 @@ import { channelMention, controlId, type Message } from '~/core/message';
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand } from '~/presentation/discord/define';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand } from './handlers';
 import type {
   AppContext,
   ComponentHandler,
   Feature,
-} from '~/presentation/discord/module';
+} from '~/presentation/discord/contracts';
 import { render } from '~/presentation/discord/render';
-import { respond, respondView } from '~/presentation/discord/router';
+import {
+  respond,
+  respondView,
+} from '~/presentation/discord/interactions/responses';
 
 function contentModal(
   id: string,

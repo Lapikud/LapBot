@@ -9,12 +9,12 @@ import { createDiscordCalendar } from '~/integrations/discord/calendar';
 import { eventCommands } from '~/presentation/discord/commands/events';
 import { movieCommands } from '~/presentation/discord/commands/movies';
 import { pollCommands } from '~/presentation/discord/commands/polls';
-import { createInteractionHandler } from '~/presentation/discord/router';
+import { createInteractionHandler } from '~/presentation/discord/interactions/router';
 import { buildRegistry, type Registry } from '~/presentation/discord/registry';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import { reminderCommands } from '~/presentation/discord/commands/reminders';
-import { roleCommands } from '~/presentation/discord/commands/roles';
+import { roleEvents } from '~/presentation/discord/events/roles';
 import { permissionCommands } from '~/presentation/discord/commands/permissions';
 import { createAnnouncementService } from '~/features/announcements/service';
 import {
@@ -28,7 +28,7 @@ import { createMovieService } from '~/features/movies/service';
 import { createPollService } from '~/features/polls/service';
 import { createReminderService } from '~/features/reminders/service';
 import { createRoleService, type LegacyPanel } from '~/features/roles/service';
-import type { AppContext, Feature } from '~/presentation/discord/module';
+import type { AppContext, Feature } from '~/presentation/discord/contracts';
 import type { Logger } from 'pino';
 import type { LogStore } from '~/integrations/logging/store';
 import { PgBoss } from 'pg-boss';
@@ -161,7 +161,7 @@ export function compose(config: Config, log: Logger) {
     known: () => registry.permissions,
   });
   const features: Feature[] = [
-    roleCommands(roles),
+    roleEvents(roles),
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),

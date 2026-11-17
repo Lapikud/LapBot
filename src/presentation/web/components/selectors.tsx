@@ -1,4 +1,4 @@
-import type { Server } from './context';
+import type { Server } from '~/presentation/web/context';
 import { Select } from '~/presentation/web/components/controls';
 
 export function ChannelOptions({

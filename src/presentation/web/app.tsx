@@ -9,17 +9,17 @@ import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
 import { webAccess, type Permission } from '~/core/permission';
 import { signedInUser, signInPages } from './auth';
-import { birthdayPages } from '~/presentation/web/pages/birthdays';
+import { birthdayPages } from '~/presentation/web/pages/forms/birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
-import { eventPages } from '~/presentation/web/pages/events';
-import { moviePages } from '~/presentation/web/pages/movies';
-import { logPages } from './logs';
+import { eventPages } from '~/presentation/web/pages/post/events';
+import { moviePages } from '~/presentation/web/pages/forms/movies';
+import { logPages } from '~/presentation/web/pages/settings/logs';
 import { Layout } from './layout';
 import { containsPath, sections, visibleLinks } from './navigation';
-import { permissionPages } from '~/presentation/web/pages/permissions';
+import { permissionPages } from '~/presentation/web/pages/settings/permissions';
 import { rolePages } from '~/presentation/web/pages/roles';
-import { pollPages } from '~/presentation/web/pages/polls';
-import { psaPages } from '~/presentation/web/pages/announcements';
+import { pollPages } from '~/presentation/web/pages/post/polls';
+import { psaPages } from '~/presentation/web/pages/post/announcements';
 
 function Message({
   title,

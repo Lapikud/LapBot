@@ -6,10 +6,10 @@ import {
 import type { PermissionService } from '~/features/permissions/service';
 import { managePermissions } from '~/core/permission';
 import { roleMention } from '~/core/message';
-import { toActor } from '~/presentation/discord/actor';
-import { bySubcommand, deferred } from '~/presentation/discord/define';
-import type { Feature } from '~/presentation/discord/module';
-import { respond } from '~/presentation/discord/router';
+import { toActor } from '~/presentation/discord/interactions/actor';
+import { bySubcommand, deferred } from './handlers';
+import type { Feature } from '~/presentation/discord/contracts';
+import { respond } from '~/presentation/discord/interactions/responses';
 
 const permissionOption = (o: SlashCommandStringOption) =>
   o

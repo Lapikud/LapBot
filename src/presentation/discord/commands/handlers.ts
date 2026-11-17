@@ -1,32 +1,23 @@
-import { MessageFlags, type ClientEvents } from 'discord.js';
-import { subcommandPath } from './router';
+import { MessageFlags } from 'discord.js';
 import type {
   AppContext,
   CommandInteraction,
-  EventListener,
   SlashCommand,
-} from './module';
-
-export function defineListener<K extends keyof ClientEvents>(
-  event: K,
-  handle: (ctx: AppContext, ...args: ClientEvents[K]) => Promise<void>,
-): EventListener {
-  return {
-    event,
-    attach: (client, ctx) => {
-      client.on(event, (...args) => {
-        handle(ctx, ...args).catch((error: unknown) => {
-          ctx.log.error({ err: error, event }, 'Event listener failed');
-        });
-      });
-    },
-  };
-}
+} from '~/presentation/discord/contracts';
 
 type SubcommandHandler = (
   interaction: CommandInteraction,
   ctx: AppContext,
 ) => Promise<void>;
+
+export function subcommandPath(interaction: CommandInteraction): string {
+  return [
+    interaction.options.getSubcommandGroup(false),
+    interaction.options.getSubcommand(false),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
 
 export function bySubcommand(
   handlers: Record<string, SubcommandHandler>,

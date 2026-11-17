@@ -7,7 +7,7 @@ import type {
   AppContext,
   CommandInteraction,
   SlashCommand,
-} from '~/presentation/discord/module';
+} from '~/presentation/discord/contracts';
 import { allowAll, fakeDirectory, silentLog } from '../../fakes';
 
 it('filters private events and polls from Discord lists and autocomplete', async () => {
