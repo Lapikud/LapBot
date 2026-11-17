@@ -97,17 +97,15 @@ export function birthdayPages({ guildId, services, directory }: WebDeps) {
                 working after restarts, so one post is enough.
               </p>
               <form method="post" action="/birthdays/signup">
-                <label>
-                  Channel
-                  <div role="group">
-                    <select name="channelId" required>
-                      <ChannelOptions server={server} />
-                    </select>
-                    <button type="submit" class="secondary">
-                      Post
-                    </button>
-                  </div>
-                </label>
+                <label for="signup-channel">Channel</label>
+                <fieldset class="grid">
+                  <select id="signup-channel" name="channelId" required>
+                    <ChannelOptions server={server} />
+                  </select>
+                  <button type="submit" class="secondary">
+                    Post
+                  </button>
+                </fieldset>
               </form>
             </>
           ) : null}

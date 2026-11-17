@@ -49,17 +49,18 @@ function MovieCard({
         {editable ? (
           <>
             <form method="post" action={`/movies/${movie.id}/links`}>
-              <div role="group">
+              <fieldset class="grid" aria-label="Add a movie link">
                 <input
                   name="url"
                   type="url"
                   placeholder="Add a link"
+                  aria-label="Link URL"
                   required
                 />
                 <button type="submit" class="secondary">
                   Add
                 </button>
-              </div>
+              </fieldset>
             </form>
             <ActionButton
               action={`/movies/${movie.id}/remove`}

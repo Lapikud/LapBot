@@ -14,5 +14,5 @@ export function ActionButton({
 }
 
 export function FormActions({ children }: Readonly<{ children: Child }>) {
-  return <div role="group">{children}</div>;
+  return <fieldset class="grid">{children}</fieldset>;
 }
