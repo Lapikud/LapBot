@@ -20,11 +20,13 @@ export function choiceField<V extends string | number, K extends string>({
   label: string;
   choices: readonly V[];
 }): FieldDefinition<V> & { key: K } {
+  const allowed: readonly unknown[] = choices;
+
   return {
     key,
     label,
     kind: 'choice',
-    schema: z.custom<V>((value) => choices.some((choice) => choice === value)),
+    schema: z.custom<V>((value) => allowed.includes(value)),
   };
 }
 
