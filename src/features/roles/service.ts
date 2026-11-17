@@ -108,7 +108,6 @@ export function createRoleService(deps: Deps) {
       await panels.replaceRoles(panel.id, legacy.roles);
     }
 
-    // Once imported, the database owns the panel configuration.
     const entries = existing
       ? await storedRoles(guildId, panel.id)
       : legacy.roles;

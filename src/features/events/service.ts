@@ -67,7 +67,6 @@ function requireCapacity(capacity?: number | null) {
   }
 }
 
-// Reserve space for the generated ID, cancellation label and growing RSVP counts.
 function requirePublishable(input: NewEvent, mention = false) {
   const view = eventView(
     {

@@ -11,6 +11,7 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
+import { sequential } from '~/core/helpers/async';
 import type {
   NewPoll,
   Poll,
@@ -86,11 +87,9 @@ export function createPollService(deps: Deps) {
     const details = pollDetails(input);
     const poll = await polls.insert(input);
 
-    for (const message of details) {
-      // Preserve option order and keep the voting controls after every detail post.
-      // eslint-disable-next-line no-await-in-loop
-      await messenger.send(poll.channelId, message);
-    }
+    await sequential(details, (message) =>
+      messenger.send(poll.channelId, message),
+    );
 
     const sent = await messenger.send(
       poll.channelId,
