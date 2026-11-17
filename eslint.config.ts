@@ -296,10 +296,7 @@ export default defineConfig(
   },
 
   {
-    files: [
-      '**/*.config.{js,mjs,cjs,ts,mts,cts}',
-      '**/scripts/**/*.{js,mjs,cjs,ts,mts,cts}',
-    ],
+    files: ['**/*.config.{js,mjs,cjs,ts,mts,cts}'],
     languageOptions: {
       globals: globals.node,
     },
@@ -309,12 +306,7 @@ export default defineConfig(
   },
 
   {
-    files: [
-      'src/**/*.{ts,tsx}',
-      'tests/**/*.ts',
-      'scripts/**/*.ts',
-      '*.config.ts',
-    ],
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.ts', '*.config.ts'],
     languageOptions: {
       globals: globals.node,
     },
@@ -329,12 +321,7 @@ export default defineConfig(
       'import-x/no-extraneous-dependencies': [
         'error',
         {
-          devDependencies: [
-            'tests/**',
-            'scripts/**',
-            '**/*.test.ts',
-            '*.config.ts',
-          ],
+          devDependencies: ['tests/**', '**/*.test.ts', '*.config.ts'],
         },
       ],
       'import-x/no-duplicates': 'error',

@@ -14,13 +14,11 @@ Requirements: Node.js 24+, pnpm (`corepack enable`), Docker (for PostgreSQL).
 pnpm install
 cp .env.example .env          # fill in DISCORD_TOKEN and the role IDs
 docker compose -f compose.yaml -f compose.dev.yaml up -d postgres
-pnpm commands:register        # once, and after changing commands
 pnpm dev
 ```
 
 The initial migration creates the current schema on a fresh database.
-Migrations run automatically when the bot starts. `pnpm db:migrate` runs
-them without starting the bot.
+Migrations and Discord command registration run automatically when the bot starts.
 
 ### Discord application
 
@@ -189,8 +187,6 @@ webhooks, so polling is the mechanism.
 | `pnpm test:db`                                     | Start isolated PostgreSQL on localhost:5433                 |
 | `pnpm test:integration`                            | Run all tests using `.env.test`                             |
 | `pnpm db:generate`                                 | Create a migration after editing a `table.ts`               |
-| `pnpm db:migrate`                                  | Apply migrations                                            |
-| `pnpm commands:register`                           | Register slash commands with Discord                        |
 
 Database tests run against a real PostgreSQL and **reset its schema**. Start
 the dedicated test service, which uses temporary storage separate from the

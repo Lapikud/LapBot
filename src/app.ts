@@ -11,6 +11,7 @@ import { movieCommands } from '~/discord/commands/movies';
 import { pollCommands } from '~/discord/commands/polls';
 import { createInteractionHandler } from '~/discord/interactions/router';
 import { buildRegistry, type Registry } from '~/discord/registry';
+import { registerCommands } from '~/discord/registration';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import { reminderCommands } from '~/discord/commands/reminders';
@@ -306,6 +307,12 @@ export async function startApp(
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
 
     await startJobs(boss, jobs.values(), jobLog);
+
+    await registerCommands(registry, {
+      token: config.DISCORD_TOKEN,
+      applicationId: ready.application.id,
+      guildId: config.DISCORD_GUILD_ID,
+    });
 
     const ctx: AppContext = { log, authz };
 

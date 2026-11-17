@@ -525,8 +525,6 @@ lapbot/
 │   │   └── migrations/
 │   ├── shared/
 │   └── reset.d.ts
-├── scripts/
-│   └── register-commands.ts
 ├── tests/
 ├── eslint.config.ts
 ├── .prettierrc.json
