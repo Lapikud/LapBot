@@ -29,7 +29,7 @@ export const posts = pgTable(
     status: postStatus('status').notNull().default('draft'),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
-    messageId: text('message_id'),
+    messageIds: text('message_ids').array().notNull().default([]),
     failure: text('failure'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

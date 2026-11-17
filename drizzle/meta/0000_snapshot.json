@@ -1,5 +1,5 @@
 {
-  "id": "1565c2e0-154d-490c-ac55-3c570263b0a8",
+  "id": "ed1172d8-604c-45d6-a1b0-00ddf621f0c3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -78,11 +78,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "message_id": {
-          "name": "message_id",
-          "type": "text",
+        "message_ids": {
+          "name": "message_ids",
+          "type": "text[]",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'{}'"
         },
         "failure": {
           "name": "failure",

@@ -1,15 +1,11 @@
-import { maxContentLength, type Message } from '~/core/message';
-import { UserError } from '~/core/errors';
+import { splitContent, type Message } from '~/core/message';
 import { renderPost, type Post } from '~/core/posts';
 
-export function announcementView(post: Post): Message {
-  const message = renderPost(post);
+export function announcementView(post: Post): Message[] {
+  const { content = '', mentions = {} } = renderPost(post);
 
-  if ((message.content?.length ?? 0) > maxContentLength) {
-    throw new UserError(
-      'Announcements are limited to 2000 characters, including the title and mentions.',
-    );
-  }
-
-  return message;
+  return splitContent(content).map((part, index) => ({
+    content: part,
+    mentions: index === 0 ? mentions : {},
+  }));
 }

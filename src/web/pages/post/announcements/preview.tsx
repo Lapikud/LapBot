@@ -10,7 +10,7 @@ interface Props {
   server: Server;
   can: ReadonlySet<Permission>;
   draft: Draft;
-  view: Message;
+  view: readonly Message[];
 }
 
 export function AnnouncementPreviewPage({
@@ -28,7 +28,13 @@ export function AnnouncementPreviewPage({
         preview={
           <>
             <h2>Preview</h2>
-            <MessagePreview message={view} server={server} />
+            {view.map((message) => (
+              <MessagePreview
+                key={message.content}
+                message={message}
+                server={server}
+              />
+            ))}
           </>
         }
       />

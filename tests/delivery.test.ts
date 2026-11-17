@@ -1,6 +1,7 @@
 import { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Job, Scheduler } from '~/core/ports/scheduler';
+import type { Sent } from '~/core/ports/messenger';
 import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
 import { noDatabase, snowflake, testDb } from './db';
 import {
@@ -76,7 +77,7 @@ describe('announcement publication', () => {
     status: 'draft',
     scheduledAt: null,
     publishedAt: null,
-    messageId: null,
+    messageIds: [],
     failure: null,
     createdAt: new Date(),
     ...overrides,
@@ -85,19 +86,20 @@ describe('announcement publication', () => {
   describe('announcement view', () => {
     it('only pings the chosen roles or everyone, never text in the body', () => {
       expect(
-        announcementView(sample({ content: '@everyone hi' })).mentions,
+        announcementView(sample({ content: '@everyone hi' }))[0]?.mentions,
       ).toEqual({
         everyone: false,
         roles: [],
       });
       expect(
-        announcementView(sample({ mentionRoleIds: ['r1', 'r2'] })),
+        announcementView(sample({ mentionRoleIds: ['r1', 'r2'] }))[0],
       ).toMatchObject({
         content: '<@&r1> <@&r2>\n# Hello\nWorld',
         mentions: { roles: ['r1', 'r2'] },
       });
       expect(
-        announcementView(sample({ mentionEveryone: true })).mentions?.everyone,
+        announcementView(sample({ mentionEveryone: true }))[0]?.mentions
+          ?.everyone,
       ).toBe(true);
     });
   });
@@ -216,16 +218,69 @@ describe('announcement lifecycle', () => {
       };
     };
 
+    it('splits long announcements, pinging only the first message', async () => {
+      const { service, author, messenger, posts } = await setup();
+      const created = await service.draft(author, {
+        channelId: 'c',
+        content: `${'a '.repeat(1200)}\n${'b '.repeat(700)}`,
+        mentionRoleIds: ['team'],
+      });
+      const published = await service.publish(author, created.id);
+      const sent = messenger.send.mock.calls.map(([, message]) => message);
+
+      expect(sent).toHaveLength(2);
+      expect(sent[0]?.mentions?.roles).toEqual(['team']);
+      expect(sent[1]?.mentions).toEqual({});
+      expect(
+        sent.every((message) => (message.content?.length ?? 0) <= 2000),
+      ).toBe(true);
+      expect(published.messageIds).toHaveLength(2);
+
+      await service.edit(author, created.id, { content: 'Short now' });
+      expect(messenger.remove).toHaveBeenCalledWith(
+        'c',
+        published.messageIds[1],
+      );
+      expect((await posts.find(created.id))?.messageIds).toEqual([
+        published.messageIds[0],
+      ]);
+    });
+
+    it('removes sent parts when a later part fails', async () => {
+      const { service, author, messenger, posts } = await setup();
+      const created = await service.draft(author, {
+        channelId: 'c',
+        content: 'x '.repeat(1500),
+      });
+      const send = messenger.send.getMockImplementation();
+
+      if (send === undefined) {
+        throw new Error('Missing send implementation');
+      }
+
+      messenger.send
+        .mockImplementationOnce(send)
+        .mockRejectedValueOnce(new Error('Discord is down'));
+      await expect(service.publish(author, created.id)).rejects.toThrow('down');
+
+      const first = (await messenger.send.mock.results[0]?.value) as Sent;
+
+      expect(messenger.remove).toHaveBeenCalledWith('c', first.messageId);
+      expect(await posts.find(created.id)).toMatchObject({
+        status: 'draft',
+        messageIds: [],
+      });
+    });
+
     it('rejects an over-long announcement without saving a draft', async () => {
       const { service, author, posts } = await setup();
 
       await expect(
         service.draft(author, {
           channelId: 'c',
-          title: 'T'.repeat(200),
-          content: 'x'.repeat(1900),
+          content: 'x'.repeat(4001),
         }),
-      ).rejects.toThrow('2000 characters');
+      ).rejects.toThrow('Write 1-4000 characters.');
       expect(await posts.list(author.guildId)).toEqual([]);
     });
 
@@ -323,7 +378,7 @@ describe('announcement lifecycle', () => {
         attempts.filter(({ status }) => status === 'fulfilled'),
       ).toHaveLength(1);
       expect(messenger.send).toHaveBeenCalledOnce();
-      expect((await posts.find(post.id))?.messageId).toBeDefined();
+      expect((await posts.find(post.id))?.messageIds).toHaveLength(1);
     });
 
     it('restores scheduled state on transient failure and draft on permanent failure', async () => {

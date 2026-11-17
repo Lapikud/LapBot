@@ -2,7 +2,7 @@ import { announcementView } from './message';
 import { z } from 'zod';
 import { channelMention } from '~/core/message';
 import { parseFutureWhen } from '~/core/helpers/time';
-import { PermanentError, UserError } from '~/core/errors';
+import { ignore, PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { requireMentionable } from '~/core/helpers/roles';
 import type { AnnouncementRepository, AnnouncementStatus } from './model';
@@ -14,13 +14,14 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger, Sent } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
+import { sequential } from '~/core/helpers/async';
 import { visibleRecords } from '~/core/helpers/visibility';
 
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
 const open: AnnouncementStatus[] = ['draft', 'scheduled'];
 
-export const maxAnnouncementLength = 1900;
+export const maxAnnouncementLength = 4000;
 
 export interface AnnouncementDraft {
   channelId: string;
@@ -119,11 +120,19 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
       );
     }
 
-    let sent: Sent;
+    const sent: Sent[] = [];
 
     try {
-      sent = await messenger.send(claimed.channelId, announcementView(claimed));
+      await sequential(announcementView(claimed), async (message) => {
+        sent.push(await messenger.send(claimed.channelId, message));
+      });
     } catch (error) {
+      await Promise.all(
+        sent.map(({ messageId }) =>
+          messenger.remove(claimed.channelId, messageId).catch(ignore),
+        ),
+      );
+
       const permanent =
         error instanceof PermanentError || error instanceof UserError;
 
@@ -136,12 +145,12 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
       throw error;
     }
 
-    const { messageId } = sent;
+    const messageIds = sent.map(({ messageId }) => messageId);
 
-    await posts.update(id, { messageId });
-    log.info({ announcementId: id, messageId }, 'Announcement published');
+    await posts.update(id, { messageIds });
+    log.info({ announcementId: id, messageIds }, 'Announcement published');
 
-    return { ...claimed, messageId };
+    return { ...claimed, messageIds };
   };
 
   const publishJob = defineJob({
@@ -250,20 +259,46 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         content: changes.content,
       };
 
-      announcementView(updated);
+      const parts = announcementView(updated).map((message) => ({
+        ...message,
+        mentions: {},
+      }));
+
+      if (post.status !== 'published' || post.messageIds.length === 0) {
+        await posts.update(id, {
+          title: updated.title,
+          content: updated.content,
+        });
+
+        return updated;
+      }
+
+      const messageIds: string[] = [];
+
+      await sequential(parts.entries(), async ([index, part]) => {
+        const existing = post.messageIds[index];
+
+        if (existing === undefined) {
+          const sent = await messenger.send(post.channelId, part);
+
+          messageIds.push(sent.messageId);
+        } else {
+          await messenger.edit(post.channelId, existing, part);
+          messageIds.push(existing);
+        }
+      });
+      await Promise.all(
+        post.messageIds
+          .slice(parts.length)
+          .map((messageId) => messenger.remove(post.channelId, messageId)),
+      );
       await posts.update(id, {
         title: updated.title,
         content: updated.content,
+        messageIds,
       });
 
-      if (post.status === 'published' && post.messageId !== null) {
-        await messenger.edit(post.channelId, post.messageId, {
-          ...announcementView(updated),
-          mentions: {},
-        });
-      }
-
-      return updated;
+      return { ...updated, messageIds };
     },
     publish: guard(authz, 'announcement:publish', async (actor, id: number) => {
       const post = await requireReadable(actor, id);

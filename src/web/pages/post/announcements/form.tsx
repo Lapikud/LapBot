@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx';
 import type { Permission } from '~/core/permission';
+import { maxAnnouncementLength } from '~/features/announcements/service';
 import { FormActions } from '~/web/components/actions';
 import { Input, Textarea } from '~/web/components/controls';
 import { ChannelSelect } from '~/web/components/selectors';
@@ -40,7 +41,7 @@ export function Composer({
         label="Message"
         name="content"
         rows={8}
-        maxlength={1900}
+        maxlength={maxAnnouncementLength}
         required
       >
         {draft?.content}

@@ -14,7 +14,13 @@ import {
   maxAnnouncementLength,
   type AnnouncementService,
 } from '~/features/announcements/service';
-import { channelMention, controlId, type Message } from '~/core/message';
+import {
+  channelMention,
+  controlId,
+  maxContentLength,
+  splitContent,
+  type Message,
+} from '~/core/message';
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
@@ -102,7 +108,17 @@ export function announcementCommands(
     actor: Actor,
     ctx: AppContext,
   ): Promise<Message> => {
-    const view = announcements.view(announcement);
+    const [first, ...rest] = announcements.view(announcement);
+    const heading = `-# Preview for ${channelMention(announcement.channelId)}`;
+    const plural = rest.length === 1 ? '' : 's';
+    const more =
+      rest.length === 0
+        ? ''
+        : `\n-# Continues in ${rest.length} more message${plural}`;
+    const [body = ''] = splitContent(
+      first?.content ?? '',
+      maxContentLength - heading.length - more.length - 1,
+    );
     const action = (name: string) =>
       controlId('announcements:act', announcement.id, name);
     const [canPublish, canSchedule] = await Promise.all([
@@ -111,8 +127,8 @@ export function announcementCommands(
     ]);
 
     return {
-      ...view,
-      content: `-# Preview for ${channelMention(announcement.channelId)}\n${view.content ?? ''}`,
+      ...first,
+      content: `${heading}\n${body}${more}`,
       controls: [
         [
           ...(canPublish

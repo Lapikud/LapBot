@@ -14,7 +14,7 @@ export interface Announcement extends Post {
   status: AnnouncementStatus;
   scheduledAt: Date | null;
   publishedAt: Date | null;
-  messageId: string | null;
+  messageIds: string[];
   failure: string | null;
   createdAt: Date;
 }

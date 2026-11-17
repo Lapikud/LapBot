@@ -19,7 +19,7 @@ CREATE TABLE "announcements" (
 	"status" "announcement_status" DEFAULT 'draft' NOT NULL,
 	"scheduled_at" timestamp with time zone,
 	"published_at" timestamp with time zone,
-	"message_id" text,
+	"message_ids" text[] DEFAULT '{}' NOT NULL,
 	"failure" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
