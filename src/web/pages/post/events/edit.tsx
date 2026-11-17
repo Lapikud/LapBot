@@ -31,6 +31,15 @@ export function EditEventPage({ event, time, can, flash }: Readonly<Props>) {
         </fieldset>
         <button type="submit">Save changes</button>
       </form>
+      {can.has('event:calendar:publish') && (
+        <form method="post" action={`/post/events/${event.id}/calendar`}>
+          <button type="submit">
+            {event.calendarEventId === null
+              ? 'Also add to calendar'
+              : 'Retry calendar sync'}
+          </button>
+        </form>
+      )}
     </Layout>
   );
 }

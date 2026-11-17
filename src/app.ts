@@ -1,4 +1,7 @@
+import { createEventSuggestionService } from '~/features/event-suggestions/service';
 import { configureApplicationAdminRole } from '~/discord/interactions/actor';
+import { createPostgresInfrastructure } from '~/integrations/db/infrastructure';
+import type { AppInfrastructure } from '~/infrastructure';
 import { randomBytes } from 'node:crypto';
 import { Events, type Client } from 'discord.js';
 import type { Config } from '~/config/env';
@@ -31,8 +34,6 @@ import { createRoleService, type LegacyPanel } from '~/features/roles/service';
 import type { AppContext, Feature } from '~/discord/contracts';
 import type { Logger } from 'pino';
 import type { LogStore } from '~/integrations/logging/store';
-import { PgBoss } from 'pg-boss';
-import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
 import { systemClock } from '~/core/helpers/clock';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Directory } from '~/core/ports/directory';
@@ -41,15 +42,6 @@ import { webAccess } from '~/core/permission';
 import { createWebApp } from '~/web/app';
 import { startWebServer } from '~/web/server';
 import type { WebServices } from '~/web/context';
-import { connectDatabase, runMigrations } from '~/integrations/db/client';
-import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
-import { createEventRepository } from '~/integrations/db/events/repository';
-import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
-import { createGrantRepository } from '~/integrations/db/permissions/repository';
-import { createMovieRepository } from '~/integrations/db/movies/repository';
-import { createPollRepository } from '~/integrations/db/polls/repository';
-import { createReminderRepository } from '~/integrations/db/reminders/repository';
-import { createRolePanelRepository } from '~/integrations/db/roles/repository';
 import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
 
 function legacyPanel(config: Config): LegacyPanel | undefined {
@@ -70,27 +62,35 @@ function legacyPanel(config: Config): LegacyPanel | undefined {
   return { channelId, roles };
 }
 
-export function compose(config: Config, log: Logger) {
-  configureApplicationAdminRole(config.JUHATUS_ROLE_ID, config.DISCORD_GUILD_ID);
-  const database = connectDatabase(config.DATABASE_URL);
+export function compose(
+  config: Config,
+  log: Logger,
+  infrastructure: AppInfrastructure = createPostgresInfrastructure(
+    config.DATABASE_URL,
+    log,
+  ),
+) {
+  configureApplicationAdminRole(
+    config.JUHATUS_ROLE_ID,
+    config.DISCORD_GUILD_ID,
+  );
   const client = createClient();
-  const grants = createGrantRepository(database.db);
+  const grants = infrastructure.repositories.grants;
   const authz = createAuthorizer(grants);
   const directory = createDiscordDirectory(client);
   const messenger = createDiscordMessenger(client);
   const legacy = legacyPanel(config);
   const roles = createRoleService({
-    panels: createRolePanelRepository(database.db),
+    panels: infrastructure.repositories.roles,
     directory,
     messenger,
     log: log.child({ service: 'roles' }),
     ...(legacy && { legacy }),
   });
   const timezone = config.DEFAULT_TIMEZONE;
-  const boss = new PgBoss({ connectionString: config.DATABASE_URL });
-  const scheduler = createJobQueue(boss);
+  const scheduler = infrastructure.scheduler;
   const reminders = createReminderService({
-    reminders: createReminderRepository(database.db),
+    reminders: infrastructure.repositories.reminders,
     scheduler,
     messenger,
     directory,
@@ -98,7 +98,7 @@ export function compose(config: Config, log: Logger) {
     timezone,
   });
   const announcements = createAnnouncementService({
-    posts: createAnnouncementRepository(database.db),
+    posts: infrastructure.repositories.announcements,
     scheduler,
     messenger,
     directory,
@@ -107,8 +107,14 @@ export function compose(config: Config, log: Logger) {
     clock: systemClock,
     timezone,
   });
+  const eventSuggestions = createEventSuggestionService({
+    suggestions: infrastructure.repositories.eventSuggestions,
+    authz,
+    directory,
+    messenger,
+  });
   const events = createEventService({
-    events: createEventRepository(database.db),
+    events: infrastructure.repositories.events,
     scheduler,
     messenger,
     ...(config.GOOGLE_CALENDAR_ID !== undefined &&
@@ -124,7 +130,7 @@ export function compose(config: Config, log: Logger) {
     timezone,
   });
   const polls = createPollService({
-    polls: createPollRepository(database.db),
+    polls: infrastructure.repositories.polls,
     scheduler,
     messenger,
     directory,
@@ -137,14 +143,14 @@ export function compose(config: Config, log: Logger) {
       config.TMDB_ACCESS_TOKEN === undefined
         ? undefined
         : createTmdbCatalog(config.TMDB_ACCESS_TOKEN),
-    movies: createMovieRepository(database.db),
+    movies: infrastructure.repositories.movies,
     polls,
     events,
     authz,
     timezone,
   });
   const birthdays = createBirthdayService({
-    birthdays: createBirthdayRepository(database.db),
+    birthdays: infrastructure.repositories.birthdays,
     scheduler,
     messenger,
     directory,
@@ -171,7 +177,7 @@ export function compose(config: Config, log: Logger) {
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),
-    eventCommands(events, directory, timezone),
+    eventCommands(events, directory, timezone, eventSuggestions),
     birthdayCommands(birthdays),
     pollCommands(polls, directory),
     movieCommands(movies),
@@ -194,14 +200,14 @@ export function compose(config: Config, log: Logger) {
   }
 
   return {
-    database,
-    boss,
+    infrastructure,
     client,
     authz,
     registry,
     directory,
     jobs: runnerJobs,
     web: {
+      eventSuggestions,
       announcements,
       events,
       polls,
@@ -275,20 +281,16 @@ export async function startApp(
   log: Logger,
   logs: LogStore,
 ): Promise<() => Promise<void>> {
-  const { database, boss, client, authz, registry, directory, jobs, web } =
+  const { infrastructure, client, authz, registry, directory, jobs, web } =
     compose(config, log);
   const jobLog = log.child({ component: 'scheduler' });
 
-  boss.on('error', (error) => {
-    jobLog.error({ error }, 'Job queue error');
-  });
-
   try {
-    await runMigrations(database.db);
-    await boss.start();
+    await infrastructure.migrate();
+    await infrastructure.start();
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
 
-    await startJobs(boss, jobs.values(), jobLog);
+    await infrastructure.startJobs(jobs.values(), jobLog);
 
     await registerCommands(registry, {
       token: config.DISCORD_TOKEN,
@@ -352,14 +354,14 @@ export async function startApp(
     return async () => {
       client.removeAllListeners(Events.InteractionCreate);
       await stopWeb();
-      await boss.stop();
+      await infrastructure.stop();
       await client.destroy();
-      await database.close();
+      await infrastructure.close();
     };
   } catch (error) {
-    await boss.stop().catch(() => null);
+    await infrastructure.stop().catch(() => null);
     await client.destroy();
-    await database.close();
+    await infrastructure.close();
     throw error;
   }
 }

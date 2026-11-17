@@ -1,3 +1,4 @@
+import type { EventSuggestionService } from '~/features/event-suggestions/service';
 import { visibleRecords } from '~/core/helpers/visibility';
 import {
   ChannelType,
@@ -33,6 +34,24 @@ const data = new SlashCommandBuilder()
   .setName('event')
   .setDescription('Organise events')
   .setContexts(InteractionContextType.Guild)
+  .addSubcommand((sub) =>
+    sub
+      .setName('suggest')
+      .setDescription('Suggest an event idea')
+      .addStringOption((o) =>
+        o
+          .setName('text')
+          .setDescription('Your idea')
+          .setRequired(true)
+          .setMaxLength(1500),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName('calendar')
+      .setDescription('Also post an event to the club calendar')
+      .addIntegerOption(idOption),
+  )
   .addSubcommand((sub) =>
     sub
       .setName('create')
@@ -160,6 +179,7 @@ export function eventCommands(
   events: EventService,
   directory: Directory,
   timezone: string,
+  suggestions: EventSuggestionService,
 ): Feature {
   const rsvp: ComponentHandler = {
     prefix: 'events:rsvp',
@@ -190,7 +210,15 @@ export function eventCommands(
   return {
     name: 'events',
     permissions: [
+      {
+        id: 'event:suggestions:manage',
+        description: 'Review event suggestions',
+      },
       { id: 'event:create', description: 'Create events' },
+      {
+        id: 'event:calendar:publish',
+        description: 'Crosspost events to the club calendar',
+      },
       { id: 'event:manage', description: 'Edit and cancel any event' },
     ],
     components: [rsvp],
@@ -199,6 +227,31 @@ export function eventCommands(
         data: data.toJSON(),
         permissions: { create: 'event:create' },
         execute: bySubcommand({
+          suggest: deferred(async (interaction) => {
+            const result = await suggestions.suggest(
+              toActor(interaction.member),
+              interaction.channelId,
+              interaction.options.getString('text', true),
+            );
+
+            await respond(
+              interaction,
+              result.posted
+                ? 'Your event suggestion was saved and posted.'
+                : 'Your suggestion was saved, but could not be posted publicly.',
+            );
+          }),
+          calendar: deferred(async (interaction) => {
+            const event = await events.crosspost(
+              toActor(interaction.member),
+              interaction.options.getInteger('id', true),
+            );
+
+            await respond(
+              interaction,
+              `Event #${event.id} posted to the calendar.`,
+            );
+          }),
           create: deferred(async (interaction) => {
             const capacity = interaction.options.getInteger('capacity');
             const icons = interaction.options.getBoolean('icons');

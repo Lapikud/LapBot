@@ -1,3 +1,5 @@
+import { applicationAdmin, webAccess } from '~/core/permission';
+import { eventSuggestionRoutes } from '~/web/pages/post/event-suggestions/routes';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
@@ -7,7 +9,6 @@ import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
-import { applicationAdmin, webAccess } from '~/core/permission';
 import { signedInUser, signInPages } from './auth';
 import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
 import { back, serverOf, type Env, type WebDeps } from './context';
@@ -92,7 +93,22 @@ export function createWebApp(deps: WebDeps) {
       ...services.permissions.catalogue().map(({ id }) => id),
     ]);
 
-    if (!can.has(webAccess)) {
+    if (
+      c.req.path === '/' &&
+      !can.has(webAccess) &&
+      can.has('event:suggestions:manage')
+    ) {
+      return c.redirect('/post/event-suggestions', 303);
+    }
+
+    if (
+      !can.has(webAccess) &&
+      !(
+        can.has('event:suggestions:manage') &&
+        (c.req.path === '/post/event-suggestions' ||
+          c.req.path.startsWith('/post/event-suggestions/'))
+      )
+    ) {
       return c.html(
         <StatusPage
           title="No access yet"
@@ -142,6 +158,7 @@ export function createWebApp(deps: WebDeps) {
 
   app.route('/', overviewRoutes(deps));
   app.route('/post/announcements', announcementRoutes(deps));
+  app.route('/post/event-suggestions', eventSuggestionRoutes(deps));
   app.route('/post/events', eventRoutes(deps));
   app.route('/post/polls', pollRoutes(deps));
   app.route('/forms/birthdays', birthdayRoutes(deps));

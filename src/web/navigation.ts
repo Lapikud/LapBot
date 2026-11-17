@@ -26,6 +26,11 @@ export const sections: readonly Section[] = [
         permission: 'announcement:create',
       },
       { href: '/post/events', label: 'Events' },
+      {
+        href: '/post/event-suggestions',
+        label: 'Event suggestions',
+        permission: 'event:suggestions:manage',
+      },
       { href: '/post/polls', label: 'Polls' },
     ],
   },

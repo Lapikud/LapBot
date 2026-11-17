@@ -1,3 +1,5 @@
+import { createEventSuggestionService } from '~/features/event-suggestions/service';
+import { createEventSuggestionRepository } from '~/integrations/db/event-suggestions/repository';
 import {
   describe,
   expect,
@@ -612,6 +614,12 @@ describe('dashboard access', () => {
         log: silentLog,
         logs: createLogStore(':memory:'),
         services: {
+          eventSuggestions: createEventSuggestionService({
+            suggestions: createEventSuggestionRepository(db),
+            authz,
+            directory,
+            messenger,
+          }),
           roles: createRoleService({
             panels: createRolePanelRepository(db),
             directory,
@@ -908,6 +916,7 @@ describe('private records in Discord', () => {
         { upcoming: async () => records } as unknown as EventService,
         directory,
         'UTC',
+        {} as ReturnType<typeof createEventSuggestionService>,
       ),
       pollCommands(
         { open: async () => records } as unknown as PollService,

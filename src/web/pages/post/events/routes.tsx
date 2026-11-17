@@ -77,7 +77,10 @@ export function eventRoutes({
           server={c.var.server}
           can={c.var.can}
           flash={flashOf(c)}
-          calendar={services.events.calendarEnabled}
+          calendar={
+            services.events.calendarEnabled &&
+            allows(c, 'event:calendar:publish')
+          }
           {...(day && { day })}
         />,
       );
@@ -125,6 +128,15 @@ export function eventRoutes({
       );
 
       return back(c, '/post/events', { notice: `Event #${id} updated.` });
+    })
+    .post(String.raw`/:id{\d+}/calendar`, async (c) => {
+      const id = Number(c.req.param('id'));
+
+      await services.events.crosspost(c.var.actor, id);
+
+      return back(c, '/post/events', {
+        notice: `Event #${id} posted to the calendar.`,
+      });
     })
     .post(String.raw`/:id{\d+}/cancel`, async (c) => {
       const id = Number(c.req.param('id'));

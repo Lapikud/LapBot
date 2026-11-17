@@ -1,3 +1,4 @@
+import type { EventSuggestionService } from '~/features/event-suggestions/service';
 import type { LogStore } from '~/integrations/logging/store';
 import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
@@ -17,6 +18,7 @@ import type { Permission } from '~/core/permission';
 import type { SignIn } from './auth';
 
 export interface WebServices {
+  eventSuggestions: EventSuggestionService;
   roles: RoleService;
   announcements: AnnouncementService;
   events: EventService;

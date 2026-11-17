@@ -239,7 +239,9 @@ export function createEventService(deps: Deps) {
     } catch (error) {
       log.warn({ error, eventId: event.id }, 'Could not sync Google Calendar');
 
-      return event.calendarEventId;
+      throw new UserError(
+        'Calendar synchronization failed. The Discord event is saved; retry calendar posting.',
+      );
     }
   };
 
@@ -271,11 +273,13 @@ export function createEventService(deps: Deps) {
           },
     );
 
-    event = await events.update(event.id, {
-      messageId: sent.messageId,
-      calendarEventId: synced ? await syncCalendar(event) : null,
-    });
+    event = await events.update(event.id, { messageId: sent.messageId });
     await scheduleReminders(event);
+    if (synced) {
+      event = await events.update(event.id, {
+        calendarEventId: await syncCalendar(event),
+      });
+    }
 
     return event;
   };
@@ -314,6 +318,23 @@ export function createEventService(deps: Deps) {
   return {
     jobs: [remindJob],
     calendarEnabled: calendar !== undefined,
+    crosspost: async (actor: Actor, id: number) => {
+      await authz.require(actor, 'event:calendar:publish');
+      const event = await requireEvent(actor, id);
+
+      if (event.status !== 'scheduled') {
+        throw new UserError('Cancelled events cannot be crossposted.');
+      }
+
+      await requireCalendarChannel(actor, event.channelId);
+      if (calendar === undefined) {
+        throw new UserError('The club Google Calendar is not set up.');
+      }
+
+      const calendarEventId = await syncCalendar(event);
+
+      return events.update(id, { calendarEventId });
+    },
     get: requireEvent,
     view: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
@@ -372,6 +393,7 @@ export function createEventService(deps: Deps) {
       await requirePostable(actor, request.channelId);
 
       if (request.calendar === true) {
+        await authz.require(actor, 'event:calendar:publish');
         await requireCalendarChannel(actor, request.channelId);
       }
 
@@ -429,6 +451,10 @@ export function createEventService(deps: Deps) {
         throw new UserError('Cancelled events cannot be edited.');
       }
 
+      if (needsCalendarPermission(event, changes)) {
+        await authz.require(actor, 'event:calendar:publish');
+      }
+
       const startsAt =
         changes.start === undefined
           ? event.startsAt
@@ -468,14 +494,15 @@ export function createEventService(deps: Deps) {
 
       let updated = await events.update(event.id, updates);
 
+      await refresh(updated);
+      await scheduleReminders(updated, event.reminderMinutes);
+
       if (updated.calendarEventId !== null) {
         updated = await events.update(event.id, {
           calendarEventId: await syncCalendar(updated),
         });
       }
 
-      await refresh(updated);
-      await scheduleReminders(updated, event.reminderMinutes);
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event edited');
 
       return updated;
@@ -511,3 +538,12 @@ export function createEventService(deps: Deps) {
 }
 
 export type EventService = ReturnType<typeof createEventService>;
+
+function needsCalendarPermission(event: Event, changes: EventChanges): boolean {
+  return (
+    event.calendarEventId !== null &&
+    ['title', 'description', 'start', 'end', 'location'].some(
+      (key) => key in changes,
+    )
+  );
+}
