@@ -8,3 +8,4 @@ export * from './poll';
 export * from './movie';
 export * from './birthday';
 export * from './issue';
+export * from './forms';

@@ -4,3 +4,6 @@ coverage
 pnpm-lock.yaml
 drizzle/meta
 PLAN.md
+
+# Ignored execution artifacts
+.superpowers
