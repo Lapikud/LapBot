@@ -20,6 +20,57 @@ describe('parseWhen', () => {
     expect(parseWhen(input, zone, now).getTime()).toBe(now.getTime() + offset);
   });
 
+  const durationUnits: Array<[string[], number]> = [
+    [['ms', 'millisec', 'millisecs', 'millisecond', 'milliseconds'], 1],
+    [['s', 'sec', 'secs', 'second', 'seconds'], 1_000],
+    [['m', 'min', 'mins', 'minute', 'minutes'], 60_000],
+    [['h', 'hr', 'hrs', 'hour', 'hours'], 3_600_000],
+    [['d', 'day', 'days'], 86_400_000],
+    [['w', 'wk', 'wks', 'week', 'weeks'], 604_800_000],
+    [['mo', 'mos', 'mth', 'mths', 'month', 'months'], 2_629_800_000],
+    [['y', 'yr', 'yrs', 'year', 'years'], 31_557_600_000],
+  ];
+
+  it.each(
+    durationUnits.flatMap(([aliases, milliseconds]) =>
+      aliases.map((alias) => [`2 ${alias}`, 2 * milliseconds] as const),
+    ),
+  )('reads duration aliases in "%s"', (input, offset) => {
+    expect(parseWhen(input, zone, now).getTime()).toBe(now.getTime() + offset);
+  });
+
+  it.each([
+    ['IN 1 WEEK 2 DAYS 3 HRS 4 MINS', 9 * 86_400_000 + 184 * 60_000],
+    ['2 hours 30 minutes', 150 * 60_000],
+    ['1 hour, 30 minutes and 5 seconds', 5_405_000],
+    ['1.5 hours', 5_400_000],
+    ['.5 hours', 1_800_000],
+    ['0m', 0],
+  ])('reads compound and fractional durations "%s"', (input, offset) => {
+    expect(parseWhen(input, zone, now).getTime()).toBe(now.getTime() + offset);
+  });
+
+  it.each([
+    '1 minutely',
+    '1 hourly',
+    '1 week junk',
+    '1hr 2garbage',
+    '-1 hour',
+    '1 hour -30 minutes',
+    '1 hr 30',
+    '1000000000000 years',
+    'Infinity hours',
+    'NaN hours',
+  ])('rejects invalid durations "%s"', (input) => {
+    expect(() => parseWhen(input, zone, now)).toThrow(UserError);
+  });
+
+  it('rejects oversized duration expressions', () => {
+    expect(() => parseWhen('0 minutes '.repeat(11), zone, now)).toThrow(
+      UserError,
+    );
+  });
+
   it('reads absolute times in the given zone', () => {
     expect(parseWhen('2026-11-20 18:00', zone, now).toISOString()).toBe(
       '2026-11-20T16:00:00.000Z',

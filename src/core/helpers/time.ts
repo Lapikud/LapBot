@@ -1,3 +1,4 @@
+import parseDuration from 'parse-duration';
 import { TZDate, tz } from '@date-fns/tz';
 import {
   addDays,
@@ -9,13 +10,6 @@ import {
   set,
 } from 'date-fns';
 import { UserError } from '~/core/errors';
-
-const unitMs: Partial<Record<string, number>> = {
-  w: 604_800_000,
-  d: 86_400_000,
-  h: 3_600_000,
-  m: 60_000,
-};
 
 const absoluteFormats = [
   'yyyy-MM-dd HH:mm',
@@ -66,25 +60,37 @@ export function requireZone(zone: string): string {
 }
 
 function parseRelative(input: string, now: Date): Date | undefined {
-  const compact = input
-    .trim()
-    .replace(/^in\s+/i, '')
-    .replaceAll(/\s+/g, '');
-
-  if (!/^(?:\d+[wdhm])+$/i.test(compact)) {
+  if (input.length > 100) {
     return undefined;
   }
 
-  const total = compact
-    .toLowerCase()
-    .split(/(?<=[wdhm])/)
-    .reduce(
-      (sum, part) =>
-        sum + Number(part.slice(0, -1)) * (unitMs[part.slice(-1)] ?? 0),
-      0,
-    );
+  const text = input
+    .trim()
+    .replace(/^in\s+/i, '')
+    .replaceAll(/\band\b|,/gi, ' ')
+    .trim();
+  const parts = text.split(/(?<=\p{L})\s*(?=[\d.])/u);
 
-  return new Date(now.getTime() + total);
+  let total = 0;
+
+  for (const part of parts) {
+    // Consume the whole segment: the library also accepts noisy partial input.
+    if (!/^(?:\d+(?:\.\d+)?|\.\d+)\s*\p{L}+$/u.test(part)) {
+      return undefined;
+    }
+
+    const duration = parseDuration(part);
+
+    if (duration === null || !Number.isFinite(duration)) {
+      return undefined;
+    }
+
+    total += duration;
+  }
+
+  const date = new Date(now.getTime() + total);
+
+  return isValid(date) ? date : undefined;
 }
 
 function parseClockFields(

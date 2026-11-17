@@ -6,15 +6,15 @@ import {
   nextDailyRun,
 } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
-import {
-  IntegrationError,
-} from '~/core/ports/issue-tracker';
+import { IntegrationError } from '~/core/ports/issue-tracker';
 import { issueNotifications } from './rules';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
-import type { IssueTracker,
+import type {
+  IssueTracker,
   IssueStatus,
-  Notification } from '~/core/ports/issue-tracker';
+  Notification,
+} from '~/core/ports/issue-tracker';
 import { type Job, type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
 import type { Logger } from '~/core/ports/logger';
