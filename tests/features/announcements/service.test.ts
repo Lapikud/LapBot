@@ -175,7 +175,7 @@ describe.skipIf(noDatabase)('managed post API', () => {
     expect((await posts.find(post.id))?.messageId).toBeDefined();
   });
 
-  it('keeps legacy queued jobs keys future retries and lateness handling', async () => {
+  it('keeps queued job keys, future retries and lateness handling', async () => {
     const { service, author, posts, scheduler, messenger, advance, draft } =
       await setup();
     const post = await draft();

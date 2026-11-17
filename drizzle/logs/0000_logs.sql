@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `logs` (
+CREATE TABLE `logs` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`time` integer NOT NULL,
 	`level` integer NOT NULL,

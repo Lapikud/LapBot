@@ -1,219 +1,9 @@
 {
-  "id": "80864efc-f688-4b13-b99f-0388ac6e9a92",
+  "id": "1d460a03-aff7-4554-bad5-5d7ec5ff2ef2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.role_permissions": {
-      "name": "role_permissions",
-      "schema": "",
-      "columns": {
-        "guild_id": {
-          "name": "guild_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "permission": {
-          "name": "permission",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "granted_by": {
-          "name": "granted_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "granted_at": {
-          "name": "granted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "role_permissions_guild_id_role_id_permission_pk": {
-          "name": "role_permissions_guild_id_role_id_permission_pk",
-          "columns": ["guild_id", "role_id", "permission"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.scheduled_jobs": {
-      "name": "scheduled_jobs",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "bigserial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "run_at": {
-          "name": "run_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "job_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "max_attempts": {
-          "name": "max_attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 5
-        },
-        "locked_until": {
-          "name": "locked_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "scheduled_jobs_due_idx": {
-          "name": "scheduled_jobs_due_idx",
-          "columns": [
-            {
-              "expression": "run_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"scheduled_jobs\".\"status\" = 'pending'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "scheduled_jobs_lease_idx": {
-          "name": "scheduled_jobs_lease_idx",
-          "columns": [
-            {
-              "expression": "locked_until",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"scheduled_jobs\".\"status\" = 'running'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "scheduled_jobs_key_unique": {
-          "name": "scheduled_jobs_key_unique",
-          "nullsNotDistinct": false,
-          "columns": ["key"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.guild_settings": {
-      "name": "guild_settings",
-      "schema": "",
-      "columns": {
-        "guild_id": {
-          "name": "guild_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.announcements": {
       "name": "announcements",
       "schema": "",
@@ -254,18 +44,19 @@
           "primaryKey": false,
           "notNull": true
         },
-        "embed": {
-          "name": "embed",
+        "mention_role_ids": {
+          "name": "mention_role_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "mention_everyone": {
+          "name": "mention_everyone",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
-        },
-        "mention_role_id": {
-          "name": "mention_role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "default": false
         },
         "status": {
           "name": "status",
@@ -451,7 +242,10 @@
       "compositePrimaryKeys": {
         "birthdays_guild_id_user_id_pk": {
           "name": "birthdays_guild_id_user_id_pk",
-          "columns": ["guild_id", "user_id"]
+          "columns": [
+            "guild_id",
+            "user_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -518,8 +312,12 @@
           "name": "event_rsvps_event_id_events_id_fk",
           "tableFrom": "event_rsvps",
           "tableTo": "events",
-          "columnsFrom": ["event_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -527,7 +325,10 @@
       "compositePrimaryKeys": {
         "event_rsvps_event_id_user_id_pk": {
           "name": "event_rsvps_event_id_user_id_pk",
-          "columns": ["event_id", "user_id"]
+          "columns": [
+            "event_id",
+            "user_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -623,6 +424,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
+        },
+        "icons": {
+          "name": "icons",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "discord_event_id": {
           "name": "discord_event_id",
@@ -758,8 +566,12 @@
           "name": "movie_screenings_suggestion_id_movie_suggestions_id_fk",
           "tableFrom": "movie_screenings",
           "tableTo": "movie_suggestions",
-          "columnsFrom": ["suggestion_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "suggestion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -816,6 +628,37 @@
           "primaryKey": false,
           "notNull": true
         },
+        "tmdb_id": {
+          "name": "tmdb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "overview": {
+          "name": "overview",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "poster_url": {
+          "name": "poster_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trailer_url": {
+          "name": "trailer_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "links": {
+          "name": "links",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -848,7 +691,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"movie_suggestions\".\"removed_at\" IS NULL",
+          "where": "\"movie_suggestions\".\"removed_at\" is null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -856,6 +699,59 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.role_permissions": {
+      "name": "role_permissions",
+      "schema": "",
+      "columns": {
+        "guild_id": {
+          "name": "guild_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permission": {
+          "name": "permission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted_by": {
+          "name": "granted_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted_at": {
+          "name": "granted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "role_permissions_guild_id_role_id_permission_pk": {
+          "name": "role_permissions_guild_id_role_id_permission_pk",
+          "columns": [
+            "guild_id",
+            "role_id",
+            "permission"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -894,6 +790,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -902,8 +804,12 @@
           "name": "poll_options_poll_id_polls_id_fk",
           "tableFrom": "poll_options",
           "tableTo": "polls",
-          "columnsFrom": ["poll_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "poll_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -913,7 +819,10 @@
         "poll_options_position_unique": {
           "name": "poll_options_position_unique",
           "nullsNotDistinct": false,
-          "columns": ["poll_id", "position"]
+          "columns": [
+            "poll_id",
+            "position"
+          ]
         }
       },
       "policies": {},
@@ -972,8 +881,12 @@
           "name": "poll_votes_poll_id_polls_id_fk",
           "tableFrom": "poll_votes",
           "tableTo": "polls",
-          "columnsFrom": ["poll_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "poll_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -981,8 +894,12 @@
           "name": "poll_votes_option_id_poll_options_id_fk",
           "tableFrom": "poll_votes",
           "tableTo": "poll_options",
-          "columnsFrom": ["option_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "option_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -990,7 +907,11 @@
       "compositePrimaryKeys": {
         "poll_votes_poll_id_user_id_option_id_pk": {
           "name": "poll_votes_poll_id_user_id_option_id_pk",
-          "columns": ["poll_id", "user_id", "option_id"]
+          "columns": [
+            "poll_id",
+            "user_id",
+            "option_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1145,50 +1066,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.redmine_links": {
-      "name": "redmine_links",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "redmine_user_id": {
-          "name": "redmine_user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "redmine_login": {
-          "name": "redmine_login",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "encrypted_api_key": {
-          "name": "encrypted_api_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "linked_at": {
-          "name": "linked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.redmine_notifications": {
       "name": "redmine_notifications",
       "schema": "",
@@ -1219,8 +1096,12 @@
           "name": "redmine_notifications_subscription_id_redmine_subscriptions_id_fk",
           "tableFrom": "redmine_notifications",
           "tableTo": "redmine_subscriptions",
-          "columnsFrom": ["subscription_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1228,7 +1109,10 @@
       "compositePrimaryKeys": {
         "redmine_notifications_subscription_id_key_pk": {
           "name": "redmine_notifications_subscription_id_key_pk",
-          "columns": ["subscription_id", "key"]
+          "columns": [
+            "subscription_id",
+            "key"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1291,7 +1175,10 @@
         "redmine_subscriptions_unique": {
           "name": "redmine_subscriptions_unique",
           "nullsNotDistinct": false,
-          "columns": ["channel_id", "project_id"]
+          "columns": [
+            "channel_id",
+            "project_id"
+          ]
         }
       },
       "policies": {},
@@ -1450,8 +1337,12 @@
           "name": "role_panel_roles_panel_id_role_panels_id_fk",
           "tableFrom": "role_panel_roles",
           "tableTo": "role_panels",
-          "columnsFrom": ["panel_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "panel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1459,7 +1350,10 @@
       "compositePrimaryKeys": {
         "role_panel_roles_panel_id_role_id_pk": {
           "name": "role_panel_roles_panel_id_role_id_pk",
-          "columns": ["panel_id", "role_id"]
+          "columns": [
+            "panel_id",
+            "role_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1567,7 +1461,9 @@
         "role_panels_message_id_unique": {
           "name": "role_panels_message_id_unique",
           "nullsNotDistinct": false,
-          "columns": ["message_id"]
+          "columns": [
+            "message_id"
+          ]
         }
       },
       "policies": {},
@@ -1576,62 +1472,85 @@
     }
   },
   "enums": {
-    "public.job_status": {
-      "name": "job_status",
-      "schema": "public",
-      "values": ["pending", "running", "done", "failed", "cancelled"]
-    },
     "public.announcement_status": {
       "name": "announcement_status",
       "schema": "public",
       "values": [
         "draft",
         "scheduled",
-        "publishing",
         "published",
-        "cancelled",
-        "failed"
+        "cancelled"
       ]
     },
     "public.birthday_visibility": {
       "name": "birthday_visibility",
       "schema": "public",
-      "values": ["public", "announce", "private"]
+      "values": [
+        "public",
+        "announce",
+        "private"
+      ]
     },
     "public.event_status": {
       "name": "event_status",
       "schema": "public",
-      "values": ["scheduled", "cancelled"]
+      "values": [
+        "scheduled",
+        "cancelled"
+      ]
     },
     "public.rsvp_status": {
       "name": "rsvp_status",
       "schema": "public",
-      "values": ["going", "maybe", "not_going"]
+      "values": [
+        "going",
+        "maybe",
+        "not_going"
+      ]
     },
     "public.poll_result_visibility": {
       "name": "poll_result_visibility",
       "schema": "public",
-      "values": ["live", "closed"]
+      "values": [
+        "live",
+        "closed"
+      ]
     },
     "public.poll_status": {
       "name": "poll_status",
       "schema": "public",
-      "values": ["open", "closed", "cancelled"]
+      "values": [
+        "open",
+        "closed",
+        "cancelled"
+      ]
     },
     "public.reminder_recurrence": {
       "name": "reminder_recurrence",
       "schema": "public",
-      "values": ["daily", "weekly", "monthly"]
+      "values": [
+        "daily",
+        "weekly",
+        "monthly"
+      ]
     },
     "public.reminder_status": {
       "name": "reminder_status",
       "schema": "public",
-      "values": ["active", "done", "cancelled", "failed"]
+      "values": [
+        "active",
+        "done",
+        "cancelled",
+        "failed"
+      ]
     },
     "public.role_panel_kind": {
       "name": "role_panel_kind",
       "schema": "public",
-      "values": ["reaction", "select"]
+      "values": [
+        "reaction",
+        "select"
+      ]
     }
   },
   "schemas": {},

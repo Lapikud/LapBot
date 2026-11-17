@@ -1,1 +1,0 @@
-ALTER TABLE "poll_options" ADD COLUMN "url" text;

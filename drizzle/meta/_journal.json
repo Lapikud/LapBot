@@ -5,71 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1794742755691,
+      "when": 1794919737910,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794764495086,
-      "tag": "0001_announcement_mentions",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1794821716333,
-      "tag": "0002_drop_guild_settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1794822022773,
-      "tag": "0003_drop_redmine_links",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1794823786228,
-      "tag": "0004_drop_scheduled_jobs",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1794824606678,
-      "tag": "0005_drop_announcement_embed",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1794824856256,
-      "tag": "0006_simplify_announcement_status",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1794825575233,
-      "tag": "0007_event_icons",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1794832230724,
-      "tag": "0008_movie_details",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1794842671835,
-      "tag": "0009_poll_option_links",
       "breakpoints": true
     }
   ]

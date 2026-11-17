@@ -6,7 +6,7 @@ import type { Env } from '~/web/context';
 
 const signIn = { sessionSecret: 'test-secret' } as SignIn;
 
-it('rejects expired, malformed and legacy sessions while accepting a fresh session', async () => {
+it('rejects expired and malformed sessions while accepting a fresh session', async () => {
   const app = new Hono<Env>();
 
   app.get('/cookie', async (c) => {

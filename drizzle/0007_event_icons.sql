@@ -1,1 +1,0 @@
-ALTER TABLE "events" ADD COLUMN "icons" boolean DEFAULT true NOT NULL;

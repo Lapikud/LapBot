@@ -1,45 +1,5 @@
 import { expect, it } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { logs } from '~/integrations/logging/table';
 import { createLogStore } from '~/integrations/logging/store';
-
-it('opens an existing archive without a migration journal and retains its entries', () => {
-  const directory = mkdtempSync(join(tmpdir(), 'lapbot-log-migration-'));
-  const path = join(directory, 'logs.sqlite');
-  const original = new Database(path);
-
-  original.exec(readFileSync(resolve('drizzle/logs/0000_logs.sql'), 'utf8'));
-  drizzle(original)
-    .insert(logs)
-    .values({
-      id: 42,
-      time: 1,
-      level: 30,
-      message: 'Original entry',
-      source: 'app',
-      details: '{}',
-    })
-    .run();
-  original.close();
-  const store = createLogStore(path);
-
-  try {
-    expect(store.page({ level: 10, query: '' }).entries).toMatchObject([
-      { id: 42, message: 'Original entry' },
-    ]);
-    store.write(JSON.stringify({ time: 2, level: 30, msg: 'New entry' }));
-    expect(
-      store.page({ level: 10, query: '' }).entries.map(({ id }) => id),
-    ).toEqual([43, 42]);
-  } finally {
-    store.close();
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
 
 it('searches literal text across fields and paginates matching entries', () => {
   const store = createLogStore(':memory:');

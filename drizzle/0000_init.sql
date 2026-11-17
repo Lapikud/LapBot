@@ -1,5 +1,4 @@
-CREATE TYPE "public"."job_status" AS ENUM('pending', 'running', 'done', 'failed', 'cancelled');--> statement-breakpoint
-CREATE TYPE "public"."announcement_status" AS ENUM('draft', 'scheduled', 'publishing', 'published', 'cancelled', 'failed');--> statement-breakpoint
+CREATE TYPE "public"."announcement_status" AS ENUM('draft', 'scheduled', 'published', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."birthday_visibility" AS ENUM('public', 'announce', 'private');--> statement-breakpoint
 CREATE TYPE "public"."event_status" AS ENUM('scheduled', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."rsvp_status" AS ENUM('going', 'maybe', 'not_going');--> statement-breakpoint
@@ -8,37 +7,6 @@ CREATE TYPE "public"."poll_status" AS ENUM('open', 'closed', 'cancelled');--> st
 CREATE TYPE "public"."reminder_recurrence" AS ENUM('daily', 'weekly', 'monthly');--> statement-breakpoint
 CREATE TYPE "public"."reminder_status" AS ENUM('active', 'done', 'cancelled', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."role_panel_kind" AS ENUM('reaction', 'select');--> statement-breakpoint
-CREATE TABLE "role_permissions" (
-	"guild_id" text NOT NULL,
-	"role_id" text NOT NULL,
-	"permission" text NOT NULL,
-	"granted_by" text NOT NULL,
-	"granted_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "role_permissions_guild_id_role_id_permission_pk" PRIMARY KEY("guild_id","role_id","permission")
-);
---> statement-breakpoint
-CREATE TABLE "scheduled_jobs" (
-	"id" bigserial PRIMARY KEY NOT NULL,
-	"type" text NOT NULL,
-	"payload" jsonb NOT NULL,
-	"run_at" timestamp with time zone NOT NULL,
-	"status" "job_status" DEFAULT 'pending' NOT NULL,
-	"attempts" integer DEFAULT 0 NOT NULL,
-	"max_attempts" integer DEFAULT 5 NOT NULL,
-	"locked_until" timestamp with time zone,
-	"last_error" text,
-	"key" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"finished_at" timestamp with time zone,
-	CONSTRAINT "scheduled_jobs_key_unique" UNIQUE("key")
-);
---> statement-breakpoint
-CREATE TABLE "guild_settings" (
-	"guild_id" text PRIMARY KEY NOT NULL,
-	"timezone" text,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "announcements" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"guild_id" text NOT NULL,
@@ -46,8 +14,8 @@ CREATE TABLE "announcements" (
 	"channel_id" text NOT NULL,
 	"title" text,
 	"content" text NOT NULL,
-	"embed" boolean DEFAULT true NOT NULL,
-	"mention_role_id" text,
+	"mention_role_ids" text[] DEFAULT '{}' NOT NULL,
+	"mention_everyone" boolean DEFAULT false NOT NULL,
 	"status" "announcement_status" DEFAULT 'draft' NOT NULL,
 	"scheduled_at" timestamp with time zone,
 	"published_at" timestamp with time zone,
@@ -96,6 +64,7 @@ CREATE TABLE "events" (
 	"capacity" integer,
 	"mention_role_id" text,
 	"reminder_minutes" integer[] DEFAULT '{}' NOT NULL,
+	"icons" boolean DEFAULT true NOT NULL,
 	"discord_event_id" text,
 	"status" "event_status" DEFAULT 'scheduled' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -120,8 +89,22 @@ CREATE TABLE "movie_suggestions" (
 	"year" smallint,
 	"note" text,
 	"suggested_by" text NOT NULL,
+	"tmdb_id" integer,
+	"overview" text,
+	"poster_url" text,
+	"trailer_url" text,
+	"links" text[] DEFAULT '{}' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"removed_at" timestamp with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "role_permissions" (
+	"guild_id" text NOT NULL,
+	"role_id" text NOT NULL,
+	"permission" text NOT NULL,
+	"granted_by" text NOT NULL,
+	"granted_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "role_permissions_guild_id_role_id_permission_pk" PRIMARY KEY("guild_id","role_id","permission")
 );
 --> statement-breakpoint
 CREATE TABLE "poll_options" (
@@ -130,6 +113,7 @@ CREATE TABLE "poll_options" (
 	"position" integer NOT NULL,
 	"label" text NOT NULL,
 	"ref" text,
+	"url" text,
 	CONSTRAINT "poll_options_position_unique" UNIQUE("poll_id","position")
 );
 --> statement-breakpoint
@@ -155,14 +139,6 @@ CREATE TABLE "polls" (
 	"status" "poll_status" DEFAULT 'open' NOT NULL,
 	"source" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "redmine_links" (
-	"user_id" text PRIMARY KEY NOT NULL,
-	"redmine_user_id" integer NOT NULL,
-	"redmine_login" text NOT NULL,
-	"encrypted_api_key" text NOT NULL,
-	"linked_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "redmine_notifications" (
@@ -225,14 +201,12 @@ ALTER TABLE "poll_votes" ADD CONSTRAINT "poll_votes_poll_id_polls_id_fk" FOREIGN
 ALTER TABLE "poll_votes" ADD CONSTRAINT "poll_votes_option_id_poll_options_id_fk" FOREIGN KEY ("option_id") REFERENCES "public"."poll_options"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "redmine_notifications" ADD CONSTRAINT "redmine_notifications_subscription_id_redmine_subscriptions_id_fk" FOREIGN KEY ("subscription_id") REFERENCES "public"."redmine_subscriptions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "role_panel_roles" ADD CONSTRAINT "role_panel_roles_panel_id_role_panels_id_fk" FOREIGN KEY ("panel_id") REFERENCES "public"."role_panels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "scheduled_jobs_due_idx" ON "scheduled_jobs" USING btree ("run_at") WHERE "scheduled_jobs"."status" = 'pending';--> statement-breakpoint
-CREATE INDEX "scheduled_jobs_lease_idx" ON "scheduled_jobs" USING btree ("locked_until") WHERE "scheduled_jobs"."status" = 'running';--> statement-breakpoint
 CREATE INDEX "announcements_guild_idx" ON "announcements" USING btree ("guild_id","status");--> statement-breakpoint
 CREATE INDEX "birthdays_date_idx" ON "birthdays" USING btree ("guild_id","month","day");--> statement-breakpoint
 CREATE INDEX "event_rsvps_status_idx" ON "event_rsvps" USING btree ("event_id","status");--> statement-breakpoint
 CREATE INDEX "events_guild_start_idx" ON "events" USING btree ("guild_id","starts_at");--> statement-breakpoint
 CREATE INDEX "movie_screenings_guild_idx" ON "movie_screenings" USING btree ("guild_id","watched_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "movie_suggestions_unique_idx" ON "movie_suggestions" USING btree ("guild_id","normalized_title") WHERE "movie_suggestions"."removed_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "movie_suggestions_unique_idx" ON "movie_suggestions" USING btree ("guild_id","normalized_title") WHERE "movie_suggestions"."removed_at" is null;--> statement-breakpoint
 CREATE INDEX "poll_votes_option_idx" ON "poll_votes" USING btree ("option_id");--> statement-breakpoint
 CREATE INDEX "polls_guild_status_idx" ON "polls" USING btree ("guild_id","status");--> statement-breakpoint
 CREATE INDEX "polls_source_idx" ON "polls" USING btree ("guild_id","source","created_at");--> statement-breakpoint

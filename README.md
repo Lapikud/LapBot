@@ -18,6 +18,7 @@ pnpm commands:register        # once, and after changing commands
 pnpm dev
 ```
 
+The initial migration creates the current schema on a fresh database.
 Migrations run automatically when the bot starts. `pnpm db:migrate` runs
 them without starting the bot.
 
@@ -187,7 +188,7 @@ webhooks, so polling is the mechanism.
 | `pnpm test`                                        | Vitest; set `TEST_DATABASE_URL` to run the PostgreSQL tests |
 | `pnpm test:db`                                     | Start isolated PostgreSQL on localhost:5433                 |
 | `pnpm test:integration`                            | Run all tests using `.env.test`                             |
-| `pnpm db:generate`                                 | Create a migration after editing a `schema.ts`              |
+| `pnpm db:generate`                                 | Create a migration after editing a `table.ts`               |
 | `pnpm db:migrate`                                  | Apply migrations                                            |
 | `pnpm commands:register`                           | Register slash commands with Discord                        |
 

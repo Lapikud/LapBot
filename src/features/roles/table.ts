@@ -31,7 +31,7 @@ export const rolePanels = pgTable(
     index('role_panels_guild_idx').on(table.guildId),
     uniqueIndex('role_panels_reaction_channel_idx')
       .on(table.guildId, table.channelId)
-      .where(eq(table.kind, 'reaction')),
+      .where(eq(table.kind, 'reaction').inlineParams()),
   ],
 );
 
