@@ -283,7 +283,7 @@ export function eventCommands(
                 : upcoming
                     .map(
                       (e) =>
-                        `#${e.id} **${e.title}** — ${discordTime(e.startsAt, 'f')}`,
+                        `#${e.id} **${e.title}** - ${discordTime(e.startsAt, 'f')}`,
                     )
                     .join('\n'),
             );
@@ -306,7 +306,7 @@ export function eventCommands(
                 .filter((a) => a.status === status)
                 .map((a) => userMention(a.userId));
 
-              return `**${rsvpLabels[status]} (${ids.length})**\n${ids.join(' ') || '—'}`;
+              return `**${rsvpLabels[status]} (${ids.length})**\n${ids.join(' ') || '-'}`;
             };
 
             await respond(

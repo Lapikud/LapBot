@@ -88,7 +88,7 @@ export function permissionCommands(permissions: PermissionService): Feature {
               ...(role ? [role.id] : []),
             );
             const lines = grants.map(
-              (g) => `${roleMention(g.roleId)} — "${g.permission}"`,
+              (g) => `${roleMention(g.roleId)} - "${g.permission}"`,
             );
 
             await respond(
@@ -112,7 +112,7 @@ export function permissionCommands(permissions: PermissionService): Feature {
               )
               .slice(0, 25)
               .map((p) => ({
-                name: `${p.id} — ${p.description}`.slice(0, 100),
+                name: `${p.id} - ${p.description}`.slice(0, 100),
                 value: p.id,
               })),
           );

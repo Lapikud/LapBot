@@ -187,7 +187,7 @@ export function movieCommands(movies: MovieService): Feature {
                 : list
                     .map((m) =>
                       [
-                        `#${m.id} **${movieLabel(m)}** — ${userMention(m.suggestedBy)}`,
+                        `#${m.id} **${movieLabel(m)}** - ${userMention(m.suggestedBy)}`,
                         linkLine(movieLinks(m)),
                       ]
                         .filter(Boolean)

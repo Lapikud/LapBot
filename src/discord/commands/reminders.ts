@@ -20,7 +20,7 @@ export function describeReminder(reminder: Reminder): string {
     reminder.channelId === null ? 'DM' : channelMention(reminder.channelId);
   const repeat = reminder.recurrence === null ? '' : `, ${reminder.recurrence}`;
 
-  return `#${reminder.id} ${discordTime(reminder.runAt, 'f')} (${where}${repeat}) — ${reminder.message.slice(0, 80)}`;
+  return `#${reminder.id} ${discordTime(reminder.runAt, 'f')} (${where}${repeat}) - ${reminder.message.slice(0, 80)}`;
 }
 
 const remindme = new SlashCommandBuilder()

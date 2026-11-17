@@ -203,7 +203,7 @@ export function pollCommands(
                 : open
                     .map(
                       (p) =>
-                        `#${p.id} ${p.question} — ${channelMention(p.channelId)}`,
+                        `#${p.id} ${p.question} - ${channelMention(p.channelId)}`,
                     )
                     .join('\n'),
             );
@@ -217,7 +217,7 @@ export function pollCommands(
               const names =
                 voters?.get(option.id)?.map((id) => userMention(id)) ?? [];
 
-              return [`**${option.label}** — ${option.votes}`, ...names].join(
+              return [`**${option.label}** - ${option.votes}`, ...names].join(
                 ' ',
               );
             });

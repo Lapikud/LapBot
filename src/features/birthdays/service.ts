@@ -31,7 +31,7 @@ export function describeBirthday(birthday: Birthday): string {
     'd MMMM',
   );
 
-  return `${userMention(birthday.userId)} — ${date}`;
+  return `${userMention(birthday.userId)} - ${date}`;
 }
 
 export const birthdaySignup: Message = {
