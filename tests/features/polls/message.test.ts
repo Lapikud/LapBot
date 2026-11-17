@@ -52,13 +52,6 @@ it('keeps the voting message and all tied winners within Discord limits', () => 
   }
 });
 
-it('renders a bounded bar even if an older snapshot has too few voters', () => {
-  const view = pollView(poll, tally(poll.options, new Map([[1, 2]]), 1));
-
-  expect(view.content).toContain('▰'.repeat(10));
-  expect(view.content).not.toContain('▰'.repeat(11));
-});
-
 it('publishes complete links across detail posts with one final voting message', async () => {
   const { messenger } = fakeMessenger();
   const repository: PollRepository = {

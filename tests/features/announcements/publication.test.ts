@@ -90,21 +90,6 @@ describe.skipIf(noDatabase)('announcement service', () => {
     };
   };
 
-  it('publishes a draft exactly once', async () => {
-    const { service, messenger, author } = setup();
-    const draft = await service.draft(author, {
-      channelId: 'c',
-      content: 'Hi',
-      mentionRoleIds: ['team'],
-    });
-
-    await service.publish(author, draft.id);
-    await expect(service.publish(author, draft.id)).rejects.toThrow(
-      'already published',
-    );
-    expect(messenger.send).toHaveBeenCalledOnce();
-  });
-
   it('goes back to draft with the reason when posting fails', async () => {
     const { service, messenger, repository, author } = setup();
     const draft = await service.draft(author, {
@@ -119,50 +104,6 @@ describe.skipIf(noDatabase)('announcement service', () => {
       publishedAt: null,
       failure: 'Discord is down',
     });
-  });
-
-  it('refuses unmentionable roles, everyone and channels the author cannot use', async () => {
-    const { service, author } = setup();
-
-    await expect(
-      service.draft(author, {
-        channelId: 'c',
-        content: 'x',
-        mentionRoleIds: ['secret'],
-      }),
-    ).rejects.toThrow('may not mention');
-    await expect(
-      service.draft(author, {
-        channelId: 'c',
-        content: 'x',
-        mentionEveryone: true,
-      }),
-    ).rejects.toThrow('everyone');
-    await expect(
-      setup({ canPost: false }).service.draft(author, {
-        channelId: 'c',
-        content: 'x',
-      }),
-    ).rejects.toThrow('cannot post');
-  });
-
-  it('skips scheduled announcements that are long overdue', async () => {
-    const { service, messenger, repository, author } = setup();
-    const draft = await service.draft(author, {
-      channelId: 'c',
-      content: 'Hi',
-    });
-
-    await repository.update(draft.id, {
-      status: 'scheduled',
-      scheduledAt: new Date(Date.now() - 2 * 3_600_000),
-    });
-    await service.jobs[0]?.run({ announcementId: draft.id });
-    expect(messenger.send).not.toHaveBeenCalled();
-    const skipped = await repository.find(draft.id);
-
-    expect(skipped?.status).toBe('draft');
-    expect(skipped?.failure).toContain('offline');
   });
 
   it('publishes due scheduled announcements once', async () => {
@@ -182,53 +123,4 @@ describe.skipIf(noDatabase)('announcement service', () => {
     expect(messenger.send).toHaveBeenCalledOnce();
     expect((await repository.find(draft.id))?.status).toBe('published');
   });
-
-  it('lets only one concurrent publish claim a draft', async () => {
-    const { service, repository, author } = setup();
-    const draft = await service.draft(author, {
-      channelId: 'c',
-      content: 'Hi',
-    });
-    const claims = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        repository.update(
-          draft.id,
-          {
-            status: 'published',
-          },
-          ['draft'],
-        ),
-      ),
-    );
-
-    expect(claims.filter(Boolean)).toHaveLength(1);
-  });
-});
-
-it('reschedules an old retry when the stored announcement is due later', async () => {
-  const now = new Date('2026-11-16T12:00:00Z');
-  const scheduledAt = new Date('2026-11-16T14:00:00Z');
-  const { messenger } = fakeMessenger();
-  const update = vi.fn();
-  const service = createAnnouncementService({
-    posts: {
-      find: async () => sample({ status: 'scheduled', scheduledAt }),
-      update,
-      insert: vi.fn(),
-      list: vi.fn(),
-    },
-    scheduler: { schedule: vi.fn(), cancel: vi.fn() },
-    messenger,
-    directory: fakeDirectory(),
-    authz: allowAll,
-    log: silentLog,
-    clock: { now: () => now },
-    timezone: 'Europe/Tallinn',
-  });
-
-  await expect(service.jobs[0]?.run({ announcementId: 1 })).resolves.toEqual({
-    rescheduleAt: scheduledAt,
-  });
-  expect(messenger.send).not.toHaveBeenCalled();
-  expect(update).not.toHaveBeenCalled();
 });

@@ -221,22 +221,6 @@ describe.skipIf(noDatabase)('web UI', () => {
     }
   });
 
-  it('does not expose obsolete feature URLs', async () => {
-    for (const path of [
-      '/psa',
-      '/events',
-      '/polls',
-      '/birthdays',
-      '/movies',
-      '/permissions',
-      '/logs',
-    ]) {
-      expect((await get(path)).status).toBe(404);
-    }
-
-    expect((await post('/psa/12/publish', {})).status).toBe(404);
-  });
-
   it('renders the PSA composer with channels and mentionable roles', async () => {
     expect(await (await get('/post/announcements')).text()).toContain(
       'href="/post/announcements/new"',

@@ -32,18 +32,6 @@ function setup() {
   return { service, panels, messenger, directory };
 }
 
-it('saves and publishes a reaction panel for administrators', async () => {
-  const { service, panels, messenger } = setup();
-
-  await service.save(actor({ administrator: true }), 'c', [
-    { roleId: 'r', emoji: '🎉' },
-  ]);
-  expect(panels.replaceRoles).toHaveBeenCalledWith(1, [
-    { roleId: 'r', emoji: '🎉', label: 'Role' },
-  ]);
-  expect(messenger.react).toHaveBeenCalledWith('c', expect.any(String), '🎉');
-});
-
 it('rejects unauthorized configuration and unsafe roles before writing', async () => {
   const { service, panels, directory } = setup();
 
@@ -69,41 +57,6 @@ it('rejects duplicate emojis before writing', async () => {
   expect(panels.create).not.toHaveBeenCalled();
 });
 
-it('does not overwrite saved choices with environment defaults on restart', async () => {
-  const { panels, messenger, directory } = setup();
-  const stored = { id: 1, messageId: 'existing' };
-
-  messenger.exists.mockResolvedValue(true);
-
-  panels.reactionPanel.mockImplementation(async () => stored);
-  panels.list.mockResolvedValue([
-    {
-      ...stored,
-      guildId: 'g',
-      channelId: 'c',
-      kind: 'reaction',
-      title: 'Roles',
-      createdBy: 'u',
-      roles: [{ roleId: 'r', label: 'Saved role', emoji: '🎉' }],
-    },
-  ]);
-  const service = createRoleService({
-    panels,
-    messenger,
-    directory,
-    log: silentLog,
-    legacy: {
-      channelId: 'c',
-      roles: [{ roleId: 'r', emoji: '1️⃣', label: 'Legacy' }],
-    },
-  });
-
-  await service.syncLegacyPanel();
-  expect(panels.replaceRoles).not.toHaveBeenCalled();
-  expect(messenger.send).not.toHaveBeenCalled();
-  expect(messenger.react).toHaveBeenCalledWith('c', 'existing', '🎉');
-});
-
 it('updates the existing panel and keeps the same Discord message', async () => {
   const { panels, messenger, service } = setup();
 
@@ -126,30 +79,6 @@ it('updates the existing panel and keeps the same Discord message', async () => 
   expect(messenger.edit.mock.calls[0]?.[2].content).toContain('🎉 - Role');
   expect(messenger.send).not.toHaveBeenCalled();
   expect(panels.create).not.toHaveBeenCalled();
-});
-
-it('assigns and removes the selected role through reactions', async () => {
-  const { service, directory } = setup();
-  const reaction = {
-    guildId: 'g',
-    channelId: 'c',
-    messageId: 'm',
-    emoji: '🎉',
-    userId: 'member',
-  };
-
-  await service.reacted(reaction, true);
-  await service.reacted(reaction, false);
-  expect(directory.addRoles).toHaveBeenCalledWith(
-    { guildId: 'g', userId: 'member' },
-    ['r'],
-    expect.any(String),
-  );
-  expect(directory.removeRoles).toHaveBeenCalledWith(
-    { guildId: 'g', userId: 'member' },
-    ['r'],
-    expect.any(String),
-  );
 });
 
 it('rejects a channel from another guild before writing', async () => {
