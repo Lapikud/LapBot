@@ -3,7 +3,7 @@ import {
   GuildScheduledEventPrivacyLevel,
   type Client,
 } from 'discord.js';
-import type { Calendar } from '~/foundation/calendar';
+import type { Calendar } from '~/core/calendar';
 
 export function createDiscordCalendar(client: Client): Calendar {
   return {

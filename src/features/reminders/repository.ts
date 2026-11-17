@@ -1,6 +1,6 @@
 import { and, asc, count, eq } from 'drizzle-orm';
 import type { Db } from '~/integrations/db/client';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import type { NewReminder, ReminderRepository } from './model';
 import { reminders, type Reminder } from './table';
 

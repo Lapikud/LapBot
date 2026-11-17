@@ -4,8 +4,8 @@ import {
   type SlashCommandStringOption,
 } from 'discord.js';
 import type { PermissionService } from './service';
-import { managePermissions } from '~/foundation/permission';
-import { roleMention } from '~/foundation/message';
+import { managePermissions } from '~/core/permission';
+import { roleMention } from '~/core/message';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand, deferred } from '~/integrations/discord/define';
 import type { Feature } from '~/integrations/discord/module';

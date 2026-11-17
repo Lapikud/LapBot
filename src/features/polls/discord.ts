@@ -1,5 +1,5 @@
-import type { Directory } from '~/foundation/directory';
-import { visibleRecords } from '~/foundation/visibility';
+import type { Directory } from '~/core/directory';
+import { visibleRecords } from '~/core/visibility';
 import {
   ChannelType,
   InteractionContextType,
@@ -8,8 +8,8 @@ import {
 } from 'discord.js';
 import { describeOutcome } from './message';
 import type { PollService } from './service';
-import { channelMention, userMention } from '~/foundation/message';
-import { UserError } from '~/foundation/errors';
+import { channelMention, userMention } from '~/core/message';
+import { UserError } from '~/core/errors';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand, deferred } from '~/integrations/discord/define';
 import type { ComponentHandler, Feature } from '~/integrations/discord/module';

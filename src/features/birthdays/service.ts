@@ -1,22 +1,18 @@
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { parseBirthdaySubmission } from './form';
-import { calendarDay, nextDailyRun } from '~/foundation/time';
-import {
-  channelMention,
-  userMention,
-  type Message,
-} from '~/foundation/message';
-import { PermanentError, UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
-import { selfAssignProblem } from '~/foundation/roles';
-import { type Authorizer, guard } from '~/foundation/authorization';
-import type { Directory } from '~/foundation/directory';
-import type { Logger } from '~/foundation/logger';
-import type { Messenger } from '~/foundation/messenger';
-import { type Scheduler, defineJob } from '~/foundation/scheduler';
+import { calendarDay, nextDailyRun } from '~/core/time';
+import { channelMention, userMention, type Message } from '~/core/message';
+import { PermanentError, UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import { selfAssignProblem } from '~/core/roles';
+import { type Authorizer, guard } from '~/core/authorization';
+import type { Directory } from '~/core/directory';
+import type { Logger } from '~/core/logger';
+import type { Messenger } from '~/core/messenger';
+import { type Scheduler, defineJob } from '~/core/scheduler';
 import type { Birthday, BirthdaySettings, BirthdayRepository } from './model';
-import { sequential } from '~/foundation/async';
+import { sequential } from '~/core/async';
 
 const dailyKey = (guildId: string) => `birthdays:${guildId}`;
 

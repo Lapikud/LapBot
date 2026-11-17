@@ -3,8 +3,8 @@ import {
   maxContentLength,
   userMention,
   type Message,
-} from '~/foundation/message';
-import { discordTime, sameCalendarDay } from '~/foundation/time';
+} from '~/core/message';
+import { discordTime, sameCalendarDay } from '~/core/time';
 import {
   rsvpStatuses,
   type Event,

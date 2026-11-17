@@ -1,4 +1,4 @@
-import type { Message } from '~/foundation/message';
+import type { Message } from '~/core/message';
 import type { Server } from './context';
 
 const token = /(<@&\d+>|<@\d+>|<#\d+>|@everyone|\*\*[^*]+\*\*)/;

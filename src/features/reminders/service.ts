@@ -1,17 +1,17 @@
 import { z } from 'zod';
-import { channelMention, userMention } from '~/foundation/message';
+import { channelMention, userMention } from '~/core/message';
 import {
   nextFutureOccurrence,
   parseFutureWhen,
   recurrences,
   type Recurrence,
-} from '~/foundation/time';
-import { PermanentError, UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
-import type { Authorizer } from '~/foundation/authorization';
-import type { Directory } from '~/foundation/directory';
-import type { Messenger } from '~/foundation/messenger';
-import { type Scheduler, defineJob } from '~/foundation/scheduler';
+} from '~/core/time';
+import { PermanentError, UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import type { Authorizer } from '~/core/authorization';
+import type { Directory } from '~/core/directory';
+import type { Messenger } from '~/core/messenger';
+import { type Scheduler, defineJob } from '~/core/scheduler';
 import type { NewReminder, Reminder, ReminderRepository } from './model';
 
 const jobKey = (id: number) => `reminder:${id}`;

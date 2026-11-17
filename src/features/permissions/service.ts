@@ -3,12 +3,12 @@ import {
   managePermissions,
   type Permission,
   type PermissionDefinition,
-} from '~/foundation/permission';
-import { UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
-import { type Authorizer, guard } from '~/foundation/authorization';
-import type { Directory } from '~/foundation/directory';
-import type { Logger } from '~/foundation/logger';
+} from '~/core/permission';
+import { UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import { type Authorizer, guard } from '~/core/authorization';
+import type { Directory } from '~/core/directory';
+import type { Logger } from '~/core/logger';
 import type { GrantRepository } from './model';
 
 export function createAuthorizer(grants: GrantRepository): Authorizer {

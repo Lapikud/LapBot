@@ -1,4 +1,4 @@
-import { visibleRecords } from '~/foundation/visibility';
+import { visibleRecords } from '~/core/visibility';
 import {
   ChannelType,
   InteractionContextType,
@@ -6,12 +6,12 @@ import {
   type SlashCommandIntegerOption,
 } from 'discord.js';
 import { rsvpStatuses, type RsvpStatus } from './model';
-import type { Directory } from '~/foundation/directory';
+import type { Directory } from '~/core/directory';
 import { reminderChoices, type EventService } from './service';
 import { rsvpLabels } from './message';
-import { channelMention, userMention } from '~/foundation/message';
-import { discordTime } from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
+import { channelMention, userMention } from '~/core/message';
+import { discordTime } from '~/core/time';
+import { UserError } from '~/core/errors';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand, deferred } from '~/integrations/discord/define';
 import type {

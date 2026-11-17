@@ -75,3 +75,17 @@ responsibilities and are not scaffolding requirements.
 Review boundary: local structural/preservation checks and disposable-database
 regressions; live Discord, TMDB and Redmine services were not called. Nothing was
 pushed or merged. Work stays on `fix/consolidate-foundation`.
+
+## User correction: core name and test placement
+
+The user requires `core/` rather than `foundation/`, and no tests under src.
+The shared primitive directory is now `src/core/`. Feature tests mirror their
+owners under `tests/features/<name>/`; primitive tests live in `tests/core/`.
+Vitest discovers only `tests/**/*.test.ts`. Earlier descriptions in this record
+are historical and superseded by this correction. Imports and lint boundaries
+follow the new physical locations; feature ownership and runtime logic stay the
+same.
+
+Correction verified: all 238 tests passed across 42 files from tests/; typecheck,
+lint, formatting and production build passed. Confirmed no test/spec files in src
+and no remaining foundation imports in code or current README.

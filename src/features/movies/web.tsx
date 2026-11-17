@@ -1,5 +1,5 @@
-import { Input, Textarea } from '~/foundation/ui/controls';
-import { ActionButton } from '~/foundation/ui/actions';
+import { Input, Textarea } from '~/core/ui/controls';
+import { ActionButton } from '~/core/ui/actions';
 import { Hono } from 'hono';
 import type { MovieSuggestion } from './model';
 import { movieLabel, movieLinks } from './rules';

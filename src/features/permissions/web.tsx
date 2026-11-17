@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import type { PermissionDefinition } from '~/foundation/permission';
-import type { RoleInfo } from '~/foundation/roles';
+import type { PermissionDefinition } from '~/core/permission';
+import type { RoleInfo } from '~/core/roles';
 import {
   back,
   flashOf,
@@ -8,8 +8,8 @@ import {
   type WebDeps,
 } from '~/integrations/web/context';
 import { Layout } from '~/integrations/web/layout';
-import { Checkbox } from '~/foundation/ui/choices';
-import { FormActions } from '~/foundation/ui/actions';
+import { Checkbox } from '~/core/ui/choices';
+import { FormActions } from '~/core/ui/actions';
 
 const title = (name: string) =>
   `${name.charAt(0).toUpperCase()}${name.slice(1)}`;

@@ -1,15 +1,15 @@
 import { renderPoll, pollDetails } from './message';
 import { z } from 'zod';
-import { channelMention, type Message } from '~/foundation/message';
-import { parseFutureWhen } from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
+import { channelMention, type Message } from '~/core/message';
+import { parseFutureWhen } from '~/core/time';
+import { UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
 import { isPollOpen } from './rules';
-import type { Authorizer } from '~/foundation/authorization';
-import type { Directory } from '~/foundation/directory';
-import type { Logger } from '~/foundation/logger';
-import type { Messenger } from '~/foundation/messenger';
-import { type Scheduler, defineJob } from '~/foundation/scheduler';
+import type { Authorizer } from '~/core/authorization';
+import type { Directory } from '~/core/directory';
+import type { Logger } from '~/core/logger';
+import type { Messenger } from '~/core/messenger';
+import { type Scheduler, defineJob } from '~/core/scheduler';
 import type {
   NewPoll,
   Poll,

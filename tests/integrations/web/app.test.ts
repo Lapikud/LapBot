@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Scheduler } from '~/foundation/scheduler';
+import type { Scheduler } from '~/core/scheduler';
 import { createAnnouncementService } from '~/features/announcements/service';
 import {
   createAuthorizer,
@@ -17,7 +17,7 @@ import { createEventRepository } from '~/features/events/repository';
 import { createGrantRepository } from '~/features/permissions/repository';
 import { createPollRepository } from '~/features/polls/repository';
 import { createRolePanelRepository } from '~/features/roles/repository';
-import type { Permission, PermissionDefinition } from '~/foundation/permission';
+import type { Permission, PermissionDefinition } from '~/core/permission';
 import { createWebApp, type WebApp } from '~/integrations/web/app';
 import { createLogStore } from '~/integrations/logging/store';
 import { noDatabase, snowflake, testDb } from '../../db';

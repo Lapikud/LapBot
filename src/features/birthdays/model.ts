@@ -1,5 +1,5 @@
 import type { BirthdayVisibility } from './rules';
-import type { CalendarDay } from '~/foundation/time';
+import type { CalendarDay } from '~/core/time';
 
 export type Birthday = {
   guildId: string;

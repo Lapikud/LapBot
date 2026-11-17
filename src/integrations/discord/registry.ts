@@ -4,7 +4,7 @@ import type {
   MessageCommand,
   SlashCommand,
 } from './module';
-import type { Permission, PermissionDefinition } from '~/foundation/permission';
+import type { Permission, PermissionDefinition } from '~/core/permission';
 
 export type Registry = {
   features: readonly Feature[];

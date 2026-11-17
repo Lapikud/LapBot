@@ -3,8 +3,8 @@ import {
   type Client,
   type GuildTextBasedChannel,
 } from 'discord.js';
-import { PermanentError, UserError } from '~/foundation/errors';
-import type { Messenger } from '~/foundation/messenger';
+import { PermanentError, UserError } from '~/core/errors';
+import type { Messenger } from '~/core/messenger';
 import { permanent, isUnknownObject } from './errors';
 import { render } from './render';
 

@@ -1,4 +1,4 @@
-import { PermanentError } from '~/foundation/errors';
+import { PermanentError } from '~/core/errors';
 import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
 
 const permanentCodes = new Set<number | string>([

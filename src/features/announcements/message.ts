@@ -1,7 +1,7 @@
 import type { Announcement } from './model';
-import { maxContentLength, type Message } from '~/foundation/message';
-import { UserError } from '~/foundation/errors';
-import { renderPost } from '~/foundation/posts';
+import { maxContentLength, type Message } from '~/core/message';
+import { UserError } from '~/core/errors';
+import { renderPost } from '~/core/posts';
 
 export function announcementView(post: Announcement): Message {
   const message = renderPost(post);

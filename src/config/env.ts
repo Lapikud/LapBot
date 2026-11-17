@@ -1,4 +1,4 @@
-import { isZone } from '~/foundation/time';
+import { isZone } from '~/core/time';
 import { z } from 'zod';
 
 const optional = <T extends z.ZodType>(schema: T) =>

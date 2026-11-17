@@ -3,13 +3,13 @@ import {
   validateBirthday,
   type BirthdayVisibility,
 } from './rules';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import {
   choiceField,
   integerField,
   type FormDefinition,
-} from '~/foundation/forms/fields';
-import { validateSubmission } from '~/foundation/forms/validation';
+} from '~/core/forms/fields';
+import { validateSubmission } from '~/core/forms/validation';
 
 type BirthdayInput = {
   day: number;

@@ -305,3 +305,11 @@ imports replace mandatory barrels. Announcement orchestration is explicitly
 feature-owned and composes pure Post content; Post itself owns no announcement
 permissions, SQL record lifecycle or scheduling. Existing observable behavior and
 compatibility requirements remain binding.
+
+### User correction to section 10
+
+Shared primitives live in `src/core/`, not `src/foundation/`. No tests belong in
+src. Tests mirror feature ownership under `tests/features/<name>/`, shared
+primitives under `tests/core/`, and integrations under `tests/integrations/`.
+This explicit user preference supersedes earlier physical names and colocated
+test placement; logical boundaries and preservation requirements are unchanged.

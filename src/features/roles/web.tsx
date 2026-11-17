@@ -1,7 +1,7 @@
-import { Select } from '~/foundation/ui/controls';
+import { Select } from '~/core/ui/controls';
 import { Hono } from 'hono';
-import { selfAssignProblem } from '~/foundation/roles';
-import { UserError } from '~/foundation/errors';
+import { selfAssignProblem } from '~/core/roles';
+import { UserError } from '~/core/errors';
 import {
   back,
   field,

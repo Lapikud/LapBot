@@ -1,4 +1,4 @@
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 
 export function normalizeTitle(title: string): string {
   return title

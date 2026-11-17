@@ -1,4 +1,4 @@
-import { visibleRecords } from '~/foundation/visibility';
+import { visibleRecords } from '~/core/visibility';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -6,8 +6,8 @@ import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
-import { UserError } from '~/foundation/errors';
-import { webAccess, type Permission } from '~/foundation/permission';
+import { UserError } from '~/core/errors';
+import { webAccess, type Permission } from '~/core/permission';
 import { signedInUser, signInPages } from './auth';
 import { birthdayPages } from '~/features/birthdays/web';
 import { back, serverOf, type Env, type WebDeps } from './context';

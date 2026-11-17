@@ -1,5 +1,5 @@
 import type { Child } from 'hono/jsx';
-import { managePermissions, type Permission } from '~/foundation/permission';
+import { managePermissions, type Permission } from '~/core/permission';
 import type { Flash } from './context';
 
 const sections: ReadonlyArray<

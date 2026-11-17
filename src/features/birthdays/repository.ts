@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import type { CalendarDay } from '~/foundation/time';
+import type { CalendarDay } from '~/core/time';
 import type { BirthdayRepository } from './model';
 import type { Db } from '~/integrations/db/client';
 import { celebratedOn, validateBirthday } from './rules';

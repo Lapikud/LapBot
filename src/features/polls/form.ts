@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { UserError } from '~/foundation/errors';
-import { choiceField, type FormDefinition } from '~/foundation/forms/fields';
-import { validateSubmission } from '~/foundation/forms/validation';
+import { UserError } from '~/core/errors';
+import { choiceField, type FormDefinition } from '~/core/forms/fields';
+import { validateSubmission } from '~/core/forms/validation';
 
 type Option = { id: number; label: string };
 

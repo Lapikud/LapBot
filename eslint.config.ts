@@ -346,7 +346,7 @@ export default defineConfig(
         {
           zones: [
             {
-              target: './src/foundation',
+              target: './src/core',
               from: [
                 './src/features',
                 './src/integrations',
@@ -354,7 +354,7 @@ export default defineConfig(
                 './src/app.ts',
               ],
               message:
-                'Foundation primitives cannot depend on features or their adapters.',
+                'Core primitives cannot depend on features or their adapters.',
             },
             {
               target: featureLogic,
@@ -402,10 +402,7 @@ export default defineConfig(
   },
 
   {
-    files: [
-      ...featureLogic.map((file) => file.slice(2)),
-      'src/foundation/**/*.ts',
-    ],
+    files: [...featureLogic.map((file) => file.slice(2)), 'src/core/**/*.ts'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
@@ -447,7 +444,7 @@ export default defineConfig(
   },
 
   {
-    files: ['src/foundation/async.ts', 'src/integrations/scheduler/runner.ts'],
+    files: ['src/core/async.ts', 'src/integrations/scheduler/runner.ts'],
     rules: { 'no-await-in-loop': 'off' },
   },
 

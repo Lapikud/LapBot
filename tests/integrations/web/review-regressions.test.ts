@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { expect, it, vi } from 'vitest';
 import { type WebDeps, type Env, serverOf } from '~/integrations/web/context';
-import { visibleRecords } from '~/foundation/visibility';
+import { visibleRecords } from '~/core/visibility';
 import { eventPages } from '~/features/events/web';
 import { pollPages } from '~/features/polls/web';
 import { psaPages } from '~/features/announcements/web';

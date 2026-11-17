@@ -1,4 +1,4 @@
-import type { Recurrence } from '~/foundation/time';
+import type { Recurrence } from '~/core/time';
 
 export type ReminderStatus = 'active' | 'done' | 'cancelled' | 'failed';
 

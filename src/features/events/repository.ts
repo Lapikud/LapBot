@@ -1,7 +1,7 @@
 import { and, asc, count, eq, gte, ne } from 'drizzle-orm';
 import type { EventRepository, NewEvent, RsvpCounts } from './model';
 import type { Db } from '~/integrations/db/client';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import { eventRsvps, events, type Event, type RsvpStatus } from './table';
 
 export async function insertEvent(db: Db, input: NewEvent): Promise<Event> {

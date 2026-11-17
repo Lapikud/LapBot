@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Feature } from '~/integrations/discord/module';
-import { controlId } from '~/foundation/message';
+import { controlId } from '~/core/message';
 import { buildRegistry, parseCustomId } from '~/integrations/discord/registry';
 
 const noop = async () => undefined;

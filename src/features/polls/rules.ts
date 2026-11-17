@@ -1,4 +1,4 @@
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 
 export const maxPollOptions = 10;
 

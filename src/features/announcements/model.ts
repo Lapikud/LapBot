@@ -1,4 +1,4 @@
-import type { Post } from '~/foundation/posts';
+import type { Post } from '~/core/posts';
 
 export type AnnouncementStatus =
   'draft' | 'scheduled' | 'published' | 'cancelled';

@@ -1,10 +1,6 @@
-import {
-  controlId,
-  maxContentLength,
-  type Message,
-} from '~/foundation/message';
-import { discordTime } from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
+import { controlId, maxContentLength, type Message } from '~/core/message';
+import { discordTime } from '~/core/time';
+import { UserError } from '~/core/errors';
 import { isPollOpen } from './rules';
 import type { NewPoll, Poll, PollResults, PollWithOptions } from './model';
 

@@ -8,7 +8,7 @@ import type {
 import type { Db } from '~/integrations/db/client';
 import { isPollOpen, tally, validatePollOptions } from './rules';
 import { validatePollResponse } from './form';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import { pollOptions, polls, pollVotes, type Poll } from './table';
 
 export async function insertPoll(

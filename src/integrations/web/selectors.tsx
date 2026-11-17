@@ -1,5 +1,5 @@
 import type { Server } from './context';
-import { Select } from '~/foundation/ui/controls';
+import { Select } from '~/core/ui/controls';
 
 export function ChannelOptions({
   server,

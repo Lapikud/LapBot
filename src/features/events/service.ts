@@ -1,21 +1,17 @@
 import { eventCalendarEntry } from './calendar';
 import { eventView, reminderText } from './message';
 import { z } from 'zod';
-import {
-  channelMention,
-  maxContentLength,
-  roleMention,
-} from '~/foundation/message';
-import { parseFutureWhen, parseWhen } from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
-import { requireMentionable } from '~/foundation/roles';
-import type { Authorizer } from '~/foundation/authorization';
-import type { Calendar } from '~/foundation/calendar';
-import type { Directory } from '~/foundation/directory';
-import type { Logger } from '~/foundation/logger';
-import type { Messenger } from '~/foundation/messenger';
-import { type Scheduler, defineJob } from '~/foundation/scheduler';
+import { channelMention, maxContentLength, roleMention } from '~/core/message';
+import { parseFutureWhen, parseWhen } from '~/core/time';
+import { UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import { requireMentionable } from '~/core/roles';
+import type { Authorizer } from '~/core/authorization';
+import type { Calendar } from '~/core/calendar';
+import type { Directory } from '~/core/directory';
+import type { Logger } from '~/core/logger';
+import type { Messenger } from '~/core/messenger';
+import { type Scheduler, defineJob } from '~/core/scheduler';
 import type { Event, NewEvent, RsvpStatus, EventRepository } from './model';
 
 const maxReminders = 3;

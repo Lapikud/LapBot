@@ -5,14 +5,14 @@ import {
   type BaseMessageOptions,
   type Interaction,
 } from 'discord.js';
-import { ignore, UserError } from '~/foundation/errors';
+import { ignore, UserError } from '~/core/errors';
 import type {
   AppContext,
   CommandInteraction,
   ComponentInteraction,
   MessageCommandInteraction,
 } from './module';
-import type { Message as DomainMessage } from '~/foundation/message';
+import type { Message as DomainMessage } from '~/core/message';
 import { toActor } from './actor';
 import { render } from './render';
 import { parseCustomId, type Registry } from './registry';

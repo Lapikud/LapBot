@@ -4,21 +4,21 @@ import {
   calendarDay,
   formatCalendarDay,
   nextDailyRun,
-} from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
+} from '~/core/time';
+import { UserError } from '~/core/errors';
 import {
   IntegrationError,
   type IssueStatus,
   type Notification,
 } from '~/integrations/redmine/model';
 import { issueNotifications } from './rules';
-import { type Authorizer, guard } from '~/foundation/authorization';
+import { type Authorizer, guard } from '~/core/authorization';
 import type { IssueTracker } from '~/integrations/redmine/contract';
-import { type Job, type Scheduler, defineJob } from '~/foundation/scheduler';
-import type { Logger } from '~/foundation/logger';
-import type { Messenger } from '~/foundation/messenger';
+import { type Job, type Scheduler, defineJob } from '~/core/scheduler';
+import type { Logger } from '~/core/logger';
+import type { Messenger } from '~/core/messenger';
 import type { Subscription, TrackerRepository } from './model';
-import { sequential } from '~/foundation/async';
+import { sequential } from '~/core/async';
 
 const pollIntervalMs = 2 * 60 * 1000;
 const issuesPerPoll = 25;

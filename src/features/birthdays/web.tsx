@@ -1,5 +1,5 @@
-import { FormActions } from '~/foundation/ui/actions';
-import { Input, Select } from '~/foundation/ui/controls';
+import { FormActions } from '~/core/ui/actions';
+import { Input, Select } from '~/core/ui/controls';
 import { Hono } from 'hono';
 import {
   allows,

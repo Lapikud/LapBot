@@ -8,8 +8,8 @@ import {
 } from 'discord.js';
 import type { Reminder } from './model';
 import type { ReminderService } from './service';
-import { channelMention } from '~/foundation/message';
-import { discordTime, recurrences } from '~/foundation/time';
+import { channelMention } from '~/core/message';
+import { discordTime, recurrences } from '~/core/time';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand } from '~/integrations/discord/define';
 import type { Feature } from '~/integrations/discord/module';

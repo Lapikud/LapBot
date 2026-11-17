@@ -1,11 +1,11 @@
-import { FormActions, ActionButton } from '~/foundation/ui/actions';
-import { Input, Textarea } from '~/foundation/ui/controls';
-import { MultiSelect } from '~/foundation/ui/choices';
+import { FormActions, ActionButton } from '~/core/ui/actions';
+import { Input, Textarea } from '~/core/ui/controls';
+import { MultiSelect } from '~/core/ui/choices';
 import { Hono } from 'hono';
 import type { Child } from 'hono/jsx';
 import type { Announcement } from './model';
-import { UserError } from '~/foundation/errors';
-import type { Permission } from '~/foundation/permission';
+import { UserError } from '~/core/errors';
+import type { Permission } from '~/core/permission';
 import {
   allows,
   back,

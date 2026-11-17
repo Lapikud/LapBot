@@ -1,7 +1,7 @@
 import { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Job } from '~/foundation/scheduler';
-import { PermanentError } from '~/foundation/errors';
+import type { Job } from '~/core/scheduler';
+import { PermanentError } from '~/core/errors';
 import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
 import { silentLog } from '../../fakes';
 import { noDatabase } from '../../db';

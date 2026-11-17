@@ -227,13 +227,13 @@ Storage failures are reported to stderr while stdout logging continues.
 ## Architecture
 
 Organized by capability, with three logical boundaries. Open a feature directory
-to find its rules, operations, adapters, and tests together.
+to find its rules, operations and adapters. Tests mirror ownership under `tests/`.
 
 ```text
 src/
   index.ts, app.ts          startup and explicit composition
   config/env.ts            validated environment
-  foundation/              reusable primitives, no feature dependencies
+  core/                    reusable primitives, no feature dependencies
     forms/                 semantic fields and submission validation
     posts.ts               content, heading, explicit mentions, pure rendering
     message.ts             transport-neutral message values and controls
@@ -243,9 +243,8 @@ src/
     ui/                    accessible HTML controls and actions
   features/
     birthdays/             model.ts, rules.ts, form.ts, service.ts,
-                           table.ts, repository.ts, discord.ts, web.tsx,
-                           rules.test.ts, service.test.ts
-    announcements/         publication lifecycle composing foundation Post
+                           table.ts, repository.ts, discord.ts, web.tsx
+    announcements/         publication lifecycle composing core Post
     events/                events, RSVP, messages, calendar mapping and adapters
     polls/, movies/, permissions/, redmine/, reminders/, roles/
   integrations/            shared platform/provider implementations
@@ -255,32 +254,37 @@ src/
     tmdb/                  catalog contract and provider client
     redmine/               issue tracker contract, provider data and client
     scheduler/, logging/
-tests/                     shared fixtures, platform tests, cross-feature regressions
+tests/
+  features/<name>/         feature rules, services and adapter tests
+  core/                    primitive tests
+  integrations/            platform/provider tests
+  regressions/             cross-feature regressions
 drizzle/                   unchanged SQL migrations
 ```
 
 A feature's `model.ts` contains its records and repository contract. Other files
 exist for actual responsibilities; there is no mandatory set to scaffold. Rules
 and input definitions are pure; services orchestrate; `repository.ts`, `table.ts`,
-`discord.ts`, and `web.tsx` are feature-owned adapters. Single-feature tests live
-beside the code, including database tests. Shared regression/platform tests stay
-under `tests/`.
+`discord.ts`, and `web.tsx` are feature-owned adapters. All tests live under
+`tests/`: feature tests in `tests/features/<name>/`,
+primitive tests in `tests/core/`, and provider tests in `tests/integrations/`.
+Cross-feature regressions live in `tests/regressions/`.
 
 **Imports name their source.** Within a feature use `./model` or `./rules`;
 across features use direct paths such as `~/features/events/service`. There are
 no re-export-only barrels hiding ownership. `app.ts` connects services,
 repositories, platform adapters and credentials.
 
-**Dependency boundaries are linted at the file level.** Foundation code cannot
+**Dependency boundaries are linted at the file level.** Core code cannot
 import features or integrations. Feature models, rules, input definitions,
 renderers and services cannot import concrete adapters. They may depend on shared
-foundation capabilities and provider contracts. Only Discord adapters and the
+core capabilities and provider contracts. Only Discord adapters and the
 composition root use discord.js. Colocation grants no permission to reverse those
 dependencies.
 
 ### Composing features
 
-**Forms validate input.** `foundation/forms` uses Zod for semantic field definitions
+**Forms validate input.** `core/forms` uses Zod for semantic field definitions
 and structured issues. Birthday's fixed form and real-calendar validation live
 in `features/birthdays`; poll response choices and eligibility live in
 `features/polls`. Adapters decode transport input; forms do not store responses,
@@ -297,13 +301,13 @@ validatePollResponse([{ id: 11, label: 'Pizza' }], false, [11, 11]);
 // [11]; [] clears a vote.
 ```
 
-**Posts describe content.** A foundation Post is content with an optional heading
+**Posts describe content.** A core Post is content with an optional heading
 and explicit mention choices. It has no database ID, lifecycle, permission policy
 or job scheduler. Pure `renderPost` constructs a Message; it does not perform I/O
 or impose announcement-specific limits.
 
 ```ts
-import { renderPost } from '~/foundation/posts';
+import { renderPost } from '~/core/posts';
 
 const message = renderPost({ title: 'Update', content: 'Hello' });
 await messenger.send(channelId, message);
@@ -328,7 +332,7 @@ time; its service helper supplies the current time. Birthday greetings, reminder
 and issue notifications use Messenger directly. Text still uses Discord mention
 and timestamp syntax; transport-neutral values do not imply portable text.
 
-**UI primitives stay small.** Feature pages compose `foundation/ui/controls`,
+**UI primitives stay small.** Feature pages compose `core/ui/controls`,
 `choices`, `field`, and `actions`. Labels, help and errors are linked to control
 IDs. Supply distinct IDs for repeated names. Shared channel selectors in
 `integrations/web/selectors.tsx` use already-loaded server data. Controls perform
@@ -352,9 +356,10 @@ are not retried. Each feature owns its lateness policy.
 ### Adding a capability
 
 Start with one directory under `features/` and the operation you need. Keep its
-model, rules and tests there. Add adapters as required and wire them in `app.ts`.
+model and rules there; put its tests in `tests/features/<name>/`. Add adapters as
+required and wire them in `app.ts`.
 Extract a primitive only when it has a useful independent contract; use an existing
-foundation capability first. Do not create model/service/ports/index files just
+core capability first. Do not create model/service/ports/index files just
 to satisfy a template. Generate migrations or register commands only when those
 external contracts actually change.
 

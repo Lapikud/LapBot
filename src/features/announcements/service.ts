@@ -1,17 +1,17 @@
 import { announcementView } from './message';
 import { z } from 'zod';
-import { channelMention } from '~/foundation/message';
-import { parseFutureWhen } from '~/foundation/time';
-import { PermanentError, UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
-import { requireMentionable } from '~/foundation/roles';
+import { channelMention } from '~/core/message';
+import { parseFutureWhen } from '~/core/time';
+import { PermanentError, UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import { requireMentionable } from '~/core/roles';
 import type { AnnouncementRepository, AnnouncementStatus } from './model';
-import { type Authorizer, guard } from '~/foundation/authorization';
-import type { Clock } from '~/foundation/clock';
-import type { Directory } from '~/foundation/directory';
-import type { Logger } from '~/foundation/logger';
-import type { Messenger, Sent } from '~/foundation/messenger';
-import { type Scheduler, defineJob } from '~/foundation/scheduler';
+import { type Authorizer, guard } from '~/core/authorization';
+import type { Clock } from '~/core/clock';
+import type { Directory } from '~/core/directory';
+import type { Logger } from '~/core/logger';
+import type { Messenger, Sent } from '~/core/messenger';
+import { type Scheduler, defineJob } from '~/core/scheduler';
 
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;

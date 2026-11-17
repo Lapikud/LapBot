@@ -1,4 +1,4 @@
-import type { Permission } from '~/foundation/permission';
+import type { Permission } from '~/core/permission';
 
 export type Grant = { roleId: string; permission: string };
 

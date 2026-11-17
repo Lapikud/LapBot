@@ -4,7 +4,7 @@ import {
   type Client,
   type Guild,
 } from 'discord.js';
-import type { Directory } from '~/foundation/directory';
+import type { Directory } from '~/core/directory';
 import { toActor, toRoleInfo } from './actor';
 import { permanent } from './errors';
 

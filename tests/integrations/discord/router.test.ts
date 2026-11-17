@@ -1,6 +1,6 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import type { AppContext, Feature } from '~/integrations/discord/module';
 import { buildRegistry } from '~/integrations/discord/registry';
 import { createInteractionHandler } from '~/integrations/discord/router';

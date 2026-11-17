@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import type { RedmineService } from './service';
-import { channelMention } from '~/foundation/message';
+import { channelMention } from '~/core/message';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand, deferred } from '~/integrations/discord/define';
 import type {

@@ -1,6 +1,6 @@
 import { PermissionFlagsBits, type GuildMember, type Role } from 'discord.js';
-import type { Actor } from '~/foundation/actor';
-import type { RoleInfo } from '~/foundation/roles';
+import type { Actor } from '~/core/actor';
+import type { RoleInfo } from '~/core/roles';
 
 const moderatorPermissions = [
   PermissionFlagsBits.Administrator,

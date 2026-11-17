@@ -1,9 +1,9 @@
-import { Input, Select, Textarea } from '~/foundation/ui/controls';
-import { ActionButton } from '~/foundation/ui/actions';
-import { Checkbox } from '~/foundation/ui/choices';
-import { visibleRecords } from '~/foundation/visibility';
+import { Input, Select, Textarea } from '~/core/ui/controls';
+import { ActionButton } from '~/core/ui/actions';
+import { Checkbox } from '~/core/ui/choices';
+import { visibleRecords } from '~/core/visibility';
 import { Hono } from 'hono';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import {
   allows,
   back,

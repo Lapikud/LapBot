@@ -8,7 +8,7 @@ import {
   type MessageActionRowComponentBuilder,
   type MessageMentionOptions,
 } from 'discord.js';
-import type { Control, Embed, Mentions, Message } from '~/foundation/message';
+import type { Control, Embed, Mentions, Message } from '~/core/message';
 
 const buttonStyles = {
   primary: ButtonStyle.Primary,

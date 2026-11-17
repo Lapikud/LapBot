@@ -2,7 +2,7 @@ import { and, asc, desc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
 import type { MovieRepository, NewSuggestion } from './model';
 import type { Db } from '~/integrations/db/client';
 import { normalizeTitle } from './rules';
-import { UserError } from '~/foundation/errors';
+import { UserError } from '~/core/errors';
 import {
   movieScreenings,
   movieSuggestions,

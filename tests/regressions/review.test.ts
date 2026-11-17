@@ -5,7 +5,7 @@ import type { TrackerRepository } from '~/features/redmine/model';
 import { createPermissionService } from '~/features/permissions/service';
 import { createRedmineService } from '~/features/redmine/service';
 import type { Issue } from '~/integrations/redmine/model';
-import type { Permission, PermissionDefinition } from '~/foundation/permission';
+import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
   actor,
   allowAll,

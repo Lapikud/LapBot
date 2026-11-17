@@ -11,10 +11,10 @@ import {
 } from 'discord.js';
 import type { Announcement } from './model';
 import { maxAnnouncementLength, type AnnouncementService } from './service';
-import { channelMention, controlId, type Message } from '~/foundation/message';
-import { discordTime } from '~/foundation/time';
-import { UserError } from '~/foundation/errors';
-import type { Actor } from '~/foundation/actor';
+import { channelMention, controlId, type Message } from '~/core/message';
+import { discordTime } from '~/core/time';
+import { UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
 import { toActor } from '~/integrations/discord/actor';
 import { bySubcommand } from '~/integrations/discord/define';
 import type {
