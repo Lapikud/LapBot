@@ -26,35 +26,35 @@ def main():
     if not root_dir.is_dir():
         sys.exit(f"root: {root_dir} does not exist")
 
-    lock = lock_file.open("w")
-    flock(lock, LOCK_EX)
+    with lock_file.open("w") as lock:
+        flock(lock, LOCK_EX)
 
-    if not env_file.is_file():
-        sys.exit(f"env: {env_file} is missing\nCheck .env.example")
+        if not env_file.is_file():
+            sys.exit(f"env: {env_file} is missing\nCheck .env.example")
 
-    update_code()
-    commit = git("rev-parse", "--short", "HEAD")
-    release = releases_dir / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
-    previous = live()
+        update_code()
+        commit = git("rev-parse", "--short", "HEAD")
+        release = releases_dir / f"{datetime.now():%Y%m%d-%H%M%S}-{commit}"
+        previous = live()
 
-    try:
-        build(release)
-    except BaseException:
-        discard(release)
-        raise
-
-    switch_to(release)
-    started = restart()
-
-    if not ready(started):
-        roll_back(previous)
-
-        if live() != release:
+        try:
+            build(release)
+        except BaseException:
             discard(release)
+            raise
 
-        sys.exit(1)
+        switch_to(release)
+        started = restart()
 
-    prune()
+        if not ready(started):
+            roll_back(previous)
+
+            if live() != release:
+                discard(release)
+
+            sys.exit(1)
+
+        prune()
 
 
 def run(*command, cwd=None, stdin=None):
@@ -124,34 +124,46 @@ def switch_to(release):
 
 
 def restart():
-    started = datetime.now()
+    started = (datetime.now(), service_state().get("InvocationID", ""))
     restart_file.write_text(f"{live()}\n")
     print(f"service: requested a restart of {service}")
 
     return started
 
 
+def service_state():
+    result = subprocess.run(
+        ["systemctl", "show", service, "--property=InvocationID,ActiveState"],
+        capture_output=True, text=True, check=True,
+    )
+    return {line.split("=", 1) for line in result.stdout.splitlines() if "=" in line}
+
+
 def ready(started):
-    since = f"{started:%Y-%m-%d %H:%M:%S}"
-    journal = ["journalctl", "-u", service, "--since", since, "--no-pager"]
+    requested, previous_invocation = started
+    journal = ["journalctl", "-u", service, "--since",
+               f"{requested:%Y-%m-%d %H:%M:%S}", "--no-pager"]
+    observed_new = False
 
     for _ in range(ready_timeout):
-        entries = subprocess.run(
-            [*journal, "-o", "cat"], capture_output=True, text=True
-        ).stdout
+        state = service_state()
+        invocation = state.get("InvocationID", "")
+        if invocation and invocation != previous_invocation:
+            observed_new = True
+            entries = subprocess.run(
+                [*journal, f"_SYSTEMD_INVOCATION_ID={invocation}", "-o", "cat"],
+                capture_output=True, text=True,
+            )
+            if state.get("ActiveState") == "active" and entries.returncode == 0 and '"msg":"Ready"' in entries.stdout:
+                print(f"health: {service} is ready")
+                return True
 
-        if '"msg":"Ready"' in entries:
-            print(f"health: {service} is ready")
-            return True
-
-        if subprocess.run(["systemctl", "is-active", "--quiet", service]).returncode:
+        if observed_new and state.get("ActiveState") in ("failed", "inactive"):
             break
-
         time.sleep(1)
 
     print(f"health: {service} did not become ready", file=sys.stderr)
     subprocess.run([*journal, "-n", "50"], stdout=sys.stderr)
-
     return False
 
 
@@ -161,8 +173,10 @@ def roll_back(previous):
         return
 
     switch_to(previous)
-    restart()
-    print(f"rollback: back on {previous}", file=sys.stderr)
+    if ready(restart()):
+        print(f"rollback: verified {previous}", file=sys.stderr)
+    else:
+        print(f"rollback: FAILED to restore a healthy {previous}", file=sys.stderr)
 
 
 def discard(release):

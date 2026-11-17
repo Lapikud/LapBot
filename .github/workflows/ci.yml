@@ -57,7 +57,7 @@ jobs:
         run: pnpm test
 
       - name: Test the deploy script
-        run: scripts/ci/deploy-test.sh
+        run: python3 scripts/ci/deploy-test.py
 
       - name: Build
         run: pnpm build
