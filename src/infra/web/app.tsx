@@ -12,6 +12,7 @@ import { birthdayPages } from './birthdays';
 import { back, serverOf, type Env, type WebDeps } from './context';
 import { eventPages } from './events';
 import { moviePages } from './movies';
+import { logPages } from './logs';
 import { Layout } from './layout';
 import { permissionPages } from './permissions';
 import { rolePages } from './roles';
@@ -168,6 +169,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/movies', moviePages(deps));
   app.route('/roles', rolePages(deps));
   app.route('/permissions', permissionPages(deps));
+  app.route('/logs', logPages(deps.timezone));
 
   app.notFound((c) =>
     c.html(<Message title="Not found" text="There is no such page." />, 404),

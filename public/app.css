@@ -210,3 +210,46 @@ td form:last-child {
 .role-channel {
   margin-bottom: 1.5rem;
 }
+
+.log-table {
+  overflow-x: auto;
+}
+
+.log-table td {
+  vertical-align: top;
+}
+
+.log-table time,
+.log-level {
+  white-space: nowrap;
+}
+
+.log-level {
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+
+.log-level-40 {
+  color: var(--pico-color-amber-550, #b86e00);
+}
+
+.log-level-50,
+.log-level-60 {
+  color: var(--pico-del-color);
+}
+
+.log-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.log-table details {
+  margin: 0.5rem 0 0;
+}
+
+.log-table pre {
+  max-width: 60vw;
+  max-height: 20rem;
+  overflow: auto;
+  font-size: 0.8em;
+}

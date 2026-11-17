@@ -214,6 +214,13 @@ stdout, and shuts down gracefully on `SIGTERM`: it stops taking interactions,
 finishes running jobs, then closes Discord and the database. PostgreSQL is not
 published outside the Compose network. Back up the `pgdata` volume.
 
+Server administrators can open **Logs** in the dashboard to filter recent
+entries by minimum level or search messages, sources and details. The page
+refreshes every 10 seconds and can be paused while inspecting an entry.
+It keeps the latest 500 entries in memory (with bounded message/detail sizes);
+this history resets on restart. Entries use the same `LOG_LEVEL` and field
+redaction as stdout. Use Docker logs for older entries.
+
 ## Architecture
 
 Ports and adapters. Business logic never imports discord.js, drizzle or an

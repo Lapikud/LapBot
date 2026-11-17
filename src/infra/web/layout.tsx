@@ -13,6 +13,7 @@ const sections: ReadonlyArray<
   ['/psa', 'PSAs', 'announcement:create'],
   ['/roles', 'Self-selection roles', managePermissions],
   ['/permissions', 'Permissions', managePermissions],
+  ['/logs', 'Logs', managePermissions],
 ];
 
 const pico =
