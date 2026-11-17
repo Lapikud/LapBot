@@ -49,7 +49,9 @@ describe('announcement view', () => {
   it('rejects messages over the Discord limit', () => {
     expect(() =>
       announcementView(sample({ content: 'x'.repeat(2001) })),
-    ).toThrow('2000');
+    ).toThrow(
+      /^Announcements are limited to 2000 characters, including the title and mentions\.$/,
+    );
   });
 });
 

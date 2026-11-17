@@ -20,3 +20,8 @@ sets TEST_DATABASE_URL to that disposable database, then invokes
 `node node_modules/vitest/vitest.mjs run`. Its local test credentials are in
 `.env.test`. Never inherit an arbitrary TEST_DATABASE_URL: setup resets schemas.
 Sandbox networking requires elevated local execution for database tests.
+
+Final result: the presentation slice corrected the stale movie assertion; the
+full database-enabled suite passes 234 tests. See
+[verification record](consolidate-foundation-verification.md) for final checks,
+review corrections, and implementation decisions.

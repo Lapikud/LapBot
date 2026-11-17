@@ -23,7 +23,7 @@ export function postView(announcement: Post): Message {
 
   if (content.length > maxContentLength) {
     throw new UserError(
-      'Posts are limited to 2000 characters, including the title and mentions.',
+      'Announcements are limited to 2000 characters, including the title and mentions.',
     );
   }
 

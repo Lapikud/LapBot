@@ -1,6 +1,6 @@
 # Foundation consolidation specification
 
-Status: revised specification for review; implementation has not started.
+Status: implemented and verified; see [verification record](../plans/consolidate-foundation-verification.md).
 Branch: `fix/consolidate-foundation`.
 
 ## 1. Outcome and constraints

@@ -366,7 +366,8 @@ one-hour lateness policy and claim-before-send tradeoff are unchanged.
 **Message presentation and ordinary delivery.** Pure constructors in
 `src/core/presentation/` return Message values. `postView`, `eventView`,
 `pollView`, and `pollDetails` contain formatting, not I/O. Feature services keep
-state and orchestration. Event/poll posts project their feature records, so
+state and orchestration. The pure poll renderer takes an explicit `now`; the
+legacy service renderer supplies current time for existing callers. Event/poll posts project their feature records, so
 there is no second editable copy of event details or poll options. Birthday
 greetings, reminders, and issue notifications use Messenger directly; they do
 not need managed Post records.

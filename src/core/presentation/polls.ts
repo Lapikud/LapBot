@@ -32,8 +32,12 @@ function statusLine(poll: Poll, open: boolean): string {
   return poll.status === 'cancelled' ? 'Cancelled' : 'Closed';
 }
 
-export function pollView(poll: PollWithOptions, results: PollResults): Message {
-  const open = isPollOpen(poll);
+export function pollView(
+  poll: PollWithOptions,
+  results: PollResults,
+  now: Date,
+): Message {
+  const open = isPollOpen(poll, now);
   const showCounts = poll.showResults === 'live' || !open;
   const lines = results.options.map((option, index) => {
     const heading = `**${index + 1}. ${option.label}**`;

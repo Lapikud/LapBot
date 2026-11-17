@@ -1,4 +1,4 @@
-import { pollView, pollDetails } from '~/core/presentation';
+import { pollView as renderPoll, pollDetails } from '~/core/presentation';
 import { z } from 'zod';
 import {
   channelMention,
@@ -6,6 +6,7 @@ import {
   parseFutureWhen,
   UserError,
   type Actor,
+  type Message,
 } from '~/domain';
 import type {
   Authorizer,
@@ -15,6 +16,7 @@ import type {
   NewPoll,
   Poll,
   PollRepository,
+  PollResults,
   PollWithOptions,
   Scheduler,
 } from '~/core/ports';
@@ -227,4 +229,8 @@ export function createPollService(deps: Deps) {
 
 export type PollService = ReturnType<typeof createPollService>;
 
-export { pollView, describeOutcome } from '~/core/presentation';
+export { describeOutcome } from '~/core/presentation';
+
+export function pollView(poll: PollWithOptions, results: PollResults): Message {
+  return renderPoll(poll, results, new Date());
+}
