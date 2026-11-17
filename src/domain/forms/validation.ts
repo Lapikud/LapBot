@@ -32,8 +32,10 @@ export function validateSubmission<T extends Record<string, unknown>>(
   }
 
   // Each field schema validates its corresponding value before this boundary.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const validated = values as T;
 
   return issues.length === 0
-    ? { ok: true, values: values as T }
+    ? { ok: true, values: validated }
     : { ok: false, issues };
 }

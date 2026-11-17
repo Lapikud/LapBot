@@ -29,7 +29,8 @@ describe.skipIf(noDatabase)('poll repository', () => {
     const [pizza, sushi] = poll.options.map((o) => o.id);
     const user = snowflake();
 
-    await polls().vote(poll.id, user, [pizza ?? 0]);
+    await polls().vote(poll.id, user, [pizza ?? 0, pizza ?? 0]);
+    expect(await polls().choices(poll.id, user)).toEqual([pizza]);
     await polls().vote(poll.id, user, [sushi ?? 0]);
     expect(await polls().choices(poll.id, user)).toEqual([sushi]);
     await expect(

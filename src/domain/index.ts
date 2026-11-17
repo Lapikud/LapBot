@@ -9,3 +9,5 @@ export * from './movie';
 export * from './birthday';
 export * from './issue';
 export * from './forms';
+export * from './birthday-form';
+export * from './poll-form';

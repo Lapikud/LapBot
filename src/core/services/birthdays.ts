@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { z } from 'zod';
 import {
-  birthdayVisibilities,
+  parseBirthdaySubmission,
   calendarDay,
   channelMention,
   nextDailyRun,
@@ -10,7 +10,6 @@ import {
   UserError,
   userMention,
   type Actor,
-  type BirthdayVisibility,
   type Message,
 } from '~/domain';
 import type {
@@ -223,18 +222,15 @@ export function createBirthdayService(deps: Deps) {
       actor: Actor,
       birthday: { day: number; month: number; visibility?: string },
     ) => {
-      const visibility: BirthdayVisibility =
-        birthdayVisibilities.find((v) => v === birthday.visibility) ?? 'public';
+      const parsed = parseBirthdaySubmission(birthday);
 
       await birthdays.set({
         guildId: actor.guildId,
         userId: actor.userId,
-        day: birthday.day,
-        month: birthday.month,
-        visibility,
+        ...parsed,
       });
 
-      return visibility;
+      return parsed.visibility;
     },
     remove: (actor: Actor) => birthdays.remove(actor.guildId, actor.userId),
     view: async (actor: Actor, userId: string) => {

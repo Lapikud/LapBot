@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import type {
   NewPoll,
   PollRepository,
@@ -6,7 +6,13 @@ import type {
   PollWithOptions,
 } from '~/core/ports';
 import type { Db } from '../client';
-import { isPollOpen, tally, UserError, validatePollOptions } from '~/domain';
+import {
+  isPollOpen,
+  tally,
+  UserError,
+  validatePollOptions,
+  validatePollResponse,
+} from '~/domain';
 import { pollOptions, polls, pollVotes, type Poll } from './model';
 
 export async function insertPoll(
@@ -81,24 +87,11 @@ export async function castVote(
       throw new UserError('This poll is closed.');
     }
 
-    const unique = [...new Set(optionIds)];
-
-    if (!poll.multiple && unique.length > 1) {
-      throw new UserError('This poll allows only one choice.');
-    }
-
-    if (unique.length > 0) {
-      const valid = await tx
-        .select({ id: pollOptions.id })
-        .from(pollOptions)
-        .where(
-          and(eq(pollOptions.pollId, pollId), inArray(pollOptions.id, unique)),
-        );
-
-      if (valid.length !== unique.length) {
-        throw new UserError('That option is not part of this poll.');
-      }
-    }
+    const options = await tx
+      .select({ id: pollOptions.id, label: pollOptions.label })
+      .from(pollOptions)
+      .where(eq(pollOptions.pollId, pollId));
+    const unique = validatePollResponse(options, poll.multiple, optionIds);
 
     await tx
       .delete(pollVotes)
