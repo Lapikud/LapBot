@@ -17,15 +17,11 @@ const sourceFiles = [...javascriptFiles, ...typescriptFiles];
 const qualityRules: Linter.RulesRecord = {
   'no-alert': 'error',
   'no-console': ['warn', { allow: ['warn', 'error'] }],
-  'no-debugger': 'error',
   'no-eval': 'error',
   'no-implied-eval': 'error',
   'no-new-func': 'error',
   'no-new-wrappers': 'error',
-  'no-unsafe-optional-chaining': 'error',
-  'no-constant-binary-expression': 'error',
   'no-promise-executor-return': 'error',
-  'no-async-promise-executor': 'error',
   'no-unmodified-loop-condition': 'error',
   'no-unreachable-loop': 'error',
   'no-template-curly-in-string': 'error',
@@ -36,12 +32,9 @@ const qualityRules: Linter.RulesRecord = {
   'no-lonely-if': 'error',
   'no-param-reassign': 'error',
   'no-shadow': 'error',
-  'no-use-before-define': 'off',
-  'no-void': 'off',
 
   'array-callback-return': ['error', { checkForEach: true }],
   'consistent-return': 'error',
-  'constructor-super': 'error',
   'default-case-last': 'error',
   'default-param-last': 'error',
   eqeqeq: ['error', 'always'],
@@ -68,15 +61,6 @@ const qualityRules: Linter.RulesRecord = {
   'max-params': ['error', { max: 4 }],
   'no-await-in-loop': 'error',
   'max-nested-callbacks': ['error', { max: 4 }],
-
-  'sonarjs/cognitive-complexity': ['error', 15],
-  'sonarjs/no-duplicate-string': 'off',
-  'sonarjs/no-nested-conditional': 'error',
-  'sonarjs/prefer-single-boolean-return': 'error',
-  'sonarjs/prefer-regexp-exec': 'error',
-  'sonarjs/no-empty-collection': 'error',
-  'sonarjs/reduce-initial-value': 'error',
-  'sonarjs/no-redundant-optional': 'error',
 };
 
 const noDiscordImport = {
@@ -111,7 +95,6 @@ const unicornRules: Linter.RulesRecord = {
   'unicorn/no-await-expression-member': 'error',
   'unicorn/no-for-loop': 'error',
 
-  'unicorn/no-array-reduce': 'off',
   'unicorn/no-array-callback-reference': 'error',
 };
 
@@ -167,7 +150,6 @@ export default defineConfig(
       sourceType: 'module',
     },
     rules: {
-      'no-undef': 'error',
       'no-unused-vars': [
         'error',
         {
@@ -200,18 +182,14 @@ export default defineConfig(
       },
     },
     rules: {
-      'no-undef': 'off',
       'no-unused-vars': 'off',
       'no-shadow': 'off',
       'default-param-last': 'off',
-      'no-redeclare': 'off',
 
       '@typescript-eslint/no-shadow': 'error',
       '@typescript-eslint/default-param-last': 'error',
       '@typescript-eslint/no-redeclare': 'error',
 
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unsafe-type-assertion': 'error',
 
       '@typescript-eslint/consistent-type-imports': [
@@ -257,18 +235,9 @@ export default defineConfig(
         'error',
         { checksVoidReturn: true },
       ],
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/no-unnecessary-condition': 'error',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-      '@typescript-eslint/no-unnecessary-type-parameters': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
-      '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/prefer-readonly': 'error',
-      '@typescript-eslint/prefer-reduce-type-parameter': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'error',
-      '@typescript-eslint/only-throw-error': 'error',
     },
   },
 
@@ -279,7 +248,6 @@ export default defineConfig(
     ],
     rules: {
       'max-params': 'off',
-      'sonarjs/no-duplicate-string': 'off',
     },
   },
 

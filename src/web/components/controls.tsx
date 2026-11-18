@@ -1,4 +1,4 @@
-import type { Child, JSX } from 'hono/jsx';
+import { createElement, type Child, type JSX } from 'hono/jsx';
 import { Field } from './field';
 
 interface Presentation {
@@ -9,9 +9,7 @@ interface Presentation {
   error?: string;
   'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
 }
-type InputProps = Presentation & JSX.IntrinsicElements['input'];
-type TextareaProps = Presentation & JSX.IntrinsicElements['textarea'];
-type SelectProps = Presentation & JSX.IntrinsicElements['select'];
+type ControlTag = 'input' | 'textarea' | 'select';
 
 function describedBy(
   id: string,
@@ -33,80 +31,38 @@ function describedBy(
   );
 }
 
-export function Input({
-  label,
-  help,
-  error,
-  id,
-  ...props
-}: Readonly<InputProps>) {
-  const controlId = id ?? props.name;
+function control<Tag extends ControlTag>(tag: Tag) {
+  return function Control({
+    label,
+    help,
+    error,
+    id,
+    ...props
+  }: Readonly<Presentation & JSX.IntrinsicElements[Tag]>) {
+    const controlId = id ?? props.name;
 
-  return (
-    <Field id={controlId} label={label} help={help} error={error}>
-      <input
-        {...props}
-        id={controlId}
-        aria-describedby={describedBy(
-          controlId,
-          help,
-          error,
-          props['aria-describedby'],
+    return (
+      <Field id={controlId} label={label} help={help} error={error}>
+        {createElement(
+          tag,
+          {
+            ...props,
+            id: controlId,
+            'aria-describedby': describedBy(
+              controlId,
+              help,
+              error,
+              props['aria-describedby'],
+            ),
+            'aria-invalid': error === undefined ? props['aria-invalid'] : true,
+          },
+          props.children,
         )}
-        aria-invalid={error === undefined ? props['aria-invalid'] : true}
-      />
-    </Field>
-  );
+      </Field>
+    );
+  };
 }
 
-export function Textarea({
-  label,
-  help,
-  error,
-  id,
-  ...props
-}: Readonly<TextareaProps>) {
-  const controlId = id ?? props.name;
-
-  return (
-    <Field id={controlId} label={label} help={help} error={error}>
-      <textarea
-        {...props}
-        id={controlId}
-        aria-describedby={describedBy(
-          controlId,
-          help,
-          error,
-          props['aria-describedby'],
-        )}
-        aria-invalid={error === undefined ? props['aria-invalid'] : true}
-      />
-    </Field>
-  );
-}
-
-export function Select({
-  label,
-  help,
-  error,
-  id,
-  ...props
-}: Readonly<SelectProps>) {
-  const controlId = id ?? props.name;
-
-  return (
-    <Field id={controlId} label={label} help={help} error={error}>
-      <select
-        {...props}
-        id={controlId}
-        aria-describedby={describedBy(
-          controlId,
-          help,
-          error,
-          props['aria-describedby'],
-        )}
-        aria-invalid={error === undefined ? props['aria-invalid'] : true}
-      />
-    </Field>
-  );
-}
+export const Input = control('input');
+export const Textarea = control('textarea');
+export const Select = control('select');
