@@ -1,0 +1,419 @@
+import js from '@eslint/js';
+import type { Linter } from 'eslint';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
+import { configs as sonarConfigs } from 'eslint-plugin-sonarjs';
+import unicorn from 'eslint-plugin-unicorn';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+import importX from 'eslint-plugin-import-x';
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
+
+const javascriptFiles = ['**/*.{js,mjs,cjs,jsx}'];
+const typescriptFiles = ['**/*.{ts,mts,cts,tsx}'];
+const sourceFiles = [...javascriptFiles, ...typescriptFiles];
+
+const qualityRules: Linter.RulesRecord = {
+  'no-alert': 'error',
+  'no-console': ['warn', { allow: ['warn', 'error'] }],
+  'no-eval': 'error',
+  'no-implied-eval': 'error',
+  'no-new-func': 'error',
+  'no-new-wrappers': 'error',
+  'no-promise-executor-return': 'error',
+  'no-unmodified-loop-condition': 'error',
+  'no-unreachable-loop': 'error',
+  'no-template-curly-in-string': 'error',
+  'no-useless-call': 'error',
+  'no-useless-concat': 'error',
+  'no-useless-return': 'error',
+  'no-else-return': 'error',
+  'no-lonely-if': 'error',
+  'no-param-reassign': 'error',
+  'no-shadow': 'error',
+
+  'array-callback-return': ['error', { checkForEach: true }],
+  'consistent-return': 'error',
+  'default-case-last': 'error',
+  'default-param-last': 'error',
+  eqeqeq: ['error', 'always'],
+  curly: ['error', 'all'],
+  'dot-notation': 'error',
+  'guard-for-in': 'error',
+  radix: 'error',
+  yoda: 'error',
+
+  'object-shorthand': ['error', 'always'],
+  'prefer-const': 'error',
+  'prefer-template': 'error',
+  'prefer-object-spread': 'error',
+  'prefer-rest-params': 'error',
+  'prefer-spread': 'error',
+  'prefer-exponentiation-operator': 'error',
+  'prefer-numeric-literals': 'error',
+  'prefer-promise-reject-errors': 'error',
+
+  'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
+
+  complexity: ['error', { max: 15 }],
+  'max-depth': ['error', { max: 4 }],
+  'max-params': ['error', { max: 4 }],
+  'no-await-in-loop': 'error',
+  'max-nested-callbacks': ['error', { max: 4 }],
+};
+
+const noDiscordImport = {
+  name: 'discord.js',
+  message: 'Only Discord adapters may use discord.js.',
+};
+
+const unicornRules: Linter.RulesRecord = {
+  'unicorn/prefer-set-has': 'error',
+  'unicorn/prefer-array-some': 'error',
+  'unicorn/prefer-array-find': 'error',
+  'unicorn/prefer-array-flat': 'error',
+  'unicorn/prefer-array-flat-map': 'error',
+  'unicorn/prefer-array-index-of': 'error',
+  'unicorn/prefer-includes': 'error',
+  'unicorn/prefer-string-starts-ends-with': 'error',
+  'unicorn/prefer-string-slice': 'error',
+  'unicorn/prefer-string-replace-all': 'error',
+  'unicorn/prefer-string-raw': 'error',
+  'unicorn/prefer-number-properties': 'error',
+  'unicorn/prefer-regexp-test': 'error',
+  'unicorn/prefer-type-error': 'error',
+  'unicorn/prefer-date-now': 'error',
+  'unicorn/prefer-at': 'error',
+
+  'unicorn/no-useless-switch-case': 'error',
+  'unicorn/no-useless-promise-resolve-reject': 'error',
+  'unicorn/no-useless-spread': 'error',
+  'unicorn/no-useless-length-check': 'error',
+  'unicorn/no-unnecessary-await': 'error',
+  'unicorn/no-useless-undefined': 'error',
+  'unicorn/no-await-expression-member': 'error',
+  'unicorn/no-for-loop': 'error',
+
+  'unicorn/no-array-callback-reference': 'error',
+};
+
+export default defineConfig(
+  globalIgnores([
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/build/**',
+    '**/coverage/**',
+    '**/.next/**',
+    '**/.nuxt/**',
+    '**/.output/**',
+    '**/.cache/**',
+    '**/.turbo/**',
+    '**/.vercel/**',
+    '**/vendor/**',
+    '**/generated/**',
+    '**/*.generated.*',
+    '**/*.min.js',
+    '**/*.d.ts',
+  ]),
+
+  {
+    files: sourceFiles,
+    extends: [js.configs.recommended, sonarConfigs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: globals.builtin,
+    },
+    rules: qualityRules,
+  },
+
+  {
+    files: sourceFiles,
+    plugins: { unicorn },
+    rules: unicornRules,
+  },
+
+  {
+    files: ['**/*.tsx'],
+    plugins: { react },
+    settings: { react: { version: '19' } },
+    rules: {
+      'react/jsx-key': ['error', { checkFragmentShorthand: true }],
+      'react/no-array-index-key': 'error',
+      'react/button-has-type': 'error',
+    },
+  },
+
+  {
+    files: javascriptFiles,
+    languageOptions: {
+      sourceType: 'module',
+    },
+    rules: {
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: globals.node,
+    },
+  },
+
+  {
+    files: typescriptFiles,
+    extends: [
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-shadow': 'off',
+      'default-param-last': 'off',
+
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/default-param-last': 'error',
+      '@typescript-eslint/no-redeclare': 'error',
+
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
+
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'separate-type-imports',
+        },
+      ],
+      '@typescript-eslint/consistent-type-exports': 'error',
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/consistent-generic-constructors': [
+        'error',
+        'constructor',
+      ],
+      '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+      '@typescript-eslint/method-signature-style': ['error', 'property'],
+
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowNumber: true,
+          allowBoolean: true,
+        },
+      ],
+
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreArrowShorthand: true },
+      ],
+
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: true },
+      ],
+      '@typescript-eslint/prefer-readonly': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/strict-boolean-expressions': 'error',
+    },
+  },
+
+  {
+    files: [
+      '**/*.{test,spec}.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+    ],
+    rules: {
+      'max-params': 'off',
+    },
+  },
+
+  {
+    files: ['**/*.config.{js,mjs,cjs,ts,mts,cts}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
+  {
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.ts', '*.config.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    plugins: { 'import-x': importX },
+    settings: {
+      'import-x/resolver-next': [createTypeScriptImportResolver()],
+    },
+    rules: {
+      'import-x/no-cycle': 'error',
+      'import-x/no-self-import': 'error',
+      'import-x/no-useless-path-segments': 'error',
+      'import-x/no-extraneous-dependencies': [
+        'error',
+        {
+          devDependencies: ['tests/**', '**/*.test.ts', '*.config.ts'],
+        },
+      ],
+      'import-x/no-duplicates': 'error',
+      'import-x/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: './src/core',
+              from: [
+                './src/features',
+                './src/integrations',
+                './src/web',
+                './src/discord',
+                './src/config',
+                './src/app.ts',
+              ],
+              message:
+                'Core primitives cannot depend on features or their adapters.',
+            },
+            {
+              target: './src/features',
+              from: [
+                './src/config',
+                './src/app.ts',
+                './src/integrations/db',
+                './src/integrations/discord',
+                './src/web',
+                './src/discord',
+                './src/integrations/scheduler',
+                './src/integrations/logging',
+                './src/integrations/tmdb/catalog.ts',
+              ],
+              message: 'Feature logic uses contracts, never concrete adapters.',
+            },
+            {
+              target: [
+                './src/features',
+                './src/integrations',
+                './src/web',
+                './src/discord',
+              ],
+              from: ['./src/app.ts', './src/index.ts'],
+              message:
+                'Features and adapters must not import the composition root.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/app.ts',
+      'src/integrations/discord/**',
+      'src/discord/**',
+      '**/*.test.ts',
+    ],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [noDiscordImport] }],
+    },
+  },
+
+  {
+    files: ['src/features/**/*.ts', 'src/core/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [noDiscordImport],
+          patterns: [
+            {
+              group: [
+                'drizzle-orm',
+                'drizzle-orm/*',
+                'postgres',
+                'pg-boss',
+                'hono',
+                'hono/*',
+                'tmdb-ts',
+                'pino',
+              ],
+              message:
+                'Pure rules and operations use contracts, not platform libraries.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['**/*.test.ts', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-type-assertion': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/require-await': 'off',
+      'unicorn/no-useless-undefined': 'off',
+      'unicorn/no-await-expression-member': 'off',
+      'no-restricted-imports': 'off',
+      'no-await-in-loop': 'off',
+    },
+  },
+
+  {
+    files: [
+      'src/core/helpers/async.ts',
+      'src/integrations/scheduler/runner.ts',
+    ],
+    rules: { 'no-await-in-loop': 'off' },
+  },
+
+  prettier,
+
+  {
+    files: typescriptFiles,
+    rules: {
+      curly: ['error', 'all'],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'ImportDeclaration[source.value=/^\\.{1,2}\\/.*\\.js$/], ImportExpression[source.value=/^\\.{1,2}\\/.*\\.js$/]',
+          message: 'Import local modules without the .js extension.',
+        },
+      ],
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: '*', next: 'return' },
+        { blankLine: 'always', prev: ['const', 'let'], next: '*' },
+        { blankLine: 'any', prev: ['const', 'let'], next: ['const', 'let'] },
+        { blankLine: 'always', prev: 'block-like', next: '*' },
+      ],
+    },
+  },
+);

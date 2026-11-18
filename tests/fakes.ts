@@ -1,0 +1,132 @@
+import { randomUUID } from 'node:crypto';
+import { pino } from 'pino';
+import { vi } from 'vitest';
+import type { Directory, RoleInfo } from '~/core/ports/directory';
+import type { Messenger } from '~/core/ports/messenger';
+import type { Scheduler } from '~/core/ports/scheduler';
+import { UserError } from '~/core/errors';
+import type { Actor } from '~/core/actor';
+import type { Authorizer } from '~/core/ports/authorization';
+
+export const silentLog = pino({ level: 'silent' });
+
+export function actor(overrides: Partial<Actor> = {}): Actor {
+  return {
+    guildId: 'g',
+    userId: 'u',
+    roleIds: [],
+    administrator: false,
+    owner: false,
+    highestRolePosition: 10,
+    ...overrides,
+  };
+}
+
+export function role(overrides: Partial<RoleInfo> = {}): RoleInfo {
+  return {
+    id: 'r',
+    name: 'Role',
+    position: 1,
+    everyone: false,
+    managed: false,
+    mentionable: true,
+    moderator: false,
+    administrator: false,
+    botCanAssign: true,
+    ...overrides,
+  };
+}
+
+export const allowAll: Authorizer = {
+  can: async () => true,
+  require: async () => undefined,
+  granted: async (_actor, permissions) => new Set(permissions),
+};
+
+export const denyAll: Authorizer = {
+  can: async () => false,
+  require: async () => {
+    throw new UserError('denied');
+  },
+  granted: async () => new Set(),
+};
+
+export function fakeMessenger() {
+  const sent: string[] = [];
+  const messages = new Map<string, { channelId: string; content: string }>();
+  const messenger = {
+    send: vi.fn<Messenger['send']>(async (channelId, message) => {
+      const messageId = randomUUID();
+
+      sent.push(messageId);
+
+      messages.set(messageId, { channelId, content: message.content ?? '' });
+
+      return { channelId, messageId };
+    }),
+    edit: vi.fn<Messenger['edit']>(async (_c, messageId) =>
+      messages.has(messageId),
+    ),
+    remove: vi.fn<Messenger['remove']>(async (_c, messageId) =>
+      messages.delete(messageId),
+    ),
+    direct: vi.fn<Messenger['direct']>(async () => undefined),
+    exists: vi.fn<Messenger['exists']>(async (_c, messageId) =>
+      messages.has(messageId),
+    ),
+    findOwn: vi.fn<Messenger['findOwn']>(
+      async (channelId, content) =>
+        [...messages].find(
+          ([, m]) => m.channelId === channelId && m.content === content,
+        )?.[0],
+    ),
+    clearReactionsExcept: vi.fn<Messenger['clearReactionsExcept']>(
+      async () => undefined,
+    ),
+    ownReactions: vi.fn<Messenger['ownReactions']>(async () => []),
+    react: vi.fn<Messenger['react']>(async () => undefined),
+  } satisfies Messenger;
+
+  return { messenger, messages, sent };
+}
+
+export function fakeDirectory(
+  roles: RoleInfo[] = [],
+  options: { canPost?: boolean; guildId?: string } = {},
+) {
+  const directory = {
+    guildOf: vi.fn<Directory['guildOf']>(async () => options.guildId ?? 'g'),
+    channels: vi.fn<Directory['channels']>(async () => []),
+    roles: vi.fn<Directory['roles']>(async () => roles),
+    role: vi.fn<Directory['role']>(async (_g, id) =>
+      roles.find((r) => r.id === id),
+    ),
+    member: vi.fn<Directory['member']>(async () => undefined),
+    displayName: vi.fn<Directory['displayName']>(async () => undefined),
+    canView: vi.fn<Directory['canView']>(async () => true),
+    canPost: vi.fn<Directory['canPost']>(async () => options.canPost ?? true),
+    isPublic: vi.fn<Directory['isPublic']>(async () => true),
+    addRoles: vi.fn<Directory['addRoles']>(async () => undefined),
+    removeRoles: vi.fn<Directory['removeRoles']>(async () => undefined),
+  } satisfies Directory;
+
+  return directory;
+}
+
+export function fakeScheduler() {
+  return {
+    schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
+    cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
+  };
+}
+
+export function serviceFakes() {
+  return {
+    ...fakeMessenger(),
+    scheduler: fakeScheduler(),
+    directory: fakeDirectory(),
+    authz: allowAll,
+    log: silentLog,
+    timezone: 'Europe/Tallinn',
+  };
+}
