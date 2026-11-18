@@ -609,7 +609,9 @@ describe('birthday announcements', () => {
       expect(messenger.send).toHaveBeenCalledOnce();
       expect(messenger.send).toHaveBeenCalledWith(
         'c',
-        expect.objectContaining({ mentions: { users: [admin.userId] } }),
+        expect.objectContaining({
+          mentions: { users: [admin.userId], here: true },
+        }),
       );
       expect(outcome?.rescheduleAt.getTime()).toBeGreaterThan(Date.now());
     });
