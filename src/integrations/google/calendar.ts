@@ -50,7 +50,13 @@ export function createGoogleCalendar(
       return data.id;
     },
     remove: async (id) => {
-      await api.events.delete({ calendarId, eventId: id });
+      await api.events.delete(
+        { calendarId, eventId: id },
+        {
+          validateStatus: (status) =>
+            (status >= 200 && status < 300) || status === 410,
+        },
+      );
     },
     between: async (from, to) => {
       const { data } = await api.events.list({

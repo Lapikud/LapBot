@@ -240,7 +240,9 @@ export function createEventService(deps: Deps) {
       log.warn({ error, eventId: event.id }, 'Could not sync Google Calendar');
 
       throw new UserError(
-        'Calendar synchronization failed. The Discord event is saved; retry calendar posting.',
+        event.status === 'cancelled'
+          ? `Calendar removal failed. The Discord event is cancelled; retry /event cancel id:${event.id}.`
+          : 'Calendar synchronization failed. The Discord event is saved; retry calendar posting.',
       );
     }
   };
@@ -510,7 +512,7 @@ export function createEventService(deps: Deps) {
     cancel: async (actor: Actor, id: number) => {
       const event = await requireManageable(actor, id);
 
-      if (event.status === 'cancelled') {
+      if (event.status === 'cancelled' && event.calendarEventId === null) {
         throw new UserError('That event is already cancelled.');
       }
 

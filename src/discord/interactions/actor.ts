@@ -12,7 +12,6 @@ const moderatorPermissions = [
   PermissionFlagsBits.BanMembers,
   PermissionFlagsBits.KickMembers,
   PermissionFlagsBits.ModerateMembers,
-  PermissionFlagsBits.MentionEveryone,
 ];
 
 let applicationAdminRole:

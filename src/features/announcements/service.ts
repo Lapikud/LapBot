@@ -147,8 +147,11 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
   const publishJob = defineJob({
     type: 'announcements.publish',
-    payload: z.object({ announcementId: z.number().int() }),
-    handle: async ({ announcementId }) => {
+    payload: z.object({
+      announcementId: z.number().int(),
+      scheduledBy: z.string().min(1).optional(),
+    }),
+    handle: async ({ announcementId, scheduledBy }) => {
       const post = await posts.find(announcementId);
 
       if (post?.status !== 'scheduled') {
@@ -185,8 +188,21 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         }
 
         await authz.require(author, 'announcement:create');
-        await authz.require(author, 'announcement:schedule');
+        const publisher =
+          scheduledBy === undefined || scheduledBy === post.authorId
+            ? author
+            : await directory.member(post.guildId, scheduledBy);
+
+        if (!publisher) {
+          throw new UserError('The scheduler is no longer a server member.');
+        }
+
+        await authz.require(publisher, 'announcement:schedule');
         await checkTargets(author, post);
+        if (publisher.userId !== post.authorId) {
+          await authz.require(publisher, 'announcement:publish');
+          await checkTargets(publisher, post);
+        }
       } catch (error) {
         if (!(error instanceof UserError)) {
           throw error;
@@ -358,7 +374,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
         await scheduler.schedule(
           publishJob,
-          { announcementId: id },
+          { announcementId: id, scheduledBy: actor.userId },
           { runAt, key: jobKey(id) },
         );
 
