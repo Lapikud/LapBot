@@ -221,9 +221,7 @@ body:has(.log-view) {
 main:has(.log-view) {
   flex: 1;
   min-width: 0;
-  padding-inline: var(--pico-spacing);
   min-height: 0;
-  max-width: none;
   display: flex;
   flex-direction: column;
 }
