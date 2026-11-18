@@ -16,6 +16,7 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
             (await directory.displayName(guildId, userId)) ?? 'Former member',
         ),
       );
+
       return c.html(
         <BirthdayPage
           settings={settings}
