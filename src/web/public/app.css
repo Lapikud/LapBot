@@ -253,6 +253,17 @@ main:has(.log-view) {
   margin-bottom: 0;
   font-size: 0.75rem;
 }
+.log-view input[type='search'] {
+  border-radius: min(0.25rem, var(--pico-border-radius));
+  padding-right: calc(var(--pico-form-element-spacing-horizontal) + 1.5rem);
+  padding-left: var(--pico-form-element-spacing-horizontal);
+  padding-inline-start: var(--pico-form-element-spacing-horizontal);
+  padding-inline-end: calc(
+    var(--pico-form-element-spacing-horizontal) + 1.5rem
+  );
+  padding-block: var(--pico-form-element-spacing-vertical);
+  flex-grow: 1;
+}
 .log-view > p {
   margin: 0;
   font-size: 0.75rem;

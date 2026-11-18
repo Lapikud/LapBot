@@ -1,7 +1,7 @@
 import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
-import { and, count, desc, gte, sql } from 'drizzle-orm';
+import { and, count, desc, gte, like, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { logs } from './table';
@@ -32,11 +32,6 @@ export function createLogStore(path: string) {
 
   database.pragma('journal_mode = WAL');
   database.pragma('synchronous = FULL');
-  database.function(
-    'log_contains',
-    { deterministic: true },
-    (text: string, query: string) => Number(text.toLowerCase().includes(query)),
-  );
   const db = drizzle(database);
 
   migrate(db, { migrationsFolder: resolve('drizzle/logs') });
@@ -62,7 +57,11 @@ export function createLogStore(path: string) {
         gte(logs.level, input.level),
         query === ''
           ? undefined
-          : sql`log_contains(${logs.message} || ' ' || ${logs.source} || ' ' || ${logs.details}, ${query}) = 1`,
+          : or(
+              like(logs.message, `%${query}%`),
+              like(logs.source, `%${query}%`),
+              like(logs.details, `%${query}%`),
+            ),
       );
       const total =
         db.select({ value: count() }).from(logs).where(where).get()?.value ?? 0;
