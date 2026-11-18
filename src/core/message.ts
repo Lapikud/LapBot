@@ -69,6 +69,8 @@ export const roleMention = (id: string) => `<@&${id}>`;
 
 export const channelMention = (id: string) => `<#${id}>`;
 
+export const hereMention = () => '@here';
+
 export const controlId = (prefix: string, ...args: Array<string | number>) => {
   const id = [prefix, ...args].join(':');
 

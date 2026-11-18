@@ -2,7 +2,12 @@ import { format } from 'date-fns';
 import { z } from 'zod';
 import { parseBirthdaySubmission } from './form';
 import { calendarDay, nextDailyRun } from '~/core/helpers/time';
-import { channelMention, userMention, type Message } from '~/core/message';
+import {
+  channelMention,
+  hereMention,
+  userMention,
+  type Message,
+} from '~/core/message';
 import { PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { type Authorizer } from '~/core/ports/authorization';
@@ -67,7 +72,7 @@ export function createBirthdayService(deps: Deps) {
   ) => {
     try {
       await messenger.send(settings.channelId, {
-        content: `🎉 Palju õnne sünnipäevaks, ${userIds.map((id) => userMention(id)).join(', ')}!`,
+        content: `${hereMention()} 🎉 Palju õnne sünnipäevaks, ${userIds.map((id) => userMention(id)).join(', ')}!`,
         mentions: { users: userIds },
       });
     } catch (error) {
