@@ -21,7 +21,7 @@ export function allowedMentions(
   mentions: Mentions = {},
 ): MessageMentionOptions {
   return {
-    parse: [],
+    parse: (mentions.here ?? false) ? ['everyone'] : [],
     users: [...(mentions.users ?? [])],
     roles: [...(mentions.roles ?? [])],
   };
