@@ -7,8 +7,8 @@ export const levels = [
   { name: 'fatal', value: 60 },
 ] as const;
 
-export function logCursor(value: string | undefined): number | undefined {
+export function logPageNumber(value: string | undefined): number {
   const cursor = Number(value);
 
-  return Number.isSafeInteger(cursor) && cursor > 0 ? cursor : undefined;
+  return Number.isSafeInteger(cursor) && cursor > 0 ? cursor : 1;
 }

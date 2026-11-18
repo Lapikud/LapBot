@@ -1,39 +1,63 @@
 import type { Permission } from '~/core/permission';
 import type { LogEntry } from '~/integrations/logging/store';
-import { logPageSize } from '~/integrations/logging/store';
 import { Layout } from '~/web/layout';
 import { LogEntries } from './entries';
 import { LogFilters } from './filter-form';
 
 interface Props {
   entries: LogEntry[];
-  hasMore: boolean;
+  page: number;
+  pages: number;
+  total: number;
   live: boolean;
   date: Intl.DateTimeFormat;
   toggle: URLSearchParams;
-  older: URLSearchParams;
+  pageLink: (page: number) => URLSearchParams;
   latest: URLSearchParams;
   minimum: { name: string; value: number };
   query: string;
-  before: number | undefined;
   timezone: string;
   can: ReadonlySet<Permission>;
 }
 
 export function LogPage({
   entries,
-  hasMore,
+  page,
+  pages,
+  total,
   live,
   date,
   toggle,
-  older,
+  pageLink,
   latest,
   minimum,
   query,
-  before,
   timezone,
   can,
 }: Readonly<Props>) {
+  const pagination = (
+    <nav class="log-pagination" aria-label="Log pages">
+      <a href={`/settings/logs?${latest.toString()}`}>Latest</a>
+      {page > 1 ? (
+        <a href={`/settings/logs?${pageLink(page - 1).toString()}`} rel="prev">
+          Previous
+        </a>
+      ) : (
+        <span aria-disabled="true">Previous</span>
+      )}
+      <span>
+        Page {page} of {pages}
+      </span>
+      {page < pages ? (
+        <a href={`/settings/logs?${pageLink(page + 1).toString()}`} rel="next">
+          Next
+        </a>
+      ) : (
+        <span aria-disabled="true">Next</span>
+      )}
+    </nav>
+  );
+
   return (
     <Layout
       title="Logs"
@@ -48,39 +72,23 @@ export function LogPage({
         </a>
       }
     >
-      <p>
-        All saved logs, newest first. Showing up to {logPageSize} entries per
-        page.
-      </p>
-      <LogFilters live={live} minimum={minimum} query={query} />
-      <p>
-        <small>
-          {entries.length} matching entries ·{' '}
-          {live ? 'Updates every 10 seconds' : 'Refresh paused'}. Only entries
-          enabled by LOG_LEVEL appear.
-        </small>
-      </p>
-      <nav aria-label="Log history">
-        <ul>
-          <li>
-            {before === undefined ? null : (
-              <a href={`/settings/logs?${latest.toString()}`}>Latest entries</a>
-            )}
-          </li>
-        </ul>
-        <ul>
-          <li>
-            {hasMore ? (
-              <a href={`/settings/logs?${older.toString()}`}>Older entries</a>
-            ) : null}
-          </li>
-        </ul>
-      </nav>
-      {entries.length === 0 ? (
-        <p>No matching log entries.</p>
-      ) : (
-        <LogEntries entries={entries} date={date} timezone={timezone} />
-      )}
+      <section class="log-view">
+        <LogFilters live={live} minimum={minimum} query={query} />
+        <p>
+          <small>
+            {total} matching entries · Newest first ·{' '}
+            {live ? 'Updates every 10 seconds' : 'Refresh paused'}. Only entries
+            enabled by LOG_LEVEL appear.
+          </small>
+        </p>
+        {pagination}
+        {entries.length === 0 ? (
+          <p>No matching log entries.</p>
+        ) : (
+          <LogEntries entries={entries} date={date} timezone={timezone} />
+        )}
+        {pagination}
+      </section>
     </Layout>
   );
 }

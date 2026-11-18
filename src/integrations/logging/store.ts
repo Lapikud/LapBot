@@ -1,7 +1,7 @@
 import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
-import { and, desc, gte, lt } from 'drizzle-orm';
+import { and, count, desc, gte, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { logs } from './table';
@@ -32,6 +32,11 @@ export function createLogStore(path: string) {
 
   database.pragma('journal_mode = WAL');
   database.pragma('synchronous = FULL');
+  database.function(
+    'log_contains',
+    { deterministic: true },
+    (text: string, query: string) => Number(text.toLowerCase().includes(query)),
+  );
   const db = drizzle(database);
 
   migrate(db, { migrationsFolder: resolve('drizzle/logs') });
@@ -51,47 +56,28 @@ export function createLogStore(path: string) {
         })
         .run();
     },
-    page: (input: { level: number; query: string; before?: number }) => {
+    page: (input: { level: number; query: string; page?: number }) => {
       const query = input.query.toLowerCase();
-      const rows: LogEntry[] = [];
-      let before = input.before ?? Number.MAX_SAFE_INTEGER;
+      const where = and(
+        gte(logs.level, input.level),
+        query === ''
+          ? undefined
+          : sql`log_contains(${logs.message} || ' ' || ${logs.source} || ' ' || ${logs.details}, ${query}) = 1`,
+      );
+      const total =
+        db.select({ value: count() }).from(logs).where(where).get()?.value ?? 0;
+      const pages = Math.max(1, Math.ceil(total / logPageSize));
+      const page = Math.min(Math.max(1, input.page ?? 1), pages);
+      const entries = db
+        .select()
+        .from(logs)
+        .where(where)
+        .orderBy(desc(logs.id))
+        .limit(logPageSize)
+        .offset((page - 1) * logPageSize)
+        .all();
 
-      while (rows.length <= logPageSize) {
-        const candidates = db
-          .select()
-          .from(logs)
-          .where(and(lt(logs.id, before), gte(logs.level, input.level)))
-          .orderBy(desc(logs.id))
-          .limit(logPageSize + 1)
-          .all();
-
-        for (const row of candidates) {
-          if (
-            `${row.message} ${row.source} ${row.details}`
-              .toLowerCase()
-              .includes(query)
-          ) {
-            rows.push(row);
-          }
-
-          if (rows.length > logPageSize) {
-            break;
-          }
-        }
-
-        const last = candidates.at(-1);
-
-        if (last === undefined || candidates.length <= logPageSize) {
-          break;
-        }
-
-        before = last.id;
-      }
-
-      return {
-        entries: rows.slice(0, logPageSize),
-        hasMore: rows.length > logPageSize,
-      };
+      return { entries, total, page, pages, hasMore: page < pages };
     },
     close: () => {
       if (database.open) {

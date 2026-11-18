@@ -211,8 +211,103 @@ td form:last-child {
   margin-bottom: 1.5rem;
 }
 
+body:has(.log-view) {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+main:has(.log-view) {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.log-view > form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+  margin: 0;
+}
+
+.log-view .grid {
+  flex: 1;
+  margin: 0;
+}
+.log-view label,
+.log-view input,
+.log-view select,
+.log-view button {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+.log-view > p {
+  margin: 0;
+  font-size: 0.75rem;
+}
+.log-pagination {
+  flex-shrink: 0;
+  gap: 1rem;
+  font-size: 0.75rem;
+}
+.log-pagination [aria-disabled] {
+  color: var(--pico-muted-color);
+}
+
 .log-table {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.log-table table {
+  table-layout: fixed;
+  min-width: 45rem;
+  margin: 0;
+  font-family: monospace;
+  font-size: 0.65rem;
+  line-height: 1.3;
+}
+
+.log-table td,
+.log-table th {
+  padding: 0.15rem 0.4rem;
+  overflow-wrap: anywhere;
+}
+.log-table th {
+  position: sticky;
+  top: 0;
+  background: var(--pico-background-color);
+}
+.log-table th:nth-child(1) {
+  width: 10rem;
+}
+.log-table th:nth-child(2) {
+  width: 4rem;
+}
+.log-table th:nth-child(3) {
+  width: 7rem;
+}
+.log-table code {
+  font-size: inherit;
+  padding: 0;
+  background: none;
+}
+.log-table details:not([open]) {
+  display: inline-block;
+  margin: 0 0 0 0.5rem;
 }
 
 .log-table td {
@@ -239,6 +334,7 @@ td form:last-child {
 }
 
 .log-message {
+  display: inline;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

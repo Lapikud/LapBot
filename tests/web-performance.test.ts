@@ -31,7 +31,13 @@ function fixture() {
       sessionSecret,
     },
     logs: {
-      page: () => ({ entries: [], hasMore: false }),
+      page: () => ({
+        entries: [],
+        total: 0,
+        page: 1,
+        pages: 1,
+        hasMore: false,
+      }),
       close: () => undefined,
       write: () => undefined,
     },

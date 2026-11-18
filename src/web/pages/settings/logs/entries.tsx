@@ -8,7 +8,7 @@ interface Props {
 }
 export function LogEntries({ entries, date, timezone }: Readonly<Props>) {
   return (
-    <div class="log-table">
+    <div class="log-table" role="region" aria-label="Log entries" tabIndex={0}>
       <table>
         <thead>
           <tr>
