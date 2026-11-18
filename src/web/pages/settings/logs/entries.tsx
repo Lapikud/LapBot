@@ -15,7 +15,7 @@ export function LogEntries({ entries, date, timezone }: Readonly<Props>) {
             <th>Time ({timezone})</th>
             <th>Level</th>
             <th>Source</th>
-            <th>Message</th>
+            <th>Message Details</th>
           </tr>
         </thead>
         <tbody>
