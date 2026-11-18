@@ -73,7 +73,7 @@ export function createBirthdayService(deps: Deps) {
     try {
       await messenger.send(settings.channelId, {
         content: `${hereMention()} 🎉 Palju õnne sünnipäevaks, ${userIds.map((id) => userMention(id)).join(', ')}!`,
-        mentions: { users: userIds },
+        mentions: { users: userIds, here: true },
       });
     } catch (error) {
       if (!(error instanceof PermanentError)) {
