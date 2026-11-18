@@ -1,4 +1,11 @@
-import { pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  check,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 export const rolePermissions = pgTable(
   'role_permissions',
@@ -16,6 +23,10 @@ export const rolePermissions = pgTable(
       .defaultNow(),
   },
   (table) => [
+    check(
+      'role_permissions_subject_type_check',
+      sql`${table.subjectType} IN ('role', 'user')`,
+    ),
     primaryKey({
       columns: [
         table.guildId,

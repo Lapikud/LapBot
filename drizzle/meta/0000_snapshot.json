@@ -1,5 +1,5 @@
 {
-  "id": "c6d545b5-335f-4b1d-9725-f4c69c87ae3a",
+  "id": "a4d70267-c709-42ad-8ab1-52ab79967e09",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -245,6 +245,96 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.event_suggestions": {
+      "name": "event_suggestions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "guild_id": {
+          "name": "guild_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_suggestions_guild_id_id": {
+          "name": "event_suggestions_guild_id_id",
+          "columns": [
+            {
+              "expression": "guild_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "event_suggestions_status": {
+          "name": "event_suggestions_status",
+          "value": "\"event_suggestions\".\"status\" IN ('new', 'reviewed', 'dismissed')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.event_rsvps": {
@@ -714,6 +804,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "subject_type": {
+          "name": "subject_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'role'"
+        },
         "permission": {
           "name": "permission",
           "type": "text",
@@ -737,18 +834,24 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "role_permissions_guild_id_role_id_permission_pk": {
-          "name": "role_permissions_guild_id_role_id_permission_pk",
+        "role_permissions_guild_id_role_id_subject_type_permission_pk": {
+          "name": "role_permissions_guild_id_role_id_subject_type_permission_pk",
           "columns": [
             "guild_id",
             "role_id",
+            "subject_type",
             "permission"
           ]
         }
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "role_permissions_subject_type_check": {
+          "name": "role_permissions_subject_type_check",
+          "value": "\"role_permissions\".\"subject_type\" IN ('role', 'user')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.poll_options": {

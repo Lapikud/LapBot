@@ -40,6 +40,18 @@ CREATE TABLE "birthdays" (
 	CONSTRAINT "birthdays_guild_id_user_id_pk" PRIMARY KEY("guild_id","user_id")
 );
 --> statement-breakpoint
+CREATE TABLE "event_suggestions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"guild_id" text NOT NULL,
+	"author_id" text NOT NULL,
+	"text" text NOT NULL,
+	"channel_id" text NOT NULL,
+	"message_id" text,
+	"status" text DEFAULT 'new' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "event_suggestions_status" CHECK ("event_suggestions"."status" IN ('new', 'reviewed', 'dismissed'))
+);
+--> statement-breakpoint
 CREATE TABLE "event_rsvps" (
 	"event_id" integer NOT NULL,
 	"user_id" text NOT NULL,
@@ -100,10 +112,12 @@ CREATE TABLE "movie_suggestions" (
 CREATE TABLE "role_permissions" (
 	"guild_id" text NOT NULL,
 	"role_id" text NOT NULL,
+	"subject_type" text DEFAULT 'role' NOT NULL,
 	"permission" text NOT NULL,
 	"granted_by" text NOT NULL,
 	"granted_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "role_permissions_guild_id_role_id_permission_pk" PRIMARY KEY("guild_id","role_id","permission")
+	CONSTRAINT "role_permissions_guild_id_role_id_subject_type_permission_pk" PRIMARY KEY("guild_id","role_id","subject_type","permission"),
+	CONSTRAINT "role_permissions_subject_type_check" CHECK ("role_permissions"."subject_type" IN ('role', 'user'))
 );
 --> statement-breakpoint
 CREATE TABLE "poll_options" (
@@ -183,6 +197,7 @@ ALTER TABLE "poll_votes" ADD CONSTRAINT "poll_votes_option_id_poll_options_id_fk
 ALTER TABLE "role_panel_roles" ADD CONSTRAINT "role_panel_roles_panel_id_role_panels_id_fk" FOREIGN KEY ("panel_id") REFERENCES "public"."role_panels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "announcements_guild_idx" ON "announcements" USING btree ("guild_id","status");--> statement-breakpoint
 CREATE INDEX "birthdays_date_idx" ON "birthdays" USING btree ("guild_id","month","day");--> statement-breakpoint
+CREATE INDEX "event_suggestions_guild_id_id" ON "event_suggestions" USING btree ("guild_id","id");--> statement-breakpoint
 CREATE INDEX "event_rsvps_status_idx" ON "event_rsvps" USING btree ("event_id","status");--> statement-breakpoint
 CREATE INDEX "events_guild_start_idx" ON "events" USING btree ("guild_id","starts_at");--> statement-breakpoint
 CREATE INDEX "movie_screenings_guild_idx" ON "movie_screenings" USING btree ("guild_id","watched_at");--> statement-breakpoint
