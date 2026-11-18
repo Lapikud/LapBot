@@ -1,20 +1,14 @@
-import type { RoleInfo } from '~/core/ports/directory';
 import type { BirthdaySettings } from '~/features/birthdays/model';
 import { FormActions } from '~/web/components/actions';
-import { Input, Select } from '~/web/components/controls';
+import { Input } from '~/web/components/controls';
 import { ChannelSelect } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
 interface Props {
   settings: BirthdaySettings | undefined;
   server: Server;
-  roles: RoleInfo[];
 }
-export function BirthdaySettingsForm({
-  settings,
-  server,
-  roles,
-}: Readonly<Props>) {
+export function BirthdaySettingsForm({ settings, server }: Readonly<Props>) {
   return (
     <form method="post" action="/forms/birthdays">
       <ChannelSelect
@@ -22,14 +16,6 @@ export function BirthdaySettingsForm({
         {...(settings && { selected: settings.channelId })}
       />
       <div class="grid">
-        <Select label="Role for the day" name="roleId">
-          <option value="">None</option>
-          {roles.map(({ id, name }) => (
-            <option key={id} value={id} selected={settings?.roleId === id}>
-              @{name}
-            </option>
-          ))}
-        </Select>
         <Input
           label="Hour"
           name="hour"

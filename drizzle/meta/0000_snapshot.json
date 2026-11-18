@@ -138,12 +138,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "hour": {
           "name": "hour",
           "type": "smallint",

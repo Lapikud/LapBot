@@ -33,7 +33,6 @@ export const birthdays = pgTable(
 export const birthdaySettings = pgTable('birthday_settings', {
   guildId: text('guild_id').primaryKey(),
   channelId: text('channel_id').notNull(),
-  roleId: text('role_id'),
   hour: smallint('hour').notNull().default(9),
 });
 

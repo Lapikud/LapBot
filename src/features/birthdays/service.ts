@@ -5,7 +5,6 @@ import { calendarDay, nextDailyRun } from '~/core/helpers/time';
 import { channelMention, userMention, type Message } from '~/core/message';
 import { PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { selfAssignProblem } from '~/core/helpers/roles';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
 import type { Directory } from '~/core/ports/directory';
@@ -14,13 +13,11 @@ import type { Messenger } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
 import type { Birthday, BirthdaySettings, BirthdayRepository } from './model';
-import { sequential } from '~/core/helpers/async';
 
 const dailyKey = (guildId: string) => `birthdays:${guildId}`;
 
 export interface BirthdayConfiguration {
   channelId?: string;
-  roleId?: string | null;
   hour?: number;
   disable?: boolean;
 }
@@ -62,56 +59,6 @@ export function createBirthdayService(deps: Deps) {
   const { birthdays, scheduler, messenger, directory, authz, log, timezone } =
     deps;
 
-  const removeRoleJob = defineJob({
-    type: 'birthdays.remove-role',
-    payload: z.object({
-      guildId: z.string(),
-      userId: z.string(),
-      roleId: z.string(),
-    }),
-    handle: async ({ guildId, userId, roleId }) => {
-      try {
-        await directory.removeRoles(
-          { guildId, userId },
-          [roleId],
-          'Birthday is over',
-        );
-      } catch (error) {
-        if (!(error instanceof PermanentError)) {
-          throw error;
-        }
-      }
-    },
-  });
-
-  const giveRole = async (
-    settings: BirthdaySettings,
-    roleId: string,
-    userIds: string[],
-  ) => {
-    const midnight = nextDailyRun(timezone, 0);
-
-    await sequential(userIds, async (userId) => {
-      try {
-        await directory.addRoles(
-          { guildId: settings.guildId, userId },
-          [roleId],
-          'Birthday',
-        );
-        await scheduler.schedule(
-          removeRoleJob,
-          { guildId: settings.guildId, userId, roleId },
-          {
-            runAt: midnight,
-            key: `birthday-role:${settings.guildId}:${userId}`,
-          },
-        );
-      } catch (error) {
-        log.warn({ error, userId }, 'Could not give birthday role');
-      }
-    });
-  };
-
   const announce = async (
     settings: BirthdaySettings,
     userIds: string[],
@@ -151,29 +98,11 @@ export function createBirthdayService(deps: Deps) {
 
       if (userIds.length > 0) {
         await announce(settings, userIds, today.year);
-
-        if (settings.roleId !== null) {
-          await giveRole(settings, settings.roleId, userIds);
-        }
       }
 
       return { rescheduleAt: nextDailyRun(timezone, settings.hour) };
     },
   });
-
-  const requireBirthdayRole = async (actor: Actor, roleId: string) => {
-    const role = await directory.role(actor.guildId, roleId);
-
-    if (!role || selfAssignProblem(role) !== undefined || role.administrator) {
-      throw new UserError(
-        'Choose a non-privileged birthday role I can manage.',
-      );
-    }
-
-    if (!actor.administrator && role.position >= actor.highestRolePosition) {
-      throw new UserError('That role is not below your highest role.');
-    }
-  };
 
   const resolveSettings = async (
     actor: Actor,
@@ -190,23 +119,15 @@ export function createBirthdayService(deps: Deps) {
       throw new UserError('You cannot post in that birthday channel yourself.');
     }
 
-    const roleId =
-      change.roleId === undefined ? (current?.roleId ?? null) : change.roleId;
-
-    if (roleId !== null) {
-      await requireBirthdayRole(actor, roleId);
-    }
-
     return {
       guildId: actor.guildId,
       channelId,
-      roleId,
       hour: change.hour ?? current?.hour ?? 9,
     };
   };
 
   return {
-    jobs: [dailyJob, removeRoleJob],
+    jobs: [dailyJob],
     set: async (
       actor: Actor,
       birthday: { day: number; month: number; visibility?: string },
@@ -273,9 +194,7 @@ export function createBirthdayService(deps: Deps) {
           'Birthday settings changed',
         );
 
-        const role = settings.roleId === null ? '' : ' with a role for the day';
-
-        return `Birthdays are announced in ${channelMention(settings.channelId)} at ${settings.hour}:00 (${timezone})${role}.`;
+        return `Birthdays are announced in ${channelMention(settings.channelId)} at ${settings.hour}:00 (${timezone}).`;
       },
     ),
   };

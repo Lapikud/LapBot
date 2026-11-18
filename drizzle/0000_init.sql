@@ -26,7 +26,6 @@ CREATE TABLE "announcements" (
 CREATE TABLE "birthday_settings" (
 	"guild_id" text PRIMARY KEY NOT NULL,
 	"channel_id" text NOT NULL,
-	"role_id" text,
 	"hour" smallint DEFAULT 9 NOT NULL
 );
 --> statement-breakpoint

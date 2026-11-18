@@ -1,5 +1,4 @@
 import type { Permission } from '~/core/permission';
-import type { RoleInfo } from '~/core/ports/directory';
 import type { Birthday, BirthdaySettings } from '~/features/birthdays/model';
 import type { Flash, Server } from '~/web/context';
 import { Layout } from '~/web/layout';
@@ -11,7 +10,6 @@ interface Props {
   settings: BirthdaySettings | undefined;
   upcoming: Birthday[];
   names: string[];
-  roles: RoleInfo[];
   server: Server;
   can: ReadonlySet<Permission>;
   flash: Flash;
@@ -21,7 +19,6 @@ export function BirthdayPage({
   settings,
   upcoming,
   names,
-  roles,
   server,
   can,
   flash,
@@ -36,11 +33,7 @@ export function BirthdayPage({
       </p>
       {can.has('birthday:manage') ? (
         <>
-          <BirthdaySettingsForm
-            settings={settings}
-            server={server}
-            roles={roles}
-          />
+          <BirthdaySettingsForm settings={settings} server={server} />
           <BirthdaySignup server={server} />
         </>
       ) : null}

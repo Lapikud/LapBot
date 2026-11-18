@@ -16,16 +16,11 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
             (await directory.displayName(guildId, userId)) ?? 'Former member',
         ),
       );
-      const roles = server.roles.filter(
-        (role) => !role.everyone && !role.managed && role.botCanAssign,
-      );
-
       return c.html(
         <BirthdayPage
           settings={settings}
           upcoming={upcoming}
           names={names}
-          roles={roles}
           server={server}
           can={c.var.can}
           flash={flashOf(c)}
@@ -41,7 +36,6 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
         form.get('action') === 'disable'
           ? { disable: true }
           : {
-              roleId: field(form, 'roleId') ?? null,
               ...(channelId !== undefined && { channelId }),
               ...(hour !== undefined && { hour: Number(hour) }),
             },

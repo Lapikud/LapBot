@@ -13,7 +13,6 @@ export interface Birthday {
 export interface BirthdaySettings {
   guildId: string;
   channelId: string;
-  roleId: string | null;
   hour: number;
 }
 

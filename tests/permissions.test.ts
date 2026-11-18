@@ -1175,23 +1175,6 @@ describe('safe settings', () => {
   }
 
   describe.skipIf(noDatabase)('audit security regressions', () => {
-    it.each([
-      { administrator: true, moderator: true },
-      { moderator: true },
-      { position: 10 },
-      { position: 11 },
-    ])('rejects unsafe birthday roles: %j', async (overrides) => {
-      const { member, directory, birthdays, birthdayService } = await setup([
-        'birthday:manage',
-      ]);
-
-      directory.role.mockResolvedValue(role(overrides));
-      await expect(
-        birthdayService.configure(member, { channelId: 'c', roleId: 'r' }),
-      ).rejects.toThrow();
-      expect(await birthdays.settings(member.guildId)).toBeUndefined();
-    });
-
     it('rejects birthday channels the manager cannot post in', async () => {
       const { member, directory, birthdays, birthdayService } = await setup([
         'birthday:manage',
