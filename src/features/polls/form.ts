@@ -1,7 +1,5 @@
 import { z } from 'zod';
 import { UserError } from '~/core/errors';
-import { choiceField, type FormDefinition } from '~/core/forms/fields';
-import { validateSubmission } from '~/core/forms/validation';
 
 interface Option {
   id: number;
@@ -11,19 +9,16 @@ interface Option {
 export function pollResponseForm(
   options: readonly Option[],
   multiple: boolean,
-): FormDefinition<{ choices: number[] }> {
-  const choice = choiceField({
-    key: 'choices',
-    label: 'Choices',
-    choices: options.map(({ id }) => id),
-  });
-  const choices = z.array(choice.schema);
+) {
+  const allowed = new Set<unknown>(options.map(({ id }) => id));
+  const choices = z.array(z.custom<number>((value) => allowed.has(value)));
 
-  return {
-    fields: {
-      choices: { ...choice, schema: multiple ? choices : choices.max(1) },
-    },
-  };
+  return z.object({
+    choices: (multiple ? choices : choices.max(1)).meta({
+      label: 'Choices',
+      kind: 'choice',
+    }),
+  });
 }
 
 export function validatePollResponse(
@@ -31,18 +26,17 @@ export function validatePollResponse(
   multiple: boolean,
   optionIds: readonly number[],
 ): number[] {
-  const choices = [...new Set(optionIds)];
-  const result = validateSubmission(pollResponseForm(options, multiple), {
-    choices,
+  const result = pollResponseForm(options, multiple).safeParse({
+    choices: [...new Set(optionIds)],
   });
 
-  if (!result.ok) {
+  if (!result.success) {
     throw new UserError(
-      result.issues.some(({ code }) => code === 'too_big')
+      result.error.issues.some(({ code }) => code === 'too_big')
         ? 'This poll allows only one choice.'
         : 'That option is not part of this poll.',
     );
   }
 
-  return result.values.choices;
+  return result.data.choices;
 }

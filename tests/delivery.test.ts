@@ -1,15 +1,15 @@
 import { PgBoss } from 'pg-boss';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Job, Scheduler } from '~/core/ports/scheduler';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Job } from '~/core/ports/scheduler';
 import type { Sent } from '~/core/ports/messenger';
 import { createJobQueue, startJobs } from '~/integrations/scheduler/boss';
 import { noDatabase, snowflake, testDb } from './db';
 import {
   silentLog,
   actor,
+  serviceFakes,
   allowAll,
   fakeDirectory,
-  fakeMessenger,
   role,
   denyAll,
 } from './fakes';
@@ -98,11 +98,8 @@ describe('announcement publication', () => {
 
   describe.skipIf(noDatabase)('announcement service', () => {
     const setup = () => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger } = shared;
       const repository = createAnnouncementRepository(testDb());
       const directory = fakeDirectory(
         [role({ id: 'team' }), role({ id: 'secret', mentionable: false })],
@@ -113,14 +110,10 @@ describe('announcement publication', () => {
         actor({ guildId, userId }),
       );
       const service = createAnnouncementService({
+        ...shared,
         posts: repository,
-        scheduler,
-        messenger,
         directory,
-        authz: allowAll,
-        log: silentLog,
         clock: { now: () => new Date() },
-        timezone: 'Europe/Tallinn',
       });
 
       return {
@@ -180,19 +173,14 @@ describe('announcement lifecycle', () => {
       ]);
 
       directory.member.mockResolvedValue(author);
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger, scheduler } = shared;
       let now = new Date('2026-11-17T12:00:00Z');
       const service = createAnnouncementService({
+        ...shared,
         posts,
         authz,
         directory,
-        messenger,
-        scheduler,
-        log: silentLog,
         clock: { now: () => now },
         timezone: 'UTC',
       });
@@ -602,19 +590,11 @@ describe('birthday announcements', () => {
     });
 
     it('posts one message per day and reschedules', async () => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger } = shared;
       const service = createBirthdayService({
+        ...shared,
         birthdays: repository(),
-        scheduler,
-        messenger,
-        directory: fakeDirectory(),
-        authz: allowAll,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
       });
       const admin = actor({ guildId: snowflake(), userId: snowflake() });
       const now = calendarDay(new Date(), 'Europe/Tallinn');
@@ -636,16 +616,8 @@ describe('birthday announcements', () => {
 
     it('hides non-public birthdays from other members', async () => {
       const service = createBirthdayService({
+        ...serviceFakes(),
         birthdays: repository(),
-        scheduler: {
-          schedule: async () => undefined,
-          cancel: async () => undefined,
-        },
-        messenger: fakeMessenger().messenger,
-        directory: fakeDirectory(),
-        authz: allowAll,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
       });
       const owner = actor({ guildId: snowflake(), userId: snowflake() });
 
@@ -661,19 +633,13 @@ describe('birthday announcements', () => {
 describe('reminders', () => {
   describe.skipIf(noDatabase)('reminder service', () => {
     const setup = (authz = allowAll) => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger, scheduler } = shared;
       const repository = createReminderRepository(testDb());
       const service = createReminderService({
+        ...shared,
         reminders: repository,
-        scheduler,
-        messenger,
-        directory: fakeDirectory(),
         authz,
-        timezone: 'Europe/Tallinn',
       });
       const [deliver] = service.jobs;
 

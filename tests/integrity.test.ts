@@ -2,18 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import { UserError } from '~/core/errors';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
-import type { Scheduler } from '~/core/ports/scheduler';
 import type { NewPoll } from '~/features/polls/model';
 import { createPollRepository } from '~/integrations/db/polls/repository';
 import { createPollService } from '~/features/polls/service';
 import { noDatabase, snowflake, testDb } from './db';
-import {
-  actor,
-  allowAll,
-  fakeDirectory,
-  fakeMessenger,
-  silentLog,
-} from './fakes';
+import { actor, serviceFakes, allowAll } from './fakes';
 import type { Calendar } from '~/core/ports/calendar';
 import { createEventRepository } from '~/integrations/db/events/repository';
 import { createEventService } from '~/features/events/service';
@@ -81,20 +74,12 @@ describe('polls', () => {
 
   describe.skipIf(noDatabase)('poll service', () => {
     const setup = () => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger, scheduler } = shared;
       const repository = createPollRepository(testDb());
       const service = createPollService({
+        ...shared,
         polls: repository,
-        scheduler,
-        messenger,
-        directory: fakeDirectory(),
-        authz: allowAll,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
       });
 
       return {
@@ -215,26 +200,18 @@ describe('events', () => {
 
   describe.skipIf(noDatabase)('event service', () => {
     const setup = () => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
+      const shared = serviceFakes();
+      const { messenger, scheduler } = shared;
       const calendar = {
         upsert: vi.fn<Calendar['upsert']>(async () => 'google'),
         remove: vi.fn<Calendar['remove']>(async () => undefined),
         between: vi.fn<Calendar['between']>(async () => []),
       };
-      const directory = fakeDirectory();
+      const { directory } = shared;
       const service = createEventService({
+        ...shared,
         events: createEventRepository(testDb()),
-        scheduler,
-        messenger,
         calendar,
-        directory,
-        authz: allowAll,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
       });
 
       return {
@@ -375,19 +352,8 @@ describe('events', () => {
 describe('movies', () => {
   describe.skipIf(noDatabase)('movie service', () => {
     const setup = () => {
-      const { messenger } = fakeMessenger();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
-      const shared = {
-        scheduler,
-        messenger,
-        directory: fakeDirectory(),
-        authz: allowAll,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
-      };
+      const shared = serviceFakes();
+      const { messenger } = shared;
       const pollRepository = createPollRepository(testDb());
       const polls = createPollService({ ...shared, polls: pollRepository });
       const events = createEventService({

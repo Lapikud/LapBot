@@ -26,6 +26,8 @@ import type { GrantRepository } from '~/features/permissions/model';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
   actor,
+  fakeScheduler,
+  serviceFakes,
   allowAll,
   fakeDirectory,
   fakeMessenger,
@@ -49,7 +51,6 @@ import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
 import { signedInUser, type SignIn } from '~/web/auth';
 import { type Env, type WebDeps, serverOf } from '~/web/context';
-import type { Scheduler } from '~/core/ports/scheduler';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
@@ -577,19 +578,8 @@ describe('dashboard access', () => {
 
     beforeAll(async () => {
       const db = testDb();
-      const scheduler = {
-        schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
-        cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
-      };
       const authz = createAuthorizer(createGrantRepository(db));
-      const shared = {
-        scheduler,
-        messenger,
-        directory,
-        authz,
-        log: silentLog,
-        timezone: 'Europe/Tallinn',
-      };
+      const shared = { ...serviceFakes(), messenger, directory, authz };
 
       const events = createEventService({
         ...shared,
@@ -973,24 +963,17 @@ describe('private records in Discord', () => {
 describe('club calendar privacy', () => {
   describe.skipIf(noDatabase)('event service', () => {
     const setup = () => {
-      const directory = fakeDirectory();
+      const shared = serviceFakes();
+      const { directory, messenger } = shared;
       const calendar = {
         upsert: vi.fn<Calendar['upsert']>(async () => 'linked'),
         remove: vi.fn<Calendar['remove']>(async () => undefined),
         between: vi.fn<Calendar['between']>(async () => []),
       };
-      const { messenger } = fakeMessenger();
       const service = createEventService({
+        ...shared,
         events: createEventRepository(testDb()),
-        scheduler: {
-          schedule: async () => undefined,
-          cancel: async () => undefined,
-        },
-        messenger,
         calendar,
-        directory,
-        authz: allowAll,
-        log: silentLog,
         timezone: 'UTC',
       });
 
@@ -1153,10 +1136,7 @@ describe('private records on the dashboard', () => {
 });
 
 describe('safe settings', () => {
-  const scheduler = {
-    schedule: async () => undefined,
-    cancel: async () => undefined,
-  };
+  const scheduler = fakeScheduler();
 
   async function setup(permissions: Permission[] = []) {
     const member = actor({ guildId: snowflake(), roleIds: ['staff'] });
@@ -1171,19 +1151,12 @@ describe('safe settings', () => {
       });
     }
 
-    const directory = fakeDirectory();
-    const { messenger, messages } = fakeMessenger();
+    const shared = serviceFakes();
+    const { directory, messenger, messages } = shared;
     const authz = createAuthorizer(grants);
     const announcements = createAnnouncementRepository(testDb());
     const birthdays = createBirthdayRepository(testDb());
-    const shared = {
-      scheduler,
-      directory,
-      messenger,
-      authz,
-      log: silentLog,
-      timezone: 'UTC',
-    };
+    const deps = { ...shared, scheduler, authz, timezone: 'UTC' };
 
     return {
       member,
@@ -1193,11 +1166,11 @@ describe('safe settings', () => {
       announcements,
       birthdays,
       announcementService: createAnnouncementService({
-        ...shared,
+        ...deps,
         posts: announcements,
         clock: { now: () => new Date() },
       }),
-      birthdayService: createBirthdayService({ ...shared, birthdays }),
+      birthdayService: createBirthdayService({ ...deps, birthdays }),
     };
   }
 

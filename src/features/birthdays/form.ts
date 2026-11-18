@@ -1,49 +1,35 @@
-import {
-  birthdayVisibilities,
-  validateBirthday,
-  type BirthdayVisibility,
-} from './rules';
+import { z } from 'zod';
+import { birthdayVisibilities, validateBirthday } from './rules';
 import { UserError } from '~/core/errors';
-import {
-  choiceField,
-  integerField,
-  type FormDefinition,
-} from '~/core/forms/fields';
-import { validateSubmission } from '~/core/forms/validation';
 
-interface BirthdayInput {
-  day: number;
-  month: number;
-  visibility: BirthdayVisibility;
-}
-
-export const birthdayForm: FormDefinition<BirthdayInput> = {
-  fields: {
-    day: integerField({ key: 'day', label: 'Day', min: 1, max: 31 }),
-    month: integerField({ key: 'month', label: 'Month', min: 1, max: 12 }),
-    visibility: choiceField({
-      key: 'visibility',
-      label: 'Visibility',
-      choices: birthdayVisibilities,
-    }),
-  },
-};
+export const birthdayForm = z.object({
+  day: z.number().int().min(1).max(31).meta({ label: 'Day', kind: 'integer' }),
+  month: z
+    .number()
+    .int()
+    .min(1)
+    .max(12)
+    .meta({ label: 'Month', kind: 'integer' }),
+  visibility: z
+    .enum(birthdayVisibilities)
+    .meta({ label: 'Visibility', kind: 'choice' }),
+});
 
 export function parseBirthdaySubmission(input: {
   day: number;
   month: number;
   visibility?: string;
-}): BirthdayInput {
+}): z.infer<typeof birthdayForm> {
   const visibility =
     birthdayVisibilities.find((value) => value === input.visibility) ??
     'public';
-  const result = validateSubmission(birthdayForm, { ...input, visibility });
+  const result = birthdayForm.safeParse({ ...input, visibility });
 
-  if (!result.ok) {
+  if (!result.success) {
     throw new UserError('That is not a valid date.');
   }
 
-  validateBirthday(result.values.month, result.values.day);
+  validateBirthday(result.data.month, result.data.day);
 
-  return result.values;
+  return result.data;
 }

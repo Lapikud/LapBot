@@ -3,6 +3,7 @@ import { pino } from 'pino';
 import { vi } from 'vitest';
 import type { Directory, RoleInfo } from '~/core/ports/directory';
 import type { Messenger } from '~/core/ports/messenger';
+import type { Scheduler } from '~/core/ports/scheduler';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import type { Authorizer } from '~/core/ports/authorization';
@@ -110,4 +111,22 @@ export function fakeDirectory(
   } satisfies Directory;
 
   return directory;
+}
+
+export function fakeScheduler() {
+  return {
+    schedule: vi.fn<Scheduler['schedule']>(async () => undefined),
+    cancel: vi.fn<Scheduler['cancel']>(async () => undefined),
+  };
+}
+
+export function serviceFakes() {
+  return {
+    ...fakeMessenger(),
+    scheduler: fakeScheduler(),
+    directory: fakeDirectory(),
+    authz: allowAll,
+    log: silentLog,
+    timezone: 'Europe/Tallinn',
+  };
 }
