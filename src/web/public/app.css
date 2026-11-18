@@ -255,13 +255,15 @@ main:has(.log-view) {
 }
 .log-view input[type='search'] {
   border-radius: min(0.25rem, var(--pico-border-radius));
+  height: 2.25rem;
+  min-height: 0;
   padding-right: calc(var(--pico-form-element-spacing-horizontal) + 1.5rem);
   padding-left: var(--pico-form-element-spacing-horizontal);
   padding-inline-start: var(--pico-form-element-spacing-horizontal);
   padding-inline-end: calc(
     var(--pico-form-element-spacing-horizontal) + 1.5rem
   );
-  padding-block: var(--pico-form-element-spacing-vertical);
+  padding-block: 0;
   flex-grow: 1;
 }
 .log-view > p {
