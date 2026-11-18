@@ -15,6 +15,7 @@ import { defineJob } from '~/core/helpers/jobs';
 import type { Birthday, BirthdaySettings, BirthdayRepository } from './model';
 
 const dailyKey = (guildId: string) => `birthdays:${guildId}`;
+const validHour = z.number().int().min(0).max(23);
 
 export interface BirthdayConfiguration {
   channelId?: string;
@@ -119,10 +120,16 @@ export function createBirthdayService(deps: Deps) {
       throw new UserError('You cannot post in that birthday channel yourself.');
     }
 
+    const hour = change.hour ?? current?.hour ?? 9;
+
+    if (!validHour.safeParse(hour).success) {
+      throw new UserError('Choose an announcement time from 00:00 to 23:00.');
+    }
+
     return {
       guildId: actor.guildId,
       channelId,
-      hour: change.hour ?? current?.hour ?? 9,
+      hour,
     };
   };
 
