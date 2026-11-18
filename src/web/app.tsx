@@ -11,7 +11,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
 import { signedInUser, signInPages } from './auth';
 import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
-import { back, serverOf, type Env, type WebDeps } from './context';
+import { back, serverOf, type Env, type Server, type WebDeps } from './context';
 import { eventRoutes } from '~/web/pages/post/events/routes';
 import { movieRoutes } from '~/web/pages/forms/movies/routes';
 import { logRoutes } from '~/web/pages/settings/logs/routes';
@@ -42,6 +42,25 @@ function returnPath(referer: string | undefined, path: string): string {
 export function createWebApp(deps: WebDeps) {
   const { guildId, signIn, directory, authz, services, log } = deps;
   const app = new Hono<Env>();
+  const fetchMetadata = () =>
+    Promise.all([directory.channels(guildId), directory.roles(guildId)]);
+  let metadata: ReturnType<typeof fetchMetadata> | undefined;
+  let expiresAt = 0;
+  const getMetadata = () => {
+    if (metadata === undefined || Date.now() >= expiresAt) {
+      expiresAt = Number.POSITIVE_INFINITY;
+      metadata = fetchMetadata().then((value) => {
+        expiresAt = Date.now() + 30_000;
+
+        return value;
+      });
+      void metadata.catch(() => {
+        metadata = undefined;
+      });
+    }
+
+    return metadata;
+  };
 
   app.use(
     secureHeaders({
@@ -118,20 +137,23 @@ export function createWebApp(deps: WebDeps) {
       );
     }
 
-    const [channels, roles] = await Promise.all([
-      directory.channels(guildId),
-      directory.roles(guildId),
-    ]);
-
     c.set('actor', actor);
     c.set('can', can);
-    const visible = await visibleRecords(
-      directory,
-      actor,
-      channels.map((channel) => ({ ...channel, channelId: channel.id })),
-    );
+    let server: Promise<Server> | undefined;
 
-    c.set('server', serverOf(visible, roles));
+    c.set(
+      'server',
+      () =>
+        (server ??= getMetadata().then(async ([channels, roles]) => {
+          const visible = await visibleRecords(
+            directory,
+            actor,
+            channels.map((channel) => ({ ...channel, channelId: channel.id })),
+          );
+
+          return serverOf(visible, roles);
+        })),
+    );
 
     return next();
   });

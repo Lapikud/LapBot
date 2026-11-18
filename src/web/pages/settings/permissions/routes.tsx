@@ -6,8 +6,9 @@ import { PermissionPage } from './index';
 export function permissionRoutes({ services }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
-      const { actor, server } = c.var;
+      const { actor } = c.var;
       const grants = await services.permissions.list(actor);
+      const server = await c.var.server();
       const roles = server.roles
         .filter((role) => !role.managed)
         .toSorted((a, b) => b.position - a.position);

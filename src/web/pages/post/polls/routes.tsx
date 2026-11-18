@@ -41,14 +41,14 @@ export function pollRoutes({
         />,
       );
     })
-    .get('/new', (c) => {
+    .get('/new', async (c) => {
       if (!allows(c, 'poll:create')) {
         throw new UserError('You need the "poll:create" permission.');
       }
 
       return c.html(
         <NewPollPage
-          server={c.var.server}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
         />,

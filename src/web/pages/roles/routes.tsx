@@ -10,15 +10,16 @@ export function roleRoutes({ services }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
       const panels = await services.roles.list(c.var.actor);
+      const server = await c.var.server();
       const channelId =
         c.req.query('channel') ??
         panels[0]?.channelId ??
-        c.var.server.channels[0]?.id;
+        server.channels[0]?.id;
       const panel = panels.find((p) => p.channelId === channelId);
       const entries = panel?.roles ?? [];
       const selected = new Set(entries.map((entry) => entry.roleId));
       const used = new Set(entries.map((entry) => entry.emoji));
-      const assignable = c.var.server.roles.filter(
+      const assignable = server.roles.filter(
         (role) => selfAssignProblem(role) === undefined,
       );
       const assignableIds = new Set(assignable.map((role) => role.id));
@@ -42,7 +43,7 @@ export function roleRoutes({ services }: WebDeps) {
           available={available}
           nextEmoji={nextEmoji}
           used={used}
-          server={c.var.server}
+          server={server}
           guildId={c.var.actor.guildId}
           can={c.var.can}
           flash={flashOf(c)}
@@ -82,15 +83,18 @@ export function roleRoutes({ services }: WebDeps) {
         choices.push({ roleId: newRole, emoji });
       }
 
-      const assignableIds = new Set(
-        c.var.server.roles
-          .filter((role) => selfAssignProblem(role) === undefined)
-          .map((role) => role.id),
-      );
-      const wanted =
-        remove === 'unavailable'
-          ? choices.filter((choice) => assignableIds.has(choice.roleId))
-          : choices;
+      let wanted = choices;
+
+      if (remove === 'unavailable') {
+        const server = await c.var.server();
+        const assignableIds = new Set(
+          server.roles
+            .filter((role) => selfAssignProblem(role) === undefined)
+            .map((role) => role.id),
+        );
+
+        wanted = choices.filter((choice) => assignableIds.has(choice.roleId));
+      }
 
       await services.roles.save(c.var.actor, channelId, wanted);
 

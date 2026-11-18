@@ -31,7 +31,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       return c.html(
         <AnnouncementPage
           list={list}
-          server={c.var.server}
+          server={await c.var.server()}
           date={date}
           can={c.var.can}
           userId={c.var.actor.userId}
@@ -39,10 +39,10 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
         />,
       );
     })
-    .get('/new', (c) =>
+    .get('/new', async (c) =>
       c.html(
         <NewAnnouncementPage
-          server={c.var.server}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
         />,
@@ -62,7 +62,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
 
         return c.html(
           <AnnouncementPreviewPage
-            server={c.var.server}
+            server={await c.var.server()}
             can={c.var.can}
             draft={draft}
             view={view}

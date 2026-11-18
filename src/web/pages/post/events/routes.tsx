@@ -40,7 +40,7 @@ export function eventRoutes({
         <EventPage
           upcoming={upcoming}
           date={date}
-          server={c.var.server}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
           canManage={(ownerId) => owns(c, ownerId, 'event:manage')}
@@ -74,7 +74,7 @@ export function eventRoutes({
       return c.html(
         <NewEventPage
           time={time}
-          server={c.var.server}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
           calendar={

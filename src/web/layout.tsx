@@ -46,10 +46,12 @@ export function Layout({
               </li>
             </ul>
             <ul>
-              {visible.map(({ href, label }) => (
+              {visible.map(({ href, label, pages: destinations }) => (
                 <li key={href}>
                   <a
-                    href={href}
+                    href={
+                      visibleLinks(destinations ?? [], can)[0]?.href ?? href
+                    }
                     aria-current={section?.href === href ? 'page' : undefined}
                   >
                     {label}

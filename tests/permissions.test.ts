@@ -1049,7 +1049,7 @@ describe('private records on the dashboard', () => {
 
     app.use(async (c, next) => {
       c.set('actor', member);
-      c.set('server', server);
+      c.set('server', async () => server);
       c.set(
         'can',
         new Set(['announcement:create', 'birthday:manage'] as const),

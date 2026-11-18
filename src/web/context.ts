@@ -63,7 +63,11 @@ export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
 }
 
 export interface Env {
-  Variables: { actor: Actor; server: Server; can: ReadonlySet<Permission> };
+  Variables: {
+    actor: Actor;
+    server: () => Promise<Server>;
+    can: ReadonlySet<Permission>;
+  };
 }
 
 export const allows = (c: Context<Env>, permission: Permission) =>

@@ -5,8 +5,8 @@ import { BirthdayPage } from './index';
 export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
-      const { server } = c.var;
-      const [settings, upcoming] = await Promise.all([
+      const [server, settings, upcoming] = await Promise.all([
+        c.var.server(),
         services.birthdays.settings(guildId),
         services.birthdays.upcoming(guildId),
       ]);
@@ -26,7 +26,7 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
           upcoming={upcoming}
           names={names}
           roles={roles}
-          server={c.var.server}
+          server={server}
           can={c.var.can}
           flash={flashOf(c)}
         />,
