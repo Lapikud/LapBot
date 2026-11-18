@@ -136,7 +136,11 @@ def service_state():
         ["systemctl", "show", service, "--property=InvocationID,ActiveState"],
         capture_output=True, text=True, check=True,
     )
-    return {line.split("=", 1) for line in result.stdout.splitlines() if "=" in line}
+    return {
+        key: value
+        for key, sep, value in (line.partition("=") for line in result.stdout.splitlines())
+        if sep
+    }
 
 
 def ready(started):
