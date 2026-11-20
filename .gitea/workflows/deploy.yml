@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     name: Deploy to LXC
-    runs-on: linux
+    runs-on: lapbot
     steps:
       - name: Check out code
         uses: actions/checkout@v4
