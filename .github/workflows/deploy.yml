@@ -25,6 +25,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure Gitea SSH
+        env:
+          GITEA_DEPLOY_KEY: ${{ secrets.GITEA_DEPLOY_KEY }}
+          GITEA_KNOWN_HOSTS: ${{ vars.GITEA_KNOWN_HOSTS }}
+        run: |
+          test -n "$GITEA_DEPLOY_KEY"
+          test -n "$GITEA_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$GITEA_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$GITEA_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+
       - name: Push to Gitea
         env:
           GITEA_REMOTE: ${{ secrets.GITEA_REMOTE }}
