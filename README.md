@@ -180,8 +180,11 @@ As root, with PostgreSQL running:
    Private repo: set `LAPBOT_REMOTE` in the runner environment. Use an SSH URL,
    a read-only deploy key and configured known hosts.
 
-7. On GitHub, add a `production` environment with the secret `GITEA_REMOTE`:
-   `https://<user>:<token>@git.lapikud.ee/<owner>/lapbot.git`.
+7. On Gitea, add the SSH public key as a repository deploy key with write
+   access. On GitHub, add a `production` environment with the private key as
+   `GITEA_DEPLOY_KEY`, the SSH URL as `GITEA_REMOTE`
+   (`git@git.lapikud.ee:Lapikud/lapbot.git`), and a verified `known_hosts` line
+   for `git.lapikud.ee` as the `GITEA_KNOWN_HOSTS` variable.
 8. Push to `main`. The first deploy clones `/opt/lapbot/repo`.
 
 Logs: `journalctl -u lapbot`. Back up the database and `/opt/lapbot/logs`.
