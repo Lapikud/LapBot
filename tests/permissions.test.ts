@@ -808,6 +808,26 @@ describe('dashboard access', () => {
       );
     });
 
+    it('shows poll results and cancels polls', async () => {
+      const started = await post('/polls', {
+        question: 'Pizza or sushi?',
+        options: 'Pizza\nSushi',
+        channelId: 'general',
+      });
+      const id = /Poll #(\d+)/.exec(
+        new URL(
+          started.headers.get('location') ?? '',
+          'http://localhost',
+        ).searchParams.get('notice') ?? '',
+      )?.[1];
+      const results = await (await get(`/polls/${id}`)).text();
+
+      expect(results).toContain('<h1>Pizza or sushi?</h1>');
+      expect(results).toContain('No votes yet.');
+      await post(`/polls/${id}/cancel`, {});
+      expect(await (await get('/polls')).text()).not.toContain('Pizza');
+    });
+
     it('opens the default permissions for everyone first', async () => {
       const page = await (await get('/settings/permissions')).text();
 

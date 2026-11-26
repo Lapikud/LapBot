@@ -21,12 +21,18 @@ export function PollList({ open, date, canManage }: Readonly<Props>) {
         {open.map((p) => (
           <tr key={p.id}>
             <td>{p.id}</td>
-            <td>{p.question}</td>
+            <td>
+              <a href={`/polls/${p.id}`}>{p.question}</a>
+            </td>
             <td>{date(p.closesAt)}</td>
             <td>
               {canManage(p.creatorId) ? (
                 <>
                   <ActionButton action={`/polls/${p.id}/close`} label="Close" />
+                  <ActionButton
+                    action={`/polls/${p.id}/cancel`}
+                    label="Cancel"
+                  />
                 </>
               ) : null}
             </td>

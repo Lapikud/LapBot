@@ -15,6 +15,7 @@ import {
 } from '~/web/context';
 import { NewPollPage } from './create';
 import { PollPage } from './index';
+import { PollResultsPage } from './results';
 
 export function pollRoutes({
   guildId,
@@ -71,6 +72,47 @@ export function pollRoutes({
       });
 
       return back(c, '/polls', { notice: `Poll #${poll.id} started.` });
+    })
+    .get(String.raw`/:id{\d+}`, async (c) => {
+      const { poll, results, voters } = await services.polls.summary(
+        c.var.actor,
+        Number(c.req.param('id')),
+      );
+      const named =
+        voters &&
+        new Map(
+          await Promise.all(
+            [...voters].map(
+              async ([option, ids]) =>
+                [
+                  option,
+                  await Promise.all(
+                    ids.map(
+                      async (id) =>
+                        (await directory.displayName(guildId, id)) ??
+                        'a former member',
+                    ),
+                  ),
+                ] as const,
+            ),
+          ),
+        );
+
+      return c.html(
+        <PollResultsPage
+          poll={poll}
+          results={results}
+          voters={named}
+          can={c.var.can}
+        />,
+      );
+    })
+    .post(String.raw`/:id{\d+}/cancel`, async (c) => {
+      const id = Number(c.req.param('id'));
+
+      await services.polls.cancel(c.var.actor, id);
+
+      return back(c, '/polls', { notice: `Poll #${id} cancelled.` });
     })
     .post('/:id{\\d+}/close', async (c) => {
       const id = Number(c.req.param('id'));
