@@ -73,6 +73,8 @@ import { createLogger } from '~/integrations/logging/logger';
 import { eventCommands } from '~/discord/commands/events';
 import { pollCommands } from '~/discord/commands/polls';
 import { visibleRecords } from '~/core/helpers/visibility';
+import { createReminderService } from '~/features/reminders/service';
+import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { eventRoutes } from '~/web/pages/events/routes';
 import { pollRoutes } from '~/web/pages/polls/routes';
 
@@ -607,6 +609,10 @@ describe('dashboard access', () => {
         log: silentLog,
         logs: createLogStore(':memory:'),
         services: {
+          reminders: createReminderService({
+            ...shared,
+            reminders: createReminderRepository(db),
+          }),
           eventSuggestions: createEventSuggestionService({
             suggestions: createEventSuggestionRepository(db),
             authz,
@@ -766,6 +772,22 @@ describe('dashboard access', () => {
       expect(edited.headers.get('location')).toContain('saved');
       expect(await (await get(`/announcements/${id}`)).text()).toContain(
         'Second',
+      );
+    });
+
+    it('manages your own reminders', async () => {
+      await post('/reminders', { message: 'Water plants', when: '2h' });
+      const page = await (await get('/reminders')).text();
+      const id = /action="\/reminders\/(\d+)\/cancel"/.exec(page)?.[1];
+
+      expect(page).toContain('Water plants');
+      await post(`/reminders/${id}`, { message: 'Water the plants' });
+      expect(await (await get('/reminders')).text()).toContain(
+        'Water the plants',
+      );
+      await post(`/reminders/${id}/cancel`, {});
+      expect(await (await get('/reminders')).text()).toContain(
+        'no active reminders',
       );
     });
 

@@ -60,6 +60,7 @@ const features: readonly Feature[] = [
     name: 'Reminders',
     text: 'Get a reminder by DM, or in a channel with mentions. Reminders can repeat.',
     command: '/remindme',
+    href: '/reminders',
   },
   {
     name: 'Roles',

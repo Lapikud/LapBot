@@ -17,6 +17,7 @@ import type { MovieService } from '~/features/movies/service';
 import type { EventService } from '~/features/events/service';
 import type { PermissionService } from '~/features/permissions/service';
 import type { PollService } from '~/features/polls/service';
+import type { ReminderService } from '~/features/reminders/service';
 import type { RoleService } from '~/features/roles/service';
 import type { Actor } from '~/core/actor';
 import type { Mentions } from '~/core/message';
@@ -32,6 +33,7 @@ export interface WebServices {
   permissions: PermissionService;
   birthdays: BirthdayService;
   movies: MovieService;
+  reminders: ReminderService;
 }
 
 export interface WebDeps {

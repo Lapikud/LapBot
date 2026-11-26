@@ -195,6 +195,7 @@ export function compose(
       birthdays,
       movies,
       roles,
+      reminders,
     },
   };
 }

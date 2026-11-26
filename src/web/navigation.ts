@@ -36,6 +36,7 @@ export const sections: readonly Section[] = [
   },
   { href: '/polls', label: 'Polls' },
   { href: '/birthdays', label: 'Birthdays' },
+  { href: '/reminders', label: 'Reminders' },
   {
     href: '/settings',
     label: 'Settings',
