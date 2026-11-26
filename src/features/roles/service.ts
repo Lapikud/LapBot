@@ -48,9 +48,7 @@ export function createRoleService(deps: Deps) {
         !(await messenger.exists(panel.channelId, messageId))
       ) {
         log.info({ channelId: panel.channelId }, 'Reposting role panel');
-        const sent = await messenger.send(panel.channelId, { content });
-
-        messageId = sent.messageId;
+        ({ messageId } = await messenger.send(panel.channelId, { content }));
         await panels.setMessage(panel.id, messageId);
       }
 
