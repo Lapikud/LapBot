@@ -21,9 +21,11 @@ export function helpRoutes({ services, directory, guildId }: WebDeps) {
     return c.html(
       <HelpPage
         can={c.var.can}
-        pendingCount={pending.length}
-        eventCount={visibleEvents.length}
-        pollCount={visiblePolls.length}
+        now={{
+          pending: pending.length,
+          events: visibleEvents.length,
+          polls: visiblePolls.length,
+        }}
       />,
     );
   });

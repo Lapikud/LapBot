@@ -81,45 +81,57 @@ const features: readonly Feature[] = [
   },
 ];
 
-interface Props {
-  can: ReadonlySet<Permission>;
-  pendingCount: number;
-  eventCount: number;
-  pollCount: number;
+interface Counts {
+  pending: number;
+  events: number;
+  polls: number;
 }
 
-export function HelpPage({
-  can,
-  pendingCount,
-  eventCount,
-  pollCount,
-}: Readonly<Props>) {
+interface Props {
+  can?: ReadonlySet<Permission>;
+  now?: Counts;
+}
+
+export function HelpPage({ can, now }: Readonly<Props>) {
+  const allowed = can ?? new Set<Permission>();
+
   return (
-    <Layout can={can} title="Help" path="/">
+    <Layout can={can} signedIn={can !== undefined} title="Help" path="/">
       <p class="lead">
         LAPbot is the Lapikud Discord bot. Everything it does works from
         Discord, and from this dashboard.
       </p>
-      <h2>Right now</h2>
-      <ul class="now">
-        {can.has('announcement:post') ? (
-          <li>
-            <a href="/announcements">
-              {pendingCount} drafts and scheduled PSAs
-            </a>
-          </li>
-        ) : null}
-        <li>
-          <a href="/events">{eventCount} upcoming events</a>
-        </li>
-        <li>
-          <a href="/polls">{pollCount} open polls</a>
-        </li>
-      </ul>
-      <h2>What you can do</h2>
+      {can === undefined ? (
+        <p>
+          <a href="/login" role="button">
+            Sign in with Discord
+          </a>
+        </p>
+      ) : null}
+      {now === undefined ? null : (
+        <>
+          <h2>Right now</h2>
+          <ul class="now">
+            {allowed.has('announcement:post') ? (
+              <li>
+                <a href="/announcements">
+                  {now.pending} drafts and scheduled PSAs
+                </a>
+              </li>
+            ) : null}
+            <li>
+              <a href="/events">{now.events} upcoming events</a>
+            </li>
+            <li>
+              <a href="/polls">{now.polls} open polls</a>
+            </li>
+          </ul>
+        </>
+      )}
+      <h2>{can === undefined ? 'What it does' : 'What you can do'}</h2>
       <div class="features">
         {features
-          .filter(({ needs }) => needs === undefined || can.has(needs))
+          .filter(({ needs }) => needs === undefined || allowed.has(needs))
           .map(({ name, text, command, href }) => (
             <article key={name}>
               <h3>{name}</h3>

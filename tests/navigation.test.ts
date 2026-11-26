@@ -40,14 +40,7 @@ describe('primary navigation', () => {
 describe('help page', () => {
   const help = async (can: readonly Permission[]) => {
     const app = new Hono().get('/', (c) =>
-      c.html(
-        HelpPage({
-          can: new Set(can),
-          pendingCount: 0,
-          eventCount: 0,
-          pollCount: 0,
-        }),
-      ),
+      c.html(HelpPage({ can: new Set(can) })),
     );
 
     return (await app.request('/')).text();

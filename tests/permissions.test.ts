@@ -700,7 +700,8 @@ describe('dashboard access', () => {
     };
 
     it('sends visitors to Discord and signs members in', async () => {
-      expect((await get('/')).headers.get('location')).toBe('/login');
+      expect(await (await get('/')).text()).toContain('Sign in with Discord');
+      expect((await get('/events')).headers.get('location')).toBe('/login');
 
       const start = await get('/login');
       const authorize = new URL(start.headers.get('location') ?? '');

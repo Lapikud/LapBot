@@ -10,13 +10,15 @@ export function Layout({
   title,
   path,
   can,
+  signedIn = true,
   flash = {},
   actions,
   children,
 }: Readonly<{
   title: string;
   path: string;
-  can?: ReadonlySet<Permission>;
+  can?: ReadonlySet<Permission> | undefined;
+  signedIn?: boolean;
   flash?: Flash;
   actions?: Child;
   children?: Child;
@@ -64,11 +66,17 @@ export function Layout({
             </ul>
             <ul>
               <li>
-                <form method="post" action="/logout">
-                  <button type="submit" class="secondary outline">
-                    Sign out
-                  </button>
-                </form>
+                {signedIn ? (
+                  <form method="post" action="/logout">
+                    <button type="submit" class="secondary outline">
+                      Sign out
+                    </button>
+                  </form>
+                ) : (
+                  <a href="/login" role="button" class="secondary outline">
+                    Sign in
+                  </a>
+                )}
               </li>
             </ul>
           </nav>

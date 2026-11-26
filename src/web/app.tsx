@@ -16,6 +16,7 @@ import { eventRoutes } from '~/web/pages/events/routes';
 import { movieRoutes } from '~/web/pages/events/movies/routes';
 import { logRoutes } from '~/web/pages/settings/logs/routes';
 import { StatusPage } from './components/status-page';
+import { HelpPage } from './pages/help/index';
 import { helpRoutes } from './pages/help/routes';
 import { containsPath, sections, visibleLinks } from './navigation';
 import { permissionRoutes } from '~/web/pages/settings/permissions/routes';
@@ -103,6 +104,11 @@ export function createWebApp(deps: WebDeps) {
   );
   app.use(csrf());
   app.route('/', signInPages(signIn));
+  app.get('/', async (c, next) =>
+    (await signedInUser(c, signIn)) === undefined
+      ? c.html(<HelpPage />)
+      : next(),
+  );
   app.use(async (c, next) => {
     const userId = await signedInUser(c, signIn);
 
