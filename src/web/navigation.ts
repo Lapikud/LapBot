@@ -20,15 +20,16 @@ export const sections: readonly Section[] = [
   { href: '/', label: 'Help' },
   {
     href: '/announcements',
-    label: 'Announcements',
-    permission: announcementParts,
-  },
-  {
-    href: '/events',
-    label: 'Events',
+    label: 'Community',
     pages: [
+      {
+        href: '/announcements',
+        label: 'Announcements',
+        permission: announcementParts,
+      },
       { href: '/events', label: 'Events' },
       { href: '/events/movies', label: 'Movies' },
+      { href: '/polls', label: 'Polls' },
       {
         href: '/events/suggestions',
         label: 'Suggestions',
@@ -36,10 +37,15 @@ export const sections: readonly Section[] = [
       },
     ],
   },
-  { href: '/polls', label: 'Polls' },
   { href: '/forms', label: 'Forms', permission: 'form:manage' },
-  { href: '/birthdays', label: 'Birthdays' },
-  { href: '/reminders', label: 'Reminders' },
+  {
+    href: '/birthdays',
+    label: 'Personal',
+    pages: [
+      { href: '/birthdays', label: 'Birthdays' },
+      { href: '/reminders', label: 'Reminders' },
+    ],
+  },
   {
     href: '/settings',
     label: 'Settings',
@@ -70,4 +76,11 @@ export function visibleLinks<T extends Section>(
 
 export function containsPath(href: string, path: string): boolean {
   return path === href || (href !== '/' && path.startsWith(`${href}/`));
+}
+
+export function containsPage(section: Section, path: string): boolean {
+  return (
+    containsPath(section.href, path) ||
+    (section.pages?.some(({ href }) => containsPath(href, path)) ?? false)
+  );
 }

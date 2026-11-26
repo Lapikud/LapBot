@@ -12,12 +12,37 @@ async function page(can: readonly Permission[], path = '/') {
 }
 
 describe('primary navigation', () => {
-  it('links sections directly to their first permitted page', async () => {
-    const html = await page(['permissions:manage']);
+  it('groups permitted destinations without crowding the header', async () => {
+    const html = await page(['permissions:manage', 'form:manage'], '/events');
+    const primary = /<nav[^>]*aria-label="Primary">([\s\S]*?)<\/nav>/.exec(
+      html,
+    )?.[1];
 
-    expect(html).toContain('href="/events">Events</a>');
-    expect(html).toContain('href="/settings/permissions">Settings</a>');
-    expect(html).not.toContain('href="/announcements"');
-    expect(html).not.toContain('href="/settings/roles"');
+    expect(primary).toMatch(/href="\/events"[^>]*>Community<\/a>/);
+    expect(primary).toContain('href="/forms">Forms</a>');
+    expect(primary).toContain('href="/birthdays">Personal</a>');
+    expect(primary).toContain('href="/settings/permissions">Settings</a>');
+    expect(primary).not.toContain('>Reminders</a>');
+    expect(primary).not.toContain('>Polls</a>');
+    expect(html).toContain('aria-label="Community pages"');
+  });
+
+  it('marks the active group and destination on nested event pages', async () => {
+    const html = await page(
+      ['event:suggestions:manage'],
+      '/events/suggestions',
+    );
+
+    expect(html).toContain('href="/events" aria-current="page">Community</a>');
+    expect(html).toContain(
+      'href="/events/suggestions" aria-current="page">Suggestions</a>',
+    );
+  });
+
+  it('offers a primary menu control for narrow layouts', async () => {
+    const html = await page([]);
+
+    expect(html).toContain('popovertarget="primary-links"');
+    expect(html).toMatch(/id="primary-links"[^>]*popover="auto"/);
   });
 });

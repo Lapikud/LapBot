@@ -1,7 +1,12 @@
 import type { Child } from 'hono/jsx';
 import { type Permission } from '~/core/permission';
 import type { Flash } from './context';
-import { containsPath, sections, visibleLinks } from './navigation';
+import {
+  containsPage,
+  containsPath,
+  sections,
+  visibleLinks,
+} from './navigation';
 
 const pico =
   'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css';
@@ -24,7 +29,7 @@ export function Layout({
   children?: Child;
 }>) {
   const visible = visibleLinks(sections, can);
-  const section = visible.find(({ href }) => containsPath(href, path));
+  const section = visible.find((item) => containsPage(item, path));
   const pages = visibleLinks(section?.pages ?? [], can);
   const current = pages
     .filter(({ href }) => containsPath(href, path))
@@ -38,16 +43,27 @@ export function Layout({
         <title>{`${title} · LAPbot`}</title>
         <link rel="stylesheet" href={pico} />
         <link rel="stylesheet" href="/app.css" />
+        <script src="/nav.js" defer />
       </head>
       <body>
         <header class="container">
-          <nav aria-label="Primary">
+          <nav class="primary-nav" aria-label="Primary">
             <ul>
               <li>
                 <strong>LAPbot</strong>
               </li>
             </ul>
-            <ul>
+            {visible.length === 0 ? null : (
+              <button
+                type="button"
+                class="nav-menu-button"
+                popovertarget="primary-links"
+                aria-controls="primary-links"
+              >
+                Menu
+              </button>
+            )}
+            <ul id="primary-links" class="primary-links" popover="auto">
               {visible.map(({ href, label, pages: destinations }) => (
                 <li key={href}>
                   <a
