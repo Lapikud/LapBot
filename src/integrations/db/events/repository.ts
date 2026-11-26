@@ -11,10 +11,7 @@ export function createEventRepository(db: Db): EventRepository {
         throw new UserError('The end must be after the start.');
       }
 
-      const [row] = await db
-        .insert(events)
-        .values({ ...input, mentionRoleId: input.mentions.roles?.[0] ?? null })
-        .returning();
+      const [row] = await db.insert(events).values(input).returning();
 
       if (!row) {
         throw new Error('Insert returned no row');

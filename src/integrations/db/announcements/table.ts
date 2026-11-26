@@ -25,7 +25,6 @@ export const posts = pgTable(
     channelId: text('channel_id').notNull(),
     title: text('title'),
     content: text('content').notNull(),
-    mentionRoleIds: text('mention_role_ids').array().notNull().default([]),
     mentions: jsonb('mentions').$type<Mentions>().notNull().default({}),
     status: postStatus('status').notNull().default('draft'),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),

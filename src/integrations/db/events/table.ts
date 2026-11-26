@@ -35,7 +35,6 @@ export const events = pgTable(
     channelId: text('channel_id').notNull(),
     messageId: text('message_id'),
     capacity: integer('capacity'),
-    mentionRoleId: text('mention_role_id'),
     mentions: jsonb('mentions').$type<Mentions>().notNull().default({}),
     reminderMinutes: integer('reminder_minutes').array().notNull().default([]),
     icons: boolean('icons').notNull().default(true),
