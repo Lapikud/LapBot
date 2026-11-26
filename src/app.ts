@@ -58,7 +58,7 @@ export function compose(
   );
   const client = createClient();
   const grants = infrastructure.repositories.grants;
-  const authz = createAuthorizer(grants);
+  const authz = createAuthorizer(grants, () => registry.permissions);
   const directory = createDiscordDirectory(client);
   const messenger = createDiscordMessenger(client);
   const roles = createRoleService({

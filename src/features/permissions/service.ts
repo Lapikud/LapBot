@@ -13,16 +13,34 @@ import type { Directory } from '~/core/ports/directory';
 import type { Logger } from '~/core/ports/logger';
 import type { GrantRepository, GrantSubject } from './model';
 
-export function createAuthorizer(grants: GrantRepository): Authorizer {
-  const can = async (actor: Actor, permission: Permission) =>
-    actor.administrator ||
-    (permission !== applicationAdmin &&
-      (await grants.holds(
-        actor.guildId,
-        actor.roleIds,
-        permission,
-        actor.userId,
-      )));
+export function createAuthorizer(
+  grants: GrantRepository,
+  known: () => ReadonlyMap<Permission, PermissionDefinition> = () =>
+    new Map<Permission, PermissionDefinition>(),
+): Authorizer {
+  const sources = (permission: Permission) => {
+    const bundle = known().get(permission)?.partOf;
+
+    return bundle === undefined ? [permission] : [permission, bundle];
+  };
+
+  const can = async (actor: Actor, permission: Permission) => {
+    if (actor.administrator) {
+      return true;
+    }
+
+    if (permission === applicationAdmin) {
+      return false;
+    }
+
+    const held = await Promise.all(
+      sources(permission).map((source) =>
+        grants.holds(actor.guildId, actor.roleIds, source, actor.userId),
+      ),
+    );
+
+    return held.includes(true);
+  };
 
   return {
     can,
@@ -45,7 +63,8 @@ export function createAuthorizer(grants: GrantRepository): Authorizer {
       return new Set(
         permissions.filter(
           (permission) =>
-            permission !== applicationAdmin && held.has(permission),
+            permission !== applicationAdmin &&
+            sources(permission).some((source) => held.has(source)),
         ),
       );
     },
