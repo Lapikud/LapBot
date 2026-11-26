@@ -107,9 +107,6 @@ const data = new SlashCommandBuilder()
           .setDescription('Announcement channel')
           .addChannelTypes(ChannelType.GuildText),
       )
-      .addRoleOption((o) =>
-        o.setName('role').setDescription('Role to give for the day'),
-      )
       .addIntegerOption((o) =>
         o
           .setName('hour')
@@ -276,13 +273,11 @@ export function birthdayCommands(birthdays: BirthdayService): Feature {
           },
           settings: async (interaction) => {
             const channel = interaction.options.getChannel('channel');
-            const role = interaction.options.getRole('role');
             const hour = interaction.options.getInteger('hour');
             const message = await birthdays.configure(
               toActor(interaction.member),
               {
                 ...(channel && { channelId: channel.id }),
-                ...(role && { roleId: role.id }),
                 ...(hour !== null && { hour }),
                 disable: interaction.options.getBoolean('disable') ?? false,
               },
