@@ -540,7 +540,10 @@ describe('dashboard access', () => {
   describe.skipIf(noDatabase)('web UI', () => {
     const guildId = snowflake();
     const { messenger } = fakeMessenger();
-    const directory = fakeDirectory([role({ id: teamId, name: 'Team' })]);
+    const directory = fakeDirectory([
+      role({ id: teamId, name: 'Team' }),
+      role({ id: guildId, name: '@everyone', everyone: true, position: 0 }),
+    ]);
     let app: WebApp;
 
     let cookie = '';
@@ -764,6 +767,13 @@ describe('dashboard access', () => {
       expect(await (await get(`/post/announcements/${id}`)).text()).toContain(
         'Second',
       );
+    });
+
+    it('opens the default permissions for everyone first', async () => {
+      const page = await (await get('/settings/permissions')).text();
+
+      expect(page).toContain('<h2>Everyone (all members)</h2>');
+      expect(page).toContain(`action="/settings/permissions/${guildId}"`);
     });
 
     it('keeps members without dashboard access out', async () => {

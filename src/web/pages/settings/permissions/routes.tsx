@@ -11,8 +11,14 @@ export function permissionRoutes({ services }: WebDeps) {
       const server = await c.var.server();
       const roles = server.roles
         .filter((role) => !role.managed)
-        .toSorted((a, b) => b.position - a.position);
-      const selected = roles.find((role) => role.id === c.req.query('role'));
+        .toSorted(
+          (a, b) =>
+            Number(b.everyone) - Number(a.everyone) || b.position - a.position,
+        );
+      const wanted = c.req.query('role');
+      const selected = roles.find((role) =>
+        wanted === undefined ? role.everyone : role.id === wanted,
+      );
       const counts = new Map<string, number>();
 
       for (const grant of grants.filter((g) => g.subjectType !== 'user')) {

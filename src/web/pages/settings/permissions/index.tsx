@@ -33,8 +33,9 @@ export function PermissionPage({
       flash={flash}
     >
       <p>
-        Discord administrators and Juhatus can do everything. Pick a role to
-        choose what its members may do, or manage a member grant below.
+        Discord administrators and Juhatus can do everything. Everyone sets what
+        every member may do by default. Pick a role to add more, or manage a
+        member grant below.
       </p>
       <details>
         <summary>Individual member permissions</summary>

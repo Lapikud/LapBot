@@ -51,6 +51,10 @@ Settings are documented in `.env.example`.
 | `/permissions grant/revoke/list`                                    | `permissions:manage`                                   |
 | Web dashboard                                                       | `web:access`                                           |
 
+Permissions granted to Everyone apply to every member. By default that is
+`web:access`, `event:create`, `poll:create` and `reminder:channel`; change it on
+the dashboard's Permissions page.
+
 Discord administrators and members of `JUHATUS_ROLE_ID` hold every bot permission.
 Roles and Logs are admin-only. Losing Juhatus removes its admin access.
 
