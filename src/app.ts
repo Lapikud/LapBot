@@ -30,7 +30,7 @@ import { createEventService } from '~/features/events/service';
 import { createMovieService } from '~/features/movies/service';
 import { createPollService } from '~/features/polls/service';
 import { createReminderService } from '~/features/reminders/service';
-import { createRoleService, type LegacyPanel } from '~/features/roles/service';
+import { createRoleService } from '~/features/roles/service';
 import type { AppContext, Feature } from '~/discord/contracts';
 import type { Logger } from 'pino';
 import type { LogStore } from '~/integrations/logging/store';
@@ -43,24 +43,6 @@ import { createWebApp } from '~/web/app';
 import { startWebServer } from '~/web/server';
 import type { WebServices } from '~/web/context';
 import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
-
-function legacyPanel(config: Config): LegacyPanel | undefined {
-  const channelId = config.ROLE_SELECTION_CHANNEL_ID;
-
-  if (channelId === undefined) {
-    return undefined;
-  }
-
-  const roles = [
-    { emoji: '1️⃣', roleId: config.TARKVARA_ROLE_ID, label: 'Tarkvara' },
-    { emoji: '2️⃣', roleId: config.HELPDESK_ROLE_ID, label: 'Helpdesk' },
-    { emoji: '3️⃣', roleId: config.KULTUUR_ROLE_ID, label: 'Kultuur' },
-  ].flatMap(({ roleId, ...rest }) =>
-    roleId === undefined ? [] : [{ roleId, ...rest }],
-  );
-
-  return { channelId, roles };
-}
 
 export function compose(
   config: Config,
@@ -79,13 +61,11 @@ export function compose(
   const authz = createAuthorizer(grants);
   const directory = createDiscordDirectory(client);
   const messenger = createDiscordMessenger(client);
-  const legacy = legacyPanel(config);
   const roles = createRoleService({
     panels: infrastructure.repositories.roles,
     directory,
     messenger,
     log: log.child({ service: 'roles' }),
-    ...(legacy && { legacy }),
   });
   const timezone = config.DEFAULT_TIMEZONE;
   const scheduler = infrastructure.scheduler;
@@ -173,7 +153,7 @@ export function compose(
     known: () => registry.permissions,
   });
   const features: Feature[] = [
-    roleEvents(roles),
+    roleEvents(roles, config.DISCORD_GUILD_ID),
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),

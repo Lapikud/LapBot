@@ -29,7 +29,10 @@ function reactionOf(
   };
 }
 
-export function roleEvents(roles: RoleService): Feature {
+export function roleEvents(
+  roles: RoleService,
+  guildId: string | undefined,
+): Feature {
   const added = createEventListener(
     Events.MessageReactionAdd,
     async (_ctx, reaction, user) => {
@@ -54,6 +57,6 @@ export function roleEvents(roles: RoleService): Feature {
   return {
     name: 'roles',
     events: [added, removed],
-    start: () => roles.syncLegacyPanel(),
+    ...(guildId !== undefined && { start: () => roles.syncPanels(guildId) }),
   };
 }

@@ -59,20 +59,6 @@ export function createRolePanelRepository(db: Db): RolePanelRepository {
 
       return row.id;
     },
-    reactionPanel: async (guildId, channelId) => {
-      const [panel] = await db
-        .select()
-        .from(rolePanels)
-        .where(
-          and(
-            eq(rolePanels.guildId, guildId),
-            eq(rolePanels.channelId, channelId),
-            eq(rolePanels.kind, 'reaction'),
-          ),
-        );
-
-      return panel;
-    },
     setMessage: async (panelId, messageId) => {
       await db
         .update(rolePanels)

@@ -40,11 +40,6 @@ const envSchema = z.object({
 
   JUHATUS_ROLE_ID: optional(snowflake),
 
-  ROLE_SELECTION_CHANNEL_ID: optional(snowflake),
-  TARKVARA_ROLE_ID: optional(snowflake),
-  HELPDESK_ROLE_ID: optional(snowflake),
-  KULTUUR_ROLE_ID: optional(snowflake),
-
   TMDB_ACCESS_TOKEN: optional(z.string().min(1)),
 
   GOOGLE_CALENDAR_ID: optional(z.string().min(1)),

@@ -26,7 +26,6 @@ above every role it hands out.
 Settings are documented in `.env.example`.
 
 - Application administrators: set `JUHATUS_ROLE_ID` to the Juhatus Discord role ID.
-- Role selection: `ROLE_SELECTION_CHANNEL_ID` and the role IDs.
 - Movie details: `TMDB_ACCESS_TOKEN`.
 - Google Calendar: `GOOGLE_CALENDAR_ID=lapikud@gmail.com` and
   `GOOGLE_SERVICE_ACCOUNT_KEY`.

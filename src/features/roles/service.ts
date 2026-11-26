@@ -7,14 +7,6 @@ import type { Messenger } from '~/core/ports/messenger';
 import type { RolePanelRepository, PanelRole, RolePanel } from './model';
 import { sequential } from '~/core/helpers/async';
 
-export const legacyMessage =
-  'Valige endale rolli:\n1 - Tarkvara\n2 - Helpdesk\n3 - Kultuur';
-
-export interface LegacyPanel {
-  channelId: string;
-  roles: ReadonlyArray<{ emoji: string; roleId: string; label: string }>;
-}
-
 export interface Reaction {
   guildId: string;
   channelId: string;
@@ -28,7 +20,6 @@ interface Deps {
   directory: Directory;
   messenger: Messenger;
   log: Logger;
-  legacy?: LegacyPanel;
 }
 interface Choice {
   roleId: string;
@@ -45,97 +36,36 @@ function panelContent(entries: readonly PanelRole[]) {
 }
 
 export function createRoleService(deps: Deps) {
-  const { panels, directory, messenger, log, legacy } = deps;
+  const { panels, directory, messenger, log } = deps;
 
-  const postLegacy = async (channelId: string, content = legacyMessage) => {
-    log.info({ channelId }, 'Posting role selection message');
+  const syncPanels = async (guildId: string) => {
+    await sequential(await panels.list(guildId), async (panel) => {
+      const content = panelContent(panel.roles);
+      let messageId = panel.messageId;
 
-    const sent = await messenger.send(channelId, { content });
+      if (
+        messageId === null ||
+        !(await messenger.exists(panel.channelId, messageId))
+      ) {
+        log.info({ channelId: panel.channelId }, 'Reposting role panel');
+        const sent = await messenger.send(panel.channelId, { content });
 
-    return sent.messageId;
-  };
-
-  const storedRoles = async (guildId: string, panelId: number) => {
-    const saved = await panels.list(guildId);
-
-    return saved.find((stored) => stored.id === panelId)?.roles ?? [];
-  };
-
-  const syncLegacyPanel = async () => {
-    if (!legacy) {
-      return;
-    }
-
-    const guildId = await directory.guildOf(legacy.channelId);
-
-    if (guildId === undefined) {
-      log.error(
-        { channelId: legacy.channelId },
-        'ROLE_SELECTION_CHANNEL_ID is not a server text channel',
-      );
-
-      return;
-    }
-
-    const roles = await Promise.all(
-      legacy.roles.map(async (entry) => ({
-        entry,
-        role: await directory.role(guildId, entry.roleId),
-      })),
-    );
-
-    for (const { entry, role } of roles) {
-      const problem = role ? selfAssignProblem(role) : 'does not exist';
-
-      if (problem !== undefined) {
-        log.error({ ...entry, problem }, 'Legacy panel role is not assignable');
+        messageId = sent.messageId;
+        await panels.setMessage(panel.id, messageId);
       }
-    }
 
-    const existing = await panels.reactionPanel(guildId, legacy.channelId);
-    const panel = existing ?? {
-      id: await panels.create({
-        guildId,
-        channelId: legacy.channelId,
-        kind: 'reaction',
-        title: 'Role selection',
-        createdBy: 'bot',
-      }),
-      messageId: null,
-    };
+      const present = new Set(
+        await messenger.ownReactions(panel.channelId, messageId),
+      );
+      const target = messageId;
 
-    if (!existing) {
-      await panels.replaceRoles(panel.id, legacy.roles);
-    }
-
-    const entries = existing
-      ? await storedRoles(guildId, panel.id)
-      : legacy.roles;
-    const content = existing ? panelContent(entries) : legacyMessage;
-
-    const stored =
-      panel.messageId !== null &&
-      (await messenger.exists(legacy.channelId, panel.messageId))
-        ? panel.messageId
-        : undefined;
-    const located =
-      stored ?? (await messenger.findOwn(legacy.channelId, content));
-    const messageId = located ?? (await postLegacy(legacy.channelId, content));
-
-    if (messageId !== panel.messageId) {
-      await panels.setMessage(panel.id, messageId);
-    }
-
-    const present = new Set(
-      await messenger.ownReactions(legacy.channelId, messageId),
-    );
-    const missing = entries.filter(
-      ({ emoji }) => emoji !== null && !present.has(emoji),
-    );
-
-    await sequential(missing, ({ emoji }) =>
-      messenger.react(legacy.channelId, messageId, emoji ?? ''),
-    );
+      await sequential(
+        panel.roles.filter(
+          ({ emoji }) => emoji !== null && !present.has(emoji),
+        ),
+        ({ emoji }) => messenger.react(panel.channelId, target, emoji ?? ''),
+      );
+    });
   };
 
   const reacted = async (reaction: Reaction, added: boolean) => {
@@ -331,7 +261,7 @@ export function createRoleService(deps: Deps) {
     }
   };
 
-  return { syncLegacyPanel, reacted, list, save };
+  return { syncPanels, reacted, list, save };
 }
 
 export type RoleService = ReturnType<typeof createRoleService>;
