@@ -2,7 +2,7 @@ import type { Permission } from '~/core/permission';
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 import { describe, expect, it, vi } from 'vitest';
-import { eventSuggestionRoutes } from '~/web/pages/post/event-suggestions/routes';
+import { eventSuggestionRoutes } from '~/web/pages/events/suggestions/routes';
 import type { Env, WebDeps } from '~/web/context';
 import { actor } from './fakes';
 
@@ -32,7 +32,7 @@ function fixture(allowed: boolean) {
   });
   app.onError((_error, c) => c.text('denied', 403));
   app.route(
-    '/post/event-suggestions',
+    '/events/suggestions',
     eventSuggestionRoutes({
       timezone: 'Europe/Tallinn',
       services: { eventSuggestions: { review, list } },
@@ -45,16 +45,16 @@ function fixture(allowed: boolean) {
 describe('event suggestion routes', () => {
   it('renders the authorized inbox and denies unauthorized reads', async () => {
     expect(
-      (await fixture(true).app.request('/post/event-suggestions')).status,
+      (await fixture(true).app.request('/events/suggestions')).status,
     ).toBe(200);
     expect(
-      (await fixture(false).app.request('/post/event-suggestions')).status,
+      (await fixture(false).app.request('/events/suggestions')).status,
     ).toBe(403);
   });
   it('rejects cross-site form submissions before invoking review', async () => {
     const { app, review } = fixture(true);
     const response = await app.request(
-      'https://lapbot.example/post/event-suggestions/1',
+      'https://lapbot.example/events/suggestions/1',
       {
         method: 'POST',
         headers: {
@@ -71,7 +71,7 @@ describe('event suggestion routes', () => {
   it('checks authorization on direct same-origin review requests', async () => {
     const { app, review } = fixture(false);
     const response = await app.request(
-      'https://lapbot.example/post/event-suggestions/1',
+      'https://lapbot.example/events/suggestions/1',
       {
         method: 'POST',
         headers: {

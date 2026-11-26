@@ -1,5 +1,5 @@
 import { applicationAdmin, webAccess } from '~/core/permission';
-import { eventSuggestionRoutes } from '~/web/pages/post/event-suggestions/routes';
+import { eventSuggestionRoutes } from '~/web/pages/events/suggestions/routes';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { randomUUID } from 'node:crypto';
 import { serveStatic } from '@hono/node-server/serve-static';
@@ -10,22 +10,32 @@ import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { UserError } from '~/core/errors';
 import { signedInUser, signInPages } from './auth';
-import { birthdayRoutes } from '~/web/pages/forms/birthdays/routes';
+import { birthdayRoutes } from '~/web/pages/birthdays/routes';
 import { back, serverOf, type Env, type Server, type WebDeps } from './context';
-import { eventRoutes } from '~/web/pages/post/events/routes';
-import { movieRoutes } from '~/web/pages/forms/movies/routes';
+import { eventRoutes } from '~/web/pages/events/routes';
+import { movieRoutes } from '~/web/pages/events/movies/routes';
 import { logRoutes } from '~/web/pages/settings/logs/routes';
 import { StatusPage } from './components/status-page';
-import { overviewRoutes } from './pages/overview/routes';
+import { helpRoutes } from './pages/help/routes';
 import { containsPath, sections, visibleLinks } from './navigation';
 import { permissionRoutes } from '~/web/pages/settings/permissions/routes';
-import { roleRoutes } from '~/web/pages/roles/routes';
-import { pollRoutes } from '~/web/pages/post/polls/routes';
-import { announcementRoutes } from '~/web/pages/post/announcements/routes';
+import { roleRoutes } from '~/web/pages/settings/roles/routes';
+import { pollRoutes } from '~/web/pages/polls/routes';
+import { announcementRoutes } from '~/web/pages/announcements/routes';
+
+const moved = [
+  ['/post/event-suggestions', '/events/suggestions'],
+  ['/forms/movies', '/events/movies'],
+  ['/forms/birthdays', '/birthdays'],
+  ['/post/announcements', '/announcements'],
+  ['/post/events', '/events'],
+  ['/post/polls', '/polls'],
+  ['/roles', '/settings/roles'],
+] as const;
 
 function returnPath(referer: string | undefined, path: string): string {
   const parts = path.split('/').filter(Boolean);
-  const depth = ['post', 'forms', 'settings'].includes(parts[0] ?? '') ? 2 : 1;
+  const depth = parts[0] === 'settings' ? 2 : 1;
   const section = `/${parts.slice(0, depth).join('/')}`;
   const from = referer === undefined ? null : URL.parse(referer);
 
@@ -122,15 +132,15 @@ export function createWebApp(deps: WebDeps) {
       !can.has(webAccess) &&
       can.has('event:suggestions:manage')
     ) {
-      return c.redirect('/post/event-suggestions', 303);
+      return c.redirect('/events/suggestions', 303);
     }
 
     if (
       !can.has(webAccess) &&
       !(
         can.has('event:suggestions:manage') &&
-        (c.req.path === '/post/event-suggestions' ||
-          c.req.path.startsWith('/post/event-suggestions/'))
+        (c.req.path === '/events/suggestions' ||
+          c.req.path.startsWith('/events/suggestions/'))
       )
     ) {
       return c.html(
@@ -163,7 +173,19 @@ export function createWebApp(deps: WebDeps) {
     return next();
   });
 
-  for (const section of sections.filter(({ pages }) => pages !== undefined)) {
+  for (const [from, to] of moved) {
+    app.get(`${from}/*`, (c) => {
+      const { pathname, search } = new URL(c.req.url);
+
+      return c.redirect(`${to}${pathname.slice(from.length)}${search}`, 301);
+    });
+    app.get(from, (c) => c.redirect(`${to}${new URL(c.req.url).search}`, 301));
+  }
+
+  for (const section of sections.filter(
+    ({ href, pages }) =>
+      pages !== undefined && !pages.some((page) => page.href === href),
+  )) {
     app.get(section.href, (c) => {
       const allowed = visibleLinks([section], c.var.can)[0];
       const first = visibleLinks(allowed?.pages ?? [], c.var.can)[0];
@@ -183,14 +205,14 @@ export function createWebApp(deps: WebDeps) {
     });
   }
 
-  app.route('/', overviewRoutes(deps));
-  app.route('/post/announcements', announcementRoutes(deps));
-  app.route('/post/event-suggestions', eventSuggestionRoutes(deps));
-  app.route('/post/events', eventRoutes(deps));
-  app.route('/post/polls', pollRoutes(deps));
-  app.route('/forms/birthdays', birthdayRoutes(deps));
-  app.route('/forms/movies', movieRoutes(deps));
-  app.route('/roles', roleRoutes(deps));
+  app.route('/', helpRoutes(deps));
+  app.route('/announcements', announcementRoutes(deps));
+  app.route('/events/suggestions', eventSuggestionRoutes(deps));
+  app.route('/events', eventRoutes(deps));
+  app.route('/polls', pollRoutes(deps));
+  app.route('/birthdays', birthdayRoutes(deps));
+  app.route('/events/movies', movieRoutes(deps));
+  app.route('/settings/roles', roleRoutes(deps));
   app.route('/settings/permissions', permissionRoutes(deps));
   app.route('/settings/logs', logRoutes(deps.timezone, deps.logs));
 

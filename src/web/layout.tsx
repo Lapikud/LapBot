@@ -24,6 +24,9 @@ export function Layout({
   const visible = visibleLinks(sections, can);
   const section = visible.find(({ href }) => containsPath(href, path));
   const pages = visibleLinks(section?.pages ?? [], can);
+  const current = pages
+    .filter(({ href }) => containsPath(href, path))
+    .toSorted((a, b) => b.href.length - a.href.length)[0]?.href;
   const heading = pages.map(({ label }) => label).includes(title)
     ? section?.label
     : title;
@@ -78,9 +81,7 @@ export function Layout({
                   <li key={href}>
                     <a
                       href={href}
-                      aria-current={
-                        containsPath(href, path) ? 'page' : undefined
-                      }
+                      aria-current={href === current ? 'page' : undefined}
                     >
                       {label}
                     </a>

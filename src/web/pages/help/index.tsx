@@ -1,0 +1,148 @@
+import {
+  applicationAdmin,
+  managePermissions,
+  type Permission,
+} from '~/core/permission';
+import { Layout } from '~/web/layout';
+
+interface Feature {
+  name: string;
+  text: string;
+  command?: string;
+  href?: string;
+  needs?: Permission;
+}
+
+const features: readonly Feature[] = [
+  {
+    name: 'Announcements',
+    text: 'Write a post, preview it, then publish it now or schedule it. Drafts can still move channel. Every post ends with a toimetaja line naming its author.',
+    command: '/announce',
+    href: '/announcements',
+    needs: 'announcement:post',
+  },
+  {
+    name: 'Events',
+    text: 'Post an event with RSVP buttons. People who are going get a reminder, and public events can go to the club Google Calendar.',
+    command: '/event create',
+    href: '/events',
+  },
+  {
+    name: 'Event ideas',
+    text: 'Suggest something to do. The board reviews ideas in the inbox.',
+    command: '/event suggest',
+  },
+  {
+    name: 'Event inbox',
+    text: 'Review, mark and dismiss event ideas from members.',
+    href: '/events/suggestions',
+    needs: 'event:suggestions:manage',
+  },
+  {
+    name: 'Polls',
+    text: 'Ask a question with up to 10 options. Show results live or after it closes.',
+    command: '/poll create',
+    href: '/polls',
+  },
+  {
+    name: 'Movies',
+    text: 'Suggest movies, vote on the next one and plan a movie night.',
+    command: '/movie suggest',
+    href: '/events/movies',
+  },
+  {
+    name: 'Birthdays',
+    text: 'Add your birthday and choose who sees it. The bot congratulates members on the day.',
+    command: '/birthday set',
+    href: '/birthdays',
+  },
+  {
+    name: 'Reminders',
+    text: 'Get a reminder by DM, or in a channel with mentions. Reminders can repeat.',
+    command: '/remindme',
+  },
+  {
+    name: 'Roles',
+    text: 'React to the role panel to pick your roles. Remove the reaction to leave.',
+  },
+  {
+    name: 'Role panels',
+    text: 'Choose which roles members can pick themselves, and with which emoji.',
+    href: '/settings/roles',
+    needs: applicationAdmin,
+  },
+  {
+    name: 'Permissions',
+    text: 'Decide what everyone may do by default, and what each role adds.',
+    command: '/permissions',
+    href: '/settings/permissions',
+    needs: managePermissions,
+  },
+];
+
+interface Props {
+  can: ReadonlySet<Permission>;
+  pendingCount: number;
+  eventCount: number;
+  pollCount: number;
+}
+
+export function HelpPage({
+  can,
+  pendingCount,
+  eventCount,
+  pollCount,
+}: Readonly<Props>) {
+  return (
+    <Layout can={can} title="Help" path="/">
+      <p class="lead">
+        LAPbot is the Lapikud Discord bot. Everything it does works from
+        Discord, and from this dashboard.
+      </p>
+      <h2>Right now</h2>
+      <ul class="now">
+        {can.has('announcement:post') ? (
+          <li>
+            <a href="/announcements">
+              {pendingCount} drafts and scheduled PSAs
+            </a>
+          </li>
+        ) : null}
+        <li>
+          <a href="/events">{eventCount} upcoming events</a>
+        </li>
+        <li>
+          <a href="/polls">{pollCount} open polls</a>
+        </li>
+      </ul>
+      <h2>What you can do</h2>
+      <div class="features">
+        {features
+          .filter(({ needs }) => needs === undefined || can.has(needs))
+          .map(({ name, text, command, href }) => (
+            <article key={name}>
+              <h3>{name}</h3>
+              <p>{text}</p>
+              {command === undefined && href === undefined ? null : (
+                <footer>
+                  {command === undefined ? null : <code>{command}</code>}
+                  {href === undefined ? null : <a href={href}>Open</a>}
+                </footer>
+              )}
+            </article>
+          ))}
+      </div>
+      <h2>Mentions</h2>
+      <p>
+        Mention anyone by typing @ in Discord or in the Mention box here.
+        Pinging @everyone, @here or a role that isn't mentionable needs
+        Discord's Mention Everyone permission in that channel.
+      </p>
+      <h2>Missing something?</h2>
+      <p>
+        What you see depends on your permissions. Ask the board to give your
+        role more on the Permissions page.
+      </p>
+    </Layout>
+  );
+}

@@ -15,39 +15,32 @@ export interface Section extends PageLink {
 }
 
 export const sections: readonly Section[] = [
-  { href: '/', label: 'Overview' },
+  { href: '/', label: 'Help' },
   {
-    href: '/post',
-    label: 'Post',
+    href: '/announcements',
+    label: 'Announcements',
+    permission: 'announcement:post',
+  },
+  {
+    href: '/events',
+    label: 'Events',
     pages: [
+      { href: '/events', label: 'Events' },
+      { href: '/events/movies', label: 'Movies' },
       {
-        href: '/post/announcements',
-        label: 'Announcements',
-        permission: 'announcement:post',
-      },
-      { href: '/post/events', label: 'Events' },
-      {
-        href: '/post/event-suggestions',
-        label: 'Event suggestions',
+        href: '/events/suggestions',
+        label: 'Suggestions',
         permission: 'event:suggestions:manage',
       },
-      { href: '/post/polls', label: 'Polls' },
     ],
   },
-  {
-    href: '/forms',
-    label: 'Forms',
-    pages: [
-      { href: '/forms/birthdays', label: 'Birthdays' },
-      { href: '/forms/movies', label: 'Movies' },
-    ],
-  },
-  { href: '/roles', label: 'Roles', permission: applicationAdmin },
+  { href: '/polls', label: 'Polls' },
+  { href: '/birthdays', label: 'Birthdays' },
   {
     href: '/settings',
     label: 'Settings',
-    permission: managePermissions,
     pages: [
+      { href: '/settings/roles', label: 'Roles', permission: applicationAdmin },
       {
         href: '/settings/permissions',
         label: 'Permissions',
@@ -58,14 +51,16 @@ export const sections: readonly Section[] = [
   },
 ];
 
-export function visibleLinks<T extends PageLink>(
+export function visibleLinks<T extends Section>(
   links: readonly T[],
   can: ReadonlySet<Permission> | undefined,
 ): readonly T[] {
   return can === undefined
     ? []
     : links.filter(
-        ({ permission }) => permission === undefined || can.has(permission),
+        ({ permission, pages }) =>
+          (permission === undefined || can.has(permission)) &&
+          (pages === undefined || visibleLinks(pages, can).length > 0),
       );
 }
 

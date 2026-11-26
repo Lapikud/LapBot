@@ -73,8 +73,8 @@ import { createLogger } from '~/integrations/logging/logger';
 import { eventCommands } from '~/discord/commands/events';
 import { pollCommands } from '~/discord/commands/polls';
 import { visibleRecords } from '~/core/helpers/visibility';
-import { eventRoutes } from '~/web/pages/post/events/routes';
-import { pollRoutes } from '~/web/pages/post/polls/routes';
+import { eventRoutes } from '~/web/pages/events/routes';
+import { pollRoutes } from '~/web/pages/polls/routes';
 
 describe('permission delegation', () => {
   const manager = (overrides: Partial<Actor> = {}): Actor => ({
@@ -718,7 +718,7 @@ describe('dashboard access', () => {
 
     it('rejects forms posted from another site', async () => {
       const response = await post(
-        '/post/announcements',
+        '/announcements',
         { channelId: 'general', content: 'x', action: 'publish' },
         'https://evil.example',
       );
@@ -728,7 +728,7 @@ describe('dashboard access', () => {
     });
 
     it('previews without posting, escaping user text', async () => {
-      const response = await post('/post/announcements', {
+      const response = await post('/announcements', {
         channelId: 'general',
         title: '<b>Hi</b>',
         content: `Meeting <@&${teamId}> **now**`,
@@ -743,7 +743,7 @@ describe('dashboard access', () => {
     });
 
     it('edits a saved draft from the dashboard', async () => {
-      const saved = await post('/post/announcements', {
+      const saved = await post('/announcements', {
         channelId: 'general',
         content: 'First',
         action: 'draft',
@@ -753,10 +753,10 @@ describe('dashboard access', () => {
         'http://localhost',
       ).searchParams.get('notice');
       const id = /PSA #(\d+)/.exec(notice ?? '')?.[1];
-      const form = await (await get(`/post/announcements/${id}`)).text();
+      const form = await (await get(`/announcements/${id}`)).text();
 
       expect(form).toContain('First');
-      const edited = await post(`/post/announcements/${id}`, {
+      const edited = await post(`/announcements/${id}`, {
         channelId: 'general',
         content: 'Second',
         mention: `role:${teamId}`,
@@ -764,7 +764,7 @@ describe('dashboard access', () => {
       });
 
       expect(edited.headers.get('location')).toContain('saved');
-      expect(await (await get(`/post/announcements/${id}`)).text()).toContain(
+      expect(await (await get(`/announcements/${id}`)).text()).toContain(
         'Second',
       );
     });
