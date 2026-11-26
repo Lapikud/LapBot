@@ -90,6 +90,27 @@ function requireCapacity(capacity?: number | null) {
   }
 }
 
+function voteDeadline(
+  vote: EventRequest['vote'],
+  startsAt: Date,
+  timezone: string,
+  available: boolean,
+): Date {
+  if (vote === undefined) {
+    return startsAt;
+  }
+
+  if (!available) {
+    throw new UserError('Votes are not available.');
+  }
+
+  validatePollOptions(vote.options);
+
+  return vote.closes === undefined
+    ? startsAt
+    : parseFutureWhen(vote.closes, timezone);
+}
+
 function requirePublishable(input: NewEvent, mention = false) {
   const view = eventView(
     {
@@ -463,9 +484,12 @@ export function createEventService(deps: Deps) {
       const { timezone } = deps;
       const startsAt = parseFutureWhen(request.start, timezone);
 
-      if (request.vote !== undefined) {
-        validatePollOptions(request.vote.options);
-      }
+      const voteClosesAt = voteDeadline(
+        request.vote,
+        startsAt,
+        timezone,
+        polls !== undefined,
+      );
 
       const endsAt =
         request.end === undefined
@@ -514,10 +538,7 @@ export function createEventService(deps: Deps) {
         creatorId: actor.userId,
         question: `What should we do at ${event.title}?`.slice(0, 256),
         options: request.vote.options.map((label) => ({ label })),
-        closesAt:
-          request.vote.closes === undefined
-            ? event.startsAt
-            : parseFutureWhen(request.vote.closes, timezone),
+        closesAt: voteClosesAt,
       });
 
       return attachPoll(event.id, poll.id);

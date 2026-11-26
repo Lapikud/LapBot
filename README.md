@@ -52,8 +52,9 @@ Settings are documented in `.env.example`.
 | `/permissions grant/revoke/list`                                    | `permissions:manage`                                   |
 | Web dashboard                                                       | `web:access`                                           |
 
-Permissions granted to Everyone apply to every member. By default that is
-`web:access`, `event:create`, `poll:create` and `reminder:channel`; change it on
+Permissions granted to Everyone apply to every member. The migration grants
+`web:access`, `event:create`, `poll:create` and `reminder:channel` when Everyone
+has no existing grants; otherwise it keeps the existing grants. Change them on
 the dashboard's Permissions page.
 
 Discord administrators and members of `JUHATUS_ROLE_ID` hold every bot permission.

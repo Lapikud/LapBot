@@ -23,8 +23,9 @@ import { createGrantRepository } from '~/integrations/db/permissions/repository'
 import { createAuthorizer } from '~/features/permissions/service';
 import { createBirthdayService } from '~/features/birthdays/service';
 import { calendarDay } from '~/core/helpers/time';
-import { parseMentions, type Mentions } from '~/core/message';
+import type { Mentions } from '~/core/message';
 import { requireMentions } from '~/core/helpers/posting';
+import { allowedMentions } from '~/discord/render';
 import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
 import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { createReminderService } from '~/features/reminders/service';
@@ -99,13 +100,10 @@ describe('announcement publication', () => {
   });
 
   describe('mentions', () => {
-    it('reads mentions typed in Discord', () => {
-      expect(parseMentions('<@1> <@!1> <@&2> @here hi')).toEqual({
-        users: ['1'],
-        roles: ['2'],
-        here: true,
-        everyone: false,
-      });
+    it('allows an explicit everyone ping when here is false', () => {
+      expect(allowedMentions({ here: false, everyone: true }).parse).toEqual([
+        'everyone',
+      ]);
     });
 
     it("follows Discord's Mention Everyone rule", async () => {

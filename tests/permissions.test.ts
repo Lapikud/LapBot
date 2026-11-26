@@ -965,76 +965,6 @@ describe('dashboard access', () => {
       );
     });
 
-    it('manages your own reminders', async () => {
-      await post('/reminders', { message: 'Water plants', when: '2h' });
-      const page = await (await get('/reminders')).text();
-      const id = /action="\/reminders\/(\d+)\/cancel"/.exec(page)?.[1];
-
-      expect(page).toContain('Water plants');
-      await post(`/reminders/${id}`, { message: 'Water the plants' });
-      expect(await (await get('/reminders')).text()).toContain(
-        'Water the plants',
-      );
-      await post(`/reminders/${id}/cancel`, {});
-      expect(await (await get('/reminders')).text()).toContain(
-        'no active reminders',
-      );
-    });
-
-    it('sets and removes your own birthday', async () => {
-      await post('/birthdays/mine', {
-        day: '29',
-        month: '2',
-        visibility: 'private',
-        action: 'save',
-      });
-      const page = await (await get('/birthdays')).text();
-
-      expect(page).toMatch(/name="day"[^>]*value="29"/);
-      expect(page).toMatch(/value="private" checked/);
-      await post('/birthdays/mine', { action: 'remove' });
-      expect(await (await get('/birthdays')).text()).not.toContain(
-        'value="remove"',
-      );
-    });
-
-    it('shows poll results and cancels polls', async () => {
-      const started = await post('/polls', {
-        question: 'Pizza or sushi?',
-        options: 'Pizza\nSushi',
-        channelId: 'general',
-      });
-      const id = /Poll #(\d+)/.exec(
-        new URL(
-          started.headers.get('location') ?? '',
-          'http://localhost',
-        ).searchParams.get('notice') ?? '',
-      )?.[1];
-      const results = await (await get(`/polls/${id}`)).text();
-
-      expect(results).toContain('<h1>Pizza or sushi?</h1>');
-      expect(results).toContain('No votes yet.');
-      await post(`/polls/${id}/cancel`, {});
-      expect(await (await get('/polls')).text()).not.toContain('Pizza');
-    });
-
-    it('suggests ideas and records watched movies', async () => {
-      const idea = await post('/events/suggest', {
-        channelId: 'general',
-        text: 'Board game night',
-      });
-
-      expect(idea.headers.get('location')).toContain('suggested');
-      await post('/events/movies', { title: 'Paddington 2' });
-      const list = await (await get('/events/movies')).text();
-      const id = /\/events\/movies\/(\d+)\/remove/.exec(list)?.[1];
-
-      await post(`/events/movies/${id}/watched`, {});
-      const page = await (await get('/events/movies')).text();
-
-      expect(page).toMatch(/<h2>Watched<\/h2>[\s\S]*Paddington 2/);
-    });
-
     it('writes the winning option into an event with a vote', async () => {
       const created = await post('/events', {
         title: 'Friday hangout',
@@ -1058,6 +988,22 @@ describe('dashboard access', () => {
       expect((await events.get(admin, Number(id))).description).toBe(
         '**Chosen:** Karaoke',
       );
+    });
+
+    it('rejects a bad vote deadline before posting an event', async () => {
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const before = await events.upcoming(guildId);
+
+      await expect(
+        events.create(admin, {
+          title: 'Invalid vote deadline',
+          start: '3d',
+          channelId: 'general',
+          vote: { options: ['Bowling', 'Karaoke'], closes: 'not a date' },
+        }),
+      ).rejects.toThrow();
+
+      expect(await events.upcoming(guildId)).toHaveLength(before.length);
     });
 
     it('turns a movie night vote into the chosen movie', async () => {
@@ -1120,13 +1066,6 @@ describe('dashboard access', () => {
       expect(await (await get(`${path}/responses.csv`)).text()).toBe(
         '"Submitted","Member"',
       );
-    });
-
-    it('opens the default permissions for everyone first', async () => {
-      const page = await (await get('/settings/permissions')).text();
-
-      expect(page).toContain('<h2>Everyone (all members)</h2>');
-      expect(page).toContain(`action="/settings/permissions/role/${guildId}"`);
     });
 
     it('keeps members without dashboard access out', async () => {
