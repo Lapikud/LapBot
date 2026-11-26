@@ -1,30 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  birthdayForm,
-  parseBirthdaySubmission,
-} from '~/features/birthdays/form';
-import { pollResponseForm, validatePollResponse } from '~/features/polls/form';
-
-describe('form metadata', () => {
-  it('retains labels and control kinds on the Zod fields', () => {
-    expect(birthdayForm.shape.day.meta()).toMatchObject({
-      label: 'Day',
-      kind: 'integer',
-    });
-    expect(birthdayForm.shape.month.meta()).toMatchObject({
-      label: 'Month',
-      kind: 'integer',
-    });
-    expect(birthdayForm.shape.visibility.meta()).toMatchObject({
-      label: 'Visibility',
-      kind: 'choice',
-    });
-    expect(pollResponseForm([], false).shape.choices.meta()).toMatchObject({
-      label: 'Choices',
-      kind: 'choice',
-    });
-  });
-});
+import { parseBirthdaySubmission } from '~/features/birthdays/form';
+import { validatePollResponse } from '~/features/polls/form';
 
 describe('birthday submissions', () => {
   it('keeps leap days and defaults unknown visibility to public', () => {

@@ -14,10 +14,7 @@ export function pollResponseForm(
   const choices = z.array(z.custom<number>((value) => allowed.has(value)));
 
   return z.object({
-    choices: (multiple ? choices : choices.max(1)).meta({
-      label: 'Choices',
-      kind: 'choice',
-    }),
+    choices: multiple ? choices : choices.max(1),
   });
 }
 

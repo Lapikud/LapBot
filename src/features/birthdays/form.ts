@@ -3,16 +3,9 @@ import { birthdayVisibilities, validateBirthday } from './rules';
 import { UserError } from '~/core/errors';
 
 export const birthdayForm = z.object({
-  day: z.number().int().min(1).max(31).meta({ label: 'Day', kind: 'integer' }),
-  month: z
-    .number()
-    .int()
-    .min(1)
-    .max(12)
-    .meta({ label: 'Month', kind: 'integer' }),
-  visibility: z
-    .enum(birthdayVisibilities)
-    .meta({ label: 'Visibility', kind: 'choice' }),
+  day: z.number().int().min(1).max(31),
+  month: z.number().int().min(1).max(12),
+  visibility: z.enum(birthdayVisibilities),
 });
 
 export function parseBirthdaySubmission(input: {
