@@ -103,6 +103,11 @@ const data = new SlashCommandBuilder()
       .addStringOption(mentionOption)
       .addStringOption((o) =>
         o
+          .setName('vote')
+          .setDescription('Let people vote on what to do: option | option'),
+      )
+      .addStringOption((o) =>
+        o
           .setName('reminders')
           .setDescription(
             'When to remind people who are going (default 1 hour before)',
@@ -270,6 +275,7 @@ export function eventCommands(
             );
             const actor = toActor(interaction.member);
             const start = interaction.options.getString('start', true);
+            const vote = interaction.options.getString('vote');
             const day = await events.sameDay(actor, start).catch(() => null);
             const event = await events.create(actor, {
               ...extras,
@@ -282,6 +288,11 @@ export function eventCommands(
               ...(capacity !== null && { capacity }),
               ...(icons !== null && { icons }),
               ...typedMentions(interaction),
+              ...(vote !== null && {
+                vote: {
+                  options: vote.split('|').filter((o) => o.trim() !== ''),
+                },
+              }),
             });
 
             await respond(

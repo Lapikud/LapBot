@@ -11,6 +11,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import type { Mentions } from '~/core/message';
+import { polls } from '../polls/table';
 
 export const eventStatus = pgEnum('event_status', ['scheduled', 'cancelled']);
 export const rsvpStatus = pgEnum('rsvp_status', [
@@ -39,6 +40,9 @@ export const events = pgTable(
     reminderMinutes: integer('reminder_minutes').array().notNull().default([]),
     icons: boolean('icons').notNull().default(true),
     calendarEventId: text('calendar_event_id'),
+    pollId: integer('poll_id').references(() => polls.id, {
+      onDelete: 'set null',
+    }),
     status: eventStatus('status').notNull().default('scheduled'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

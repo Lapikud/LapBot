@@ -65,12 +65,36 @@ export function createPollService(deps: Deps) {
     }
   };
 
+  const listeners: Array<
+    (poll: PollWithOptions, results: PollResults) => Promise<void>
+  > = [];
+
+  const closed = async (id: number) => {
+    await refresh(id);
+
+    const poll = await polls.find(id);
+
+    if (poll === undefined) {
+      return;
+    }
+
+    const results = await polls.results(poll);
+
+    await sequential(listeners, async (listener) => {
+      try {
+        await listener(poll, results);
+      } catch (error) {
+        log.error({ error, pollId: id }, 'Poll close follow-up failed');
+      }
+    });
+  };
+
   const closeJob = defineJob({
     type: 'polls.close',
     payload: z.object({ pollId: z.number().int() }),
     handle: async ({ pollId }) => {
       if (await polls.finish(pollId, 'closed')) {
-        await refresh(pollId);
+        await closed(pollId);
       }
     },
   });
@@ -151,6 +175,11 @@ export function createPollService(deps: Deps) {
 
   return {
     jobs: [closeJob],
+    onClosed: (
+      listener: (poll: PollWithOptions, results: PollResults) => Promise<void>,
+    ) => {
+      listeners.push(listener);
+    },
     publish,
     results: (poll: PollWithOptions) => polls.results(poll),
     latestBySource: (guildId: string, source: string) =>
@@ -207,7 +236,7 @@ export function createPollService(deps: Deps) {
       }
 
       await scheduler.cancel(closeJob, closeKey(id));
-      await refresh(id);
+      await closed(id);
     },
     cancel: async (actor: Actor, id: number) => {
       await requireManager(actor, id);

@@ -90,6 +90,10 @@ export function eventRoutes({
     .post('/', async (c) => {
       const form = await c.req.formData();
       const reminders = field(form, 'reminders');
+      const options = (field(form, 'vote') ?? '')
+        .split('\n')
+        .filter((line) => line.trim() !== '');
+      const voteCloses = field(form, 'voteCloses');
       const event = await services.events.create(c.var.actor, {
         title: '',
         start: '',
@@ -98,6 +102,12 @@ export function eventRoutes({
         calendar: checked(form, 'calendar'),
         mentions: mentionsFrom(form),
         ...(reminders !== undefined && { reminders }),
+        ...(options.length > 0 && {
+          vote: {
+            options,
+            ...(voteCloses !== undefined && { closes: voteCloses }),
+          },
+        }),
       });
 
       return back(c, '/events', { notice: `Event #${event.id} created.` });

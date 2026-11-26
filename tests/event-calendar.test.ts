@@ -29,6 +29,7 @@ function fixture(authz = allowAll) {
     reminderMinutes: [],
     icons: true,
     calendarEventId: null,
+    pollId: null,
     status: 'scheduled',
     createdAt: new Date(),
   };

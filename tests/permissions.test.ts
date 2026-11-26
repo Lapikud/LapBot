@@ -714,6 +714,8 @@ describe('dashboard access', () => {
       role({ id: guildId, name: '@everyone', everyone: true, position: 0 }),
     ]);
     let app: WebApp;
+    let polls: PollService;
+    let events: EventService;
 
     let cookie = '';
 
@@ -753,13 +755,14 @@ describe('dashboard access', () => {
       const authz = createAuthorizer(createGrantRepository(db));
       const shared = { ...serviceFakes(), messenger, directory, authz };
 
-      const events = createEventService({
-        ...shared,
-        events: createEventRepository(db),
-      });
-      const polls = createPollService({
+      polls = createPollService({
         ...shared,
         polls: createPollRepository(db),
+      });
+      events = createEventService({
+        ...shared,
+        events: createEventRepository(db),
+        polls,
       });
 
       app = createWebApp({
@@ -1024,6 +1027,56 @@ describe('dashboard access', () => {
       const page = await (await get('/events/movies')).text();
 
       expect(page).toMatch(/<h2>Watched<\/h2>[\s\S]*Paddington 2/);
+    });
+
+    it('writes the winning option into an event with a vote', async () => {
+      const created = await post('/events', {
+        title: 'Friday hangout',
+        start: '3d',
+        channelId: 'general',
+        vote: 'Bowling\nKaraoke',
+      });
+      const id = /Event #(\d+)/.exec(
+        new URL(
+          created.headers.get('location') ?? '',
+          'http://localhost',
+        ).searchParams.get('notice') ?? '',
+      )?.[1];
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const event = await events.get(admin, Number(id));
+      const { results } = await polls.summary(admin, event.pollId ?? 0);
+      const karaoke = results.options.find((o) => o.label === 'Karaoke');
+
+      await polls.vote(admin, event.pollId ?? 0, [karaoke?.id ?? 0]);
+      await post(`/polls/${event.pollId}/close`, {});
+      expect((await events.get(admin, Number(id))).description).toBe(
+        '**Chosen:** Karaoke',
+      );
+    });
+
+    it('turns a movie night vote into the chosen movie', async () => {
+      await post('/events/movies', { title: 'Arrival' });
+      await post('/events/movies', { title: 'Heat' });
+      const night = await post('/events/movies/night', {
+        start: '4d',
+        channelId: 'general',
+      });
+      const id = /event #(\d+)/.exec(
+        new URL(
+          night.headers.get('location') ?? '',
+          'http://localhost',
+        ).searchParams.get('notice') ?? '',
+      )?.[1];
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const event = await events.get(admin, Number(id));
+      const { results } = await polls.summary(admin, event.pollId ?? 0);
+      const heat = results.options.find((o) => o.label === 'Heat');
+
+      await polls.vote(admin, event.pollId ?? 0, [heat?.id ?? 0]);
+      await post(`/polls/${event.pollId}/close`, {});
+      expect((await events.get(admin, Number(id))).title).toBe(
+        '🎬 Movie night: Heat',
+      );
     });
 
     it('opens the default permissions for everyone first', async () => {

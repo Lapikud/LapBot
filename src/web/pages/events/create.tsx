@@ -1,7 +1,7 @@
 import type { Permission } from '~/core/permission';
 import { reminderChoices } from '~/features/events/service';
 import { Checkbox } from '~/web/components/choices';
-import { Input, Select } from '~/web/components/controls';
+import { Input, Select, Textarea } from '~/web/components/controls';
 import { MentionPicker } from '~/web/components/mentions';
 import { ChannelSelect } from '~/web/components/selectors';
 import type { Flash, Server } from '~/web/context';
@@ -78,6 +78,20 @@ export function NewEventPage({
           </Select>
         </div>
         <MentionPicker server={server} />
+        <fieldset>
+          <legend>Let people vote on what to do</legend>
+          <Textarea
+            label="Options"
+            name="vote"
+            rows={3}
+            help="One per line, at least two. Leave empty for no vote."
+          />
+          <Input
+            label="Vote closes"
+            name="voteCloses"
+            placeholder="Default: when the event starts"
+          />
+        </fieldset>
         <fieldset>
           {calendar && (
             <Checkbox

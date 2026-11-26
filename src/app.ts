@@ -93,6 +93,15 @@ export function compose(
     directory,
     messenger,
   });
+  const polls = createPollService({
+    polls: infrastructure.repositories.polls,
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'polls' }),
+    timezone,
+  });
   const events = createEventService({
     events: infrastructure.repositories.events,
     scheduler,
@@ -108,15 +117,7 @@ export function compose(
     authz,
     log: log.child({ service: 'events' }),
     timezone,
-  });
-  const polls = createPollService({
-    polls: infrastructure.repositories.polls,
-    scheduler,
-    messenger,
-    directory,
-    authz,
-    log: log.child({ service: 'polls' }),
-    timezone,
+    polls,
   });
   const movies = createMovieService({
     catalog:

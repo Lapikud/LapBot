@@ -29,7 +29,7 @@ export function MovieNightForms({
       <h2>Plan a movie night</h2>
       <form method="post" action="/events/movies/night">
         <Select label="Movie" name="movieId">
-          <option value="">Winner of the last vote</option>
+          <option value="">Let people vote</option>
           {list.map((movie) => (
             <option key={movie.id} value={movie.id}>
               {movieLabel(movie)}
@@ -46,6 +46,11 @@ export function MovieNightForms({
           <Input label="Location" name="location" maxlength={200} />
           <Input label="Capacity" name="capacity" type="number" min={1} />
         </div>
+        <Input
+          label="Vote closes"
+          name="closes"
+          placeholder="Default: when the movie night starts"
+        />
         <ChannelSelect server={server} />
         <button type="submit">Post movie night</button>
       </form>

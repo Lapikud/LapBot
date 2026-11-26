@@ -25,6 +25,8 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
+import type { PollService } from '~/features/polls/service';
+import { validatePollOptions } from '~/features/polls/rules';
 import type {
   Event,
   NewEvent,
@@ -51,6 +53,7 @@ export interface EventRequest {
   reminders?: string;
   calendar?: boolean;
   icons?: boolean;
+  vote?: { options: readonly string[]; closes?: string };
 }
 
 export interface EventChanges extends Partial<
@@ -94,6 +97,7 @@ function requirePublishable(input: NewEvent, mention = false) {
       id: 2_147_483_647,
       messageId: null,
       calendarEventId: null,
+      pollId: null,
       status: 'cancelled',
       createdAt: new Date(),
     },
@@ -149,11 +153,20 @@ interface Deps {
   authz: Authorizer;
   log: Logger;
   timezone: string;
+  polls?: Pick<PollService, 'publish' | 'onClosed'>;
 }
 
 export function createEventService(deps: Deps) {
-  const { events, scheduler, messenger, calendar, directory, authz, log } =
-    deps;
+  const {
+    events,
+    scheduler,
+    messenger,
+    calendar,
+    directory,
+    authz,
+    log,
+    polls,
+  } = deps;
 
   const remindJob = defineJob({
     type: 'events.remind',
@@ -258,6 +271,47 @@ export function createEventService(deps: Deps) {
     }
   };
 
+  const attachPoll = (id: number, pollId: number) =>
+    events.update(id, { pollId });
+
+  const decide = async (
+    id: number,
+    changes: { title?: string; description?: string | null },
+  ) => {
+    let updated = await events.update(id, changes);
+
+    await refresh(updated);
+
+    if (updated.calendarEventId !== null) {
+      updated = await events.update(id, {
+        calendarEventId: await syncCalendar(updated),
+      });
+    }
+
+    return updated;
+  };
+
+  polls?.onClosed(async (poll, results) => {
+    const event = await events.byPoll(poll.id);
+    const [winner] = results.winners;
+
+    if (
+      poll.source !== null ||
+      event?.status !== 'scheduled' ||
+      winner === undefined ||
+      results.tie
+    ) {
+      return;
+    }
+
+    await decide(event.id, {
+      description: [`**Chosen:** ${winner.label}`, event.description]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(0, maxDescriptionLength),
+    });
+  });
+
   const requireCalendarChannel = async (actor: Actor, channelId: string) => {
     if (calendar === undefined) {
       throw new UserError('The club Google Calendar is not set up.');
@@ -335,6 +389,9 @@ export function createEventService(deps: Deps) {
       return events.update(id, { calendarEventId });
     },
     get: requireEvent,
+    byPoll: (pollId: number) => events.byPoll(pollId),
+    attachPoll,
+    decide,
     refresh: async (actor: Actor, id: number) =>
       refresh(await requireEvent(actor, id)),
     view: async (actor: Actor, id: number) => {
@@ -405,6 +462,11 @@ export function createEventService(deps: Deps) {
 
       const { timezone } = deps;
       const startsAt = parseFutureWhen(request.start, timezone);
+
+      if (request.vote !== undefined) {
+        validatePollOptions(request.vote.options);
+      }
+
       const endsAt =
         request.end === undefined
           ? null
@@ -438,7 +500,27 @@ export function createEventService(deps: Deps) {
 
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event created');
 
-      return event;
+      if (request.vote === undefined) {
+        return event;
+      }
+
+      if (polls === undefined) {
+        throw new UserError('Votes are not available.');
+      }
+
+      const poll = await polls.publish(actor, {
+        guildId: actor.guildId,
+        channelId: event.channelId,
+        creatorId: actor.userId,
+        question: `What should we do at ${event.title}?`.slice(0, 256),
+        options: request.vote.options.map((label) => ({ label })),
+        closesAt:
+          request.vote.closes === undefined
+            ? event.startsAt
+            : parseFutureWhen(request.vote.closes, timezone),
+      });
+
+      return attachPoll(event.id, poll.id);
     },
     edit: async (actor: Actor, id: number, changes: EventChanges) => {
       const event = await requireManageable(actor, id);

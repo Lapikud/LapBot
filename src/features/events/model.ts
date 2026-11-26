@@ -23,18 +23,20 @@ export interface Event {
   reminderMinutes: number[];
   icons: boolean;
   calendarEventId: string | null;
+  pollId: number | null;
   status: 'scheduled' | 'cancelled';
   createdAt: Date;
 }
 
 export type NewEvent = Omit<
   Event,
-  'id' | 'messageId' | 'calendarEventId' | 'status' | 'createdAt'
+  'id' | 'messageId' | 'calendarEventId' | 'pollId' | 'status' | 'createdAt'
 >;
 
 export interface EventRepository {
   insert: (event: NewEvent) => Promise<Event>;
   find: (id: number) => Promise<Event | undefined>;
+  byPoll: (pollId: number) => Promise<Event | undefined>;
   upcoming: (guildId: string, limit?: number) => Promise<Event[]>;
   between: (guildId: string, from: Date, to: Date) => Promise<Event[]>;
   update: (

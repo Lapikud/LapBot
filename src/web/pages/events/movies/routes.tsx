@@ -98,16 +98,21 @@ export function movieRoutes({
       const movieId = field(form, 'movieId');
       const location = field(form, 'location');
       const capacity = field(form, 'capacity');
+      const closes = field(form, 'closes');
       const { movie, event } = await services.movies.night(c.var.actor, {
         start: field(form, 'start') ?? '',
         channelId: field(form, 'channelId') ?? '',
         ...(movieId !== undefined && { movieId: Number(movieId) }),
         ...(location !== undefined && { location }),
         ...(capacity !== undefined && { capacity: Number(capacity) }),
+        ...(closes !== undefined && { closes }),
       });
 
       return back(c, '/events/movies', {
-        notice: `Movie night for ${movieLabel(movie)} posted as event #${event.id}.`,
+        notice:
+          movie === undefined
+            ? `Movie night posted as event #${event.id}, with a vote on the movie.`
+            : `Movie night for ${movieLabel(movie)} posted as event #${event.id}.`,
       });
     })
     .post(String.raw`/:id{\d+}/watched`, async (c) => {
