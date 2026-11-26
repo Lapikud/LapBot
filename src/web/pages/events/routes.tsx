@@ -15,10 +15,11 @@ import {
   type WebDeps,
 } from '~/web/context';
 import { NewEventPage } from './create';
-import { EditEventPage } from './edit';
+import { EventDetailPage } from './edit';
 import { EventPage } from './index';
 import { changesOf, fieldsOf } from './submission';
-import { entryLabel } from '~/features/events/message';
+import { entryLabel, rsvpLabels } from '~/features/events/message';
+import { rsvpStatuses } from '~/features/events/model';
 
 export function eventRoutes({
   guildId,
@@ -102,18 +103,25 @@ export function eventRoutes({
       return back(c, '/events', { notice: `Event #${event.id} created.` });
     })
     .get(String.raw`/:id{\d+}`, async (c) => {
-      const event = await services.events.get(
+      const { event, attendees } = await services.events.attendees(
         c.var.actor,
         Number(c.req.param('id')),
       );
-
-      if (!owns(c, event.organizerId, 'event:manage')) {
-        throw new UserError('Only the organizer can edit this event.');
-      }
+      const named = await Promise.all(
+        attendees.map(async ({ userId, status }) => ({
+          status,
+          name:
+            (await directory.displayName(guildId, userId)) ?? 'a former member',
+        })),
+      );
 
       return c.html(
-        <EditEventPage
+        <EventDetailPage
           event={event}
+          attendees={named}
+          manageable={owns(c, event.organizerId, 'event:manage')}
+          server={await c.var.server()}
+          date={date}
           time={time}
           can={c.var.can}
           flash={flashOf(c)}
@@ -130,6 +138,22 @@ export function eventRoutes({
       );
 
       return back(c, '/events', { notice: `Event #${id} updated.` });
+    })
+    .post(String.raw`/:id{\d+}/rsvp`, async (c) => {
+      const id = Number(c.req.param('id'));
+      const answer = field(await c.req.formData(), 'status');
+      const status = rsvpStatuses.find((value) => value === answer);
+
+      if (status === undefined) {
+        throw new UserError('Choose going, maybe or not going.');
+      }
+
+      await services.events.rsvp(c.var.actor, id, status);
+      await services.events.refresh(c.var.actor, id);
+
+      return back(c, `/events/${id}`, {
+        notice: `RSVP saved: ${rsvpLabels[status]}.`,
+      });
     })
     .post(String.raw`/:id{\d+}/calendar`, async (c) => {
       const id = Number(c.req.param('id'));

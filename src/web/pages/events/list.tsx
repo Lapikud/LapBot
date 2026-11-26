@@ -29,15 +29,14 @@ export function EventList({
         {upcoming.map((e) => (
           <tr key={e.id}>
             <td>{e.id}</td>
-            <td>{e.title}</td>
+            <td>
+              <a href={`/events/${e.id}`}>{e.title}</a>
+            </td>
             <td>{date(e.startsAt)}</td>
             <td>{server.channelName(e.channelId)}</td>
             <td>
               {canManage(e.organizerId) ? (
                 <>
-                  <a href={`/events/${e.id}`} class="secondary outline">
-                    Edit
-                  </a>{' '}
                   <ActionButton
                     action={`/events/${e.id}/cancel`}
                     label="Cancel"
