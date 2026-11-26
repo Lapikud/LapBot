@@ -36,13 +36,18 @@ export function MentionPicker({
 
   return (
     <fieldset class="mentions">
-      <label htmlFor="mention-search">Mention</label>
+      <legend>Mention</legend>
+      <label htmlFor="mention-search">Search roles and members</label>
       <ul class="chips" aria-label="Mentioned">
         {selected.map((value) => (
           <li key={value}>
             <input type="hidden" name="mention" value={value} />
             {labels.get(value) ?? value}
-            <button type="button" class="secondary outline" aria-label="Remove">
+            <button
+              type="button"
+              class="secondary outline"
+              aria-label={`Remove ${labels.get(value) ?? value}`}
+            >
               ×
             </button>
           </li>

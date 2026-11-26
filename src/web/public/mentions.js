@@ -19,7 +19,7 @@ for (const picker of document.querySelectorAll('fieldset.mentions')) {
     hidden.value = value;
     remove.type = 'button';
     remove.className = 'secondary outline';
-    remove.setAttribute('aria-label', 'Remove');
+    remove.setAttribute('aria-label', `Remove ${option.value}`);
     remove.textContent = '×';
     chip.append(hidden, option.value, remove);
     chips.append(chip);
@@ -32,12 +32,6 @@ for (const picker of document.querySelectorAll('fieldset.mentions')) {
     if (match) {
       add(match);
       search.value = '';
-    }
-  });
-
-  search.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
     }
   });
 
