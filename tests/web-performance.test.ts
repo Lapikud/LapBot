@@ -137,17 +137,21 @@ describe('dashboard Discord requests', () => {
     const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
     const { directory, authz, request } = fixture();
 
+    expect((await request('/events')).status).toBe(200);
+    expect(directory.members).not.toHaveBeenCalled();
     expect((await request('/events/new')).status).toBe(200);
     clock.mockReturnValue(now + 29_999);
     expect((await request('/events/new')).status).toBe(200);
     expect(directory.channels).toHaveBeenCalledTimes(1);
     expect(directory.roles).toHaveBeenCalledTimes(1);
-    expect(directory.member).toHaveBeenCalledTimes(2);
-    expect(authz.granted).toHaveBeenCalledTimes(2);
+    expect(directory.members).toHaveBeenCalledTimes(1);
+    expect(directory.member).toHaveBeenCalledTimes(3);
+    expect(authz.granted).toHaveBeenCalledTimes(3);
     clock.mockReturnValue(now + 30_000);
     expect((await request('/events/new')).status).toBe(200);
     expect(directory.channels).toHaveBeenCalledTimes(2);
     expect(directory.roles).toHaveBeenCalledTimes(2);
+    expect(directory.members).toHaveBeenCalledTimes(2);
   });
 
   it('filters cached channels separately for each user and each request', async () => {

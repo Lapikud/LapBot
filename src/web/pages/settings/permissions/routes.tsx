@@ -16,7 +16,7 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
       const checked = c.req.query('check');
       const [grants, server] = await Promise.all([
         services.permissions.list(actor),
-        c.var.server(),
+        c.var.server(advanced),
       ]);
       const roles = server.roles
         .filter((role) => !role.managed)

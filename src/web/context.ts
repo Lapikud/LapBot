@@ -81,7 +81,7 @@ export function serverOf(
 export interface Env {
   Variables: {
     actor: Actor;
-    server: () => Promise<Server>;
+    server: (withMembers?: boolean) => Promise<Server>;
     can: ReadonlySet<Permission>;
   };
 }

@@ -40,7 +40,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       return c.html(
         <ComposerPage
           {...page}
-          server={await c.var.server()}
+          server={await c.var.server(true)}
           can={c.var.can}
           draft={draft}
           view={announcements.view({
@@ -105,7 +105,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
         <ComposerPage
           title="New PSA"
           action="/announcements"
-          server={await c.var.server()}
+          server={await c.var.server(true)}
           can={c.var.can}
           flash={flashOf(c)}
         />,
@@ -127,7 +127,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
           title={`Edit PSA #${post.id}`}
           action={`/announcements/${post.id}`}
           published={post.status === 'published'}
-          server={await c.var.server()}
+          server={await c.var.server(true)}
           can={c.var.can}
           flash={flashOf(c)}
           draft={draftFrom(post)}

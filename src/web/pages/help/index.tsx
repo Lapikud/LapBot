@@ -106,8 +106,8 @@ export function HelpPage({ can, now }: Readonly<Props>) {
   return (
     <Layout can={can} signedIn={can !== undefined} title="Help" path="/">
       <p class="lead">
-        LAPbot is the Lapikud Discord bot. Everything it does works from
-        Discord, and from this dashboard.
+        LAPbot is the Lapikud Discord bot. Use Discord for commands and this
+        dashboard to manage posts, forms, and settings.
       </p>
       {can === undefined ? (
         <p>
