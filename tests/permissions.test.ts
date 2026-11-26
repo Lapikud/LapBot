@@ -791,6 +791,23 @@ describe('dashboard access', () => {
       );
     });
 
+    it('sets and removes your own birthday', async () => {
+      await post('/birthdays/mine', {
+        day: '29',
+        month: '2',
+        visibility: 'private',
+        action: 'save',
+      });
+      const page = await (await get('/birthdays')).text();
+
+      expect(page).toMatch(/name="day"[^>]*value="29"/);
+      expect(page).toMatch(/value="private" selected/);
+      await post('/birthdays/mine', { action: 'remove' });
+      expect(await (await get('/birthdays')).text()).not.toContain(
+        'value="remove"',
+      );
+    });
+
     it('opens the default permissions for everyone first', async () => {
       const page = await (await get('/settings/permissions')).text();
 

@@ -1,5 +1,6 @@
 import type { Permission } from '~/core/permission';
 import type { Birthday, BirthdaySettings } from '~/features/birthdays/model';
+import { MyBirthday } from './mine';
 import type { Flash, Server } from '~/web/context';
 import { Layout } from '~/web/layout';
 import { BirthdaySettingsForm } from './form';
@@ -10,6 +11,7 @@ interface Props {
   settings: BirthdaySettings | undefined;
   upcoming: Birthday[];
   names: string[];
+  mine: Birthday | undefined;
   server: Server;
   can: ReadonlySet<Permission>;
   flash: Flash;
@@ -19,6 +21,7 @@ export function BirthdayPage({
   settings,
   upcoming,
   names,
+  mine,
   server,
   can,
   flash,
@@ -28,9 +31,9 @@ export function BirthdayPage({
       <p>
         {settings === undefined
           ? 'Birthday announcements are off.'
-          : `Announced in ${server.channelName(settings.channelId)} at ${settings.hour}:00.`}{' '}
-        Members add their own birthday with /birthday set.
+          : `Announced in ${server.channelName(settings.channelId)} at ${settings.hour}:00.`}
       </p>
+      <MyBirthday mine={mine} />
       {can.has('birthday:manage') ? (
         <>
           <BirthdaySettingsForm settings={settings} server={server} />

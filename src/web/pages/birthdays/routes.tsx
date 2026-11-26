@@ -5,10 +5,11 @@ import { BirthdayPage } from './index';
 export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
   return new Hono<Env>()
     .get('/', async (c) => {
-      const [server, settings, upcoming] = await Promise.all([
+      const [server, settings, upcoming, mine] = await Promise.all([
         c.var.server(),
         services.birthdays.settings(guildId),
         services.birthdays.upcoming(guildId),
+        services.birthdays.view(c.var.actor, c.var.actor.userId),
       ]);
       const names = await Promise.all(
         upcoming.map(
@@ -22,6 +23,7 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
           settings={settings}
           upcoming={upcoming}
           names={names}
+          mine={mine}
           server={server}
           can={c.var.can}
           flash={flashOf(c)}
@@ -43,6 +45,25 @@ export function birthdayRoutes({ guildId, services, directory }: WebDeps) {
       );
 
       return back(c, '/birthdays', { notice: message });
+    })
+    .post('/mine', async (c) => {
+      const form = await c.req.formData();
+
+      if (form.get('action') === 'remove') {
+        await services.birthdays.remove(c.var.actor);
+
+        return back(c, '/birthdays', { notice: 'Birthday removed.' });
+      }
+
+      const visibility = field(form, 'visibility');
+
+      await services.birthdays.set(c.var.actor, {
+        day: Number(field(form, 'day')),
+        month: Number(field(form, 'month')),
+        ...(visibility !== undefined && { visibility }),
+      });
+
+      return back(c, '/birthdays', { notice: 'Birthday saved.' });
     })
     .post('/signup', async (c) => {
       const form = await c.req.formData();
