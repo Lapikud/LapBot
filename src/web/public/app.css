@@ -522,3 +522,8 @@ legend {
 td.part {
   padding-left: 2rem;
 }
+
+.question {
+  padding-top: var(--pico-spacing);
+  border-top: 1px solid var(--pico-muted-border-color);
+}

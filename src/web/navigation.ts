@@ -37,6 +37,7 @@ export const sections: readonly Section[] = [
     ],
   },
   { href: '/polls', label: 'Polls' },
+  { href: '/forms', label: 'Forms', permission: 'form:manage' },
   { href: '/birthdays', label: 'Birthdays' },
   { href: '/reminders', label: 'Reminders' },
   {

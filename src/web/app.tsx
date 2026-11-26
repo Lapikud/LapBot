@@ -23,6 +23,7 @@ import { permissionRoutes } from '~/web/pages/settings/permissions/routes';
 import { roleRoutes } from '~/web/pages/settings/roles/routes';
 import { pollRoutes } from '~/web/pages/polls/routes';
 import { reminderRoutes } from '~/web/pages/reminders/routes';
+import { formRoutes } from '~/web/pages/forms/routes';
 import { announcementRoutes } from '~/web/pages/announcements/routes';
 
 const moved = [
@@ -218,6 +219,7 @@ export function createWebApp(deps: WebDeps) {
   app.route('/events', eventRoutes(deps));
   app.route('/polls', pollRoutes(deps));
   app.route('/reminders', reminderRoutes(deps));
+  app.route('/forms', formRoutes(deps));
   app.route('/birthdays', birthdayRoutes(deps));
   app.route('/events/movies', movieRoutes(deps));
   app.route('/settings/roles', roleRoutes(deps));

@@ -48,6 +48,7 @@ Settings are documented in `.env.example`.
 | `/birthday set/remove/view/upcoming/post/settings`                  | everyone; `post` and `settings` need `birthday:manage` |
 | `/poll create/list/results/close/cancel`                            | `poll:create`; the creator or `poll:manage` manages    |
 | `/movie suggest/suggestions/link/remove/vote/night/watched/history` | `vote`, `night` and `watched` need `movie:manage`      |
+| Forms on the dashboard, filled in on Discord                        | `form:manage` builds them; everyone can fill them in   |
 | `/permissions grant/revoke/list`                                    | `permissions:manage`                                   |
 | Web dashboard                                                       | `web:access`                                           |
 

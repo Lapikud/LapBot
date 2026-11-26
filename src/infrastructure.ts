@@ -1,3 +1,4 @@
+import type { FormRepository } from '~/features/forms/model';
 import type { EventSuggestionRepository } from '~/features/event-suggestions/model';
 import type { Job, Scheduler } from '~/core/ports/scheduler';
 import type { Logger } from '~/core/ports/logger';
@@ -15,6 +16,7 @@ export interface AppInfrastructure {
     announcements: AnnouncementRepository;
     events: EventRepository;
     eventSuggestions: EventSuggestionRepository;
+    forms: FormRepository;
     birthdays: BirthdayRepository;
     grants: GrantRepository;
     movies: MovieRepository;

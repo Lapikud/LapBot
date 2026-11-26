@@ -1,0 +1,197 @@
+import type { Actor } from '~/core/actor';
+import { UserError } from '~/core/errors';
+import { guard } from '~/core/helpers/authorization';
+import { requirePostable } from '~/core/helpers/posting';
+import {
+  controlId,
+  userMention,
+  withMentions,
+  type Mentions,
+  type Message,
+} from '~/core/message';
+import type { Authorizer } from '~/core/ports/authorization';
+import type { Directory } from '~/core/ports/directory';
+import type { Logger } from '~/core/ports/logger';
+import type { Messenger } from '~/core/ports/messenger';
+import type {
+  Form,
+  FormField,
+  FormRepository,
+  FormResponse,
+  FormStatus,
+} from './model';
+import { validateAnswers, validateFields } from './rules';
+
+const manage = 'form:manage';
+
+export interface FormSettings {
+  title: string;
+  description: string | null;
+  fields: readonly FormField[];
+  responseChannelId: string | null;
+  mentions: Mentions;
+}
+
+interface Deps {
+  forms: FormRepository;
+  messenger: Messenger;
+  directory: Directory;
+  authz: Authorizer;
+  log: Logger;
+}
+
+export function formMessage(form: Form): Message {
+  return {
+    content: [`# ${form.title}`, form.description].filter(Boolean).join('\n'),
+    controls:
+      form.status === 'open' && form.fields.length > 0
+        ? [
+            [
+              {
+                kind: 'button',
+                id: controlId('forms:open', form.id, 0),
+                label: 'Fill in',
+                style: 'primary',
+              },
+            ],
+          ]
+        : [],
+  };
+}
+
+function responseMessage(form: Form, response: FormResponse): Message {
+  return {
+    content: [
+      `**${form.title}**: response from ${userMention(response.userId)}`,
+      ...response.answers.map(
+        ({ label, value }) => `**${label}:** ${value === '' ? '-' : value}`,
+      ),
+    ]
+      .join('\n')
+      .slice(0, 2000),
+  };
+}
+
+export function createFormService(deps: Deps) {
+  const { forms, messenger, directory, authz, log } = deps;
+
+  const requireForm = async (id: number) => {
+    const form = await forms.find(id);
+
+    if (!form) {
+      throw new UserError(`Form #${id} does not exist.`);
+    }
+
+    return form;
+  };
+
+  const refresh = async (form: Form) => {
+    if (form.channelId !== null && form.messageId !== null) {
+      await messenger.edit(form.channelId, form.messageId, formMessage(form));
+    }
+  };
+
+  return {
+    open: requireForm,
+    list: guard(authz, manage, () => forms.list()),
+    get: guard(authz, manage, (_actor, id: number) => requireForm(id)),
+    create: guard(authz, manage, async (actor, title: string) => {
+      if (title.trim() === '' || title.length > 100) {
+        throw new UserError('Give the form a title of 1-100 characters.');
+      }
+
+      return forms.insert({ title: title.trim(), createdBy: actor.userId });
+    }),
+    update: guard(
+      authz,
+      manage,
+      async (actor, id: number, settings: FormSettings) => {
+        await requireForm(id);
+
+        if (settings.title.trim() === '' || settings.title.length > 100) {
+          throw new UserError('Give the form a title of 1-100 characters.');
+        }
+
+        if (settings.responseChannelId !== null) {
+          await requirePostable(
+            directory,
+            actor,
+            settings.responseChannelId,
+            settings.mentions,
+          );
+        }
+
+        const updated = await forms.update(id, {
+          title: settings.title.trim(),
+          description: settings.description,
+          fields: validateFields(settings.fields),
+          responseChannelId: settings.responseChannelId,
+          mentions:
+            settings.responseChannelId === null ? {} : settings.mentions,
+        });
+
+        await refresh(updated);
+
+        return updated;
+      },
+    ),
+    post: guard(authz, manage, async (actor, id: number, channelId: string) => {
+      const form = await requireForm(id);
+
+      if (form.fields.length === 0) {
+        throw new UserError('Add a question before posting the form.');
+      }
+
+      await requirePostable(directory, actor, channelId);
+
+      const sent = await messenger.send(channelId, formMessage(form));
+
+      return forms.update(id, { channelId, messageId: sent.messageId });
+    }),
+    setStatus: guard(
+      authz,
+      manage,
+      async (_actor, id: number, status: FormStatus) => {
+        await requireForm(id);
+
+        const updated = await forms.update(id, { status });
+
+        await refresh(updated);
+
+        return updated;
+      },
+    ),
+    submit: async (actor: Actor, id: number, values: readonly string[]) => {
+      const form = await requireForm(id);
+
+      if (form.status !== 'open') {
+        throw new UserError('This form is closed.');
+      }
+
+      const response = await forms.respond({
+        formId: form.id,
+        userId: actor.userId,
+        answers: validateAnswers(form.fields, values),
+      });
+
+      if (form.responseChannelId !== null) {
+        await messenger
+          .send(
+            form.responseChannelId,
+            withMentions(responseMessage(form, response), form.mentions),
+          )
+          .catch((error: unknown) => {
+            log.error({ error, formId: form.id }, 'Could not post response');
+          });
+      }
+
+      return response;
+    },
+    responses: guard(authz, manage, async (_actor, id: number) => ({
+      form: await requireForm(id),
+      responses: await forms.responses(id),
+    })),
+  };
+}
+
+export type FormService = ReturnType<typeof createFormService>;

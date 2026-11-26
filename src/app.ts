@@ -18,6 +18,8 @@ import { registerCommands } from '~/discord/registration';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import { reminderCommands } from '~/discord/commands/reminders';
+import { formCommands } from '~/discord/commands/forms';
+import { createFormService } from '~/features/forms/service';
 import { roleEvents } from '~/discord/events/roles';
 import { permissionCommands } from '~/discord/commands/permissions';
 import { createAnnouncementService } from '~/features/announcements/service';
@@ -153,7 +155,15 @@ export function compose(
     log: log.child({ service: 'permissions' }),
     known: () => registry.permissions,
   });
+  const forms = createFormService({
+    forms: infrastructure.repositories.forms,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'forms' }),
+  });
   const features: Feature[] = [
+    formCommands(forms),
     roleEvents(roles, config.DISCORD_GUILD_ID),
     permissionCommands(permissions),
     reminderCommands(reminders),
@@ -197,6 +207,7 @@ export function compose(
       movies,
       roles,
       reminders,
+      forms,
     },
   };
 }

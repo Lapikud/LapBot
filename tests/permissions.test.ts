@@ -74,6 +74,8 @@ import { eventCommands } from '~/discord/commands/events';
 import { pollCommands } from '~/discord/commands/polls';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { createReminderService } from '~/features/reminders/service';
+import { createFormService } from '~/features/forms/service';
+import { createFormRepository } from '~/integrations/db/forms/repository';
 import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { eventRoutes } from '~/web/pages/events/routes';
 import { pollRoutes } from '~/web/pages/polls/routes';
@@ -779,6 +781,10 @@ describe('dashboard access', () => {
         log: silentLog,
         logs: createLogStore(':memory:'),
         services: {
+          forms: createFormService({
+            ...shared,
+            forms: createFormRepository(db),
+          }),
           reminders: createReminderService({
             ...shared,
             reminders: createReminderRepository(db),
@@ -1076,6 +1082,43 @@ describe('dashboard access', () => {
       await post(`/polls/${event.pollId}/close`, {});
       expect((await events.get(admin, Number(id))).title).toBe(
         '🎬 Movie night: Heat',
+      );
+    });
+
+    it('builds, posts and closes a form', async () => {
+      const created = await post('/forms', { title: 'Hackathon sign-up' });
+      const path = new URL(
+        created.headers.get('location') ?? '',
+        'http://localhost',
+      ).pathname;
+
+      await post(path, {
+        title: 'Hackathon sign-up',
+        rows: '3',
+        'label-0': 'Team',
+        'order-0': '2',
+        'kind-0': 'short',
+        'label-1': 'Size',
+        'order-1': '1',
+        'kind-1': 'choice',
+        'options-1': 'S\nM\nL',
+        'required-1': '1',
+        'label-2': '',
+      });
+      const page = await (await get(path)).text();
+
+      expect(page.indexOf('value="Size"')).toBeLessThan(
+        page.indexOf('value="Team"'),
+      );
+      await post(`${path}/post`, { channelId: 'general' });
+      expect(messenger.send).toHaveBeenLastCalledWith(
+        'general',
+        expect.objectContaining({ content: '# Hackathon sign-up' }),
+      );
+      await post(`${path}/status`, { status: 'closed' });
+      expect(await (await get(path)).text()).toContain('Reopen form');
+      expect(await (await get(`${path}/responses.csv`)).text()).toBe(
+        '"Submitted","Member"',
       );
     });
 

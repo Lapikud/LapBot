@@ -59,6 +59,12 @@ const features: readonly Feature[] = [
     href: '/birthdays',
   },
   {
+    name: 'Forms',
+    text: 'Build a form, post it in a channel, and read the answers here. Members fill it in on Discord.',
+    href: '/forms',
+    needs: 'form:manage',
+  },
+  {
     name: 'Reminders',
     text: 'Get a reminder by DM, or in a channel with mentions. Reminders can repeat.',
     command: '/remindme',
