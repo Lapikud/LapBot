@@ -8,37 +8,42 @@ interface Props {
 }
 export function PollList({ open, date, canManage }: Readonly<Props>) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Question</th>
-          <th>Closes</th>
-          <th />
-        </tr>
-      </thead>
-      <tbody>
-        {open.map((p) => (
-          <tr key={p.id}>
-            <td>{p.id}</td>
-            <td>
-              <a href={`/polls/${p.id}`}>{p.question}</a>
-            </td>
-            <td>{date(p.closesAt)}</td>
-            <td>
-              {canManage(p.creatorId) ? (
-                <>
-                  <ActionButton action={`/polls/${p.id}/close`} label="Close" />
-                  <ActionButton
-                    action={`/polls/${p.id}/cancel`}
-                    label="Cancel"
-                  />
-                </>
-              ) : null}
-            </td>
+    <div class="table-wrapper" tabIndex={0}>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Question</th>
+            <th>Closes</th>
+            <th />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {open.map((p) => (
+            <tr key={p.id}>
+              <td>{p.id}</td>
+              <td>
+                <a href={`/polls/${p.id}`}>{p.question}</a>
+              </td>
+              <td>{date(p.closesAt)}</td>
+              <td>
+                {canManage(p.creatorId) ? (
+                  <>
+                    <ActionButton
+                      action={`/polls/${p.id}/close`}
+                      label="Close"
+                    />
+                    <ActionButton
+                      action={`/polls/${p.id}/cancel`}
+                      label="Cancel"
+                    />
+                  </>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

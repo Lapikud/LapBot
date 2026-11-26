@@ -30,30 +30,32 @@ export function ResponsesPage({
         <p>No responses yet.</p>
       ) : (
         <div class="overflow-auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Submitted</th>
-                <th>Member</th>
-                {labels.map((label) => (
-                  <th key={label}>{label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {responses.map((response, index) => (
-                <tr key={response.id}>
-                  <td>{date(response.createdAt)}</td>
-                  <td>{names[index]}</td>
+          <div class="table-wrapper" tabIndex={0}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Submitted</th>
+                  <th>Member</th>
                   {labels.map((label) => (
-                    <td key={label}>
-                      {response.answers.find((a) => a.label === label)?.value}
-                    </td>
+                    <th key={label}>{label}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {responses.map((response, index) => (
+                  <tr key={response.id}>
+                    <td>{date(response.createdAt)}</td>
+                    <td>{names[index]}</td>
+                    {labels.map((label) => (
+                      <td key={label}>
+                        {response.answers.find((a) => a.label === label)?.value}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </Layout>

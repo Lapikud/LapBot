@@ -75,16 +75,18 @@ export function WatchedList({
       {history.length === 0 ? (
         <p>Nothing watched yet.</p>
       ) : (
-        <table>
-          <tbody>
-            {history.map((movie) => (
-              <tr key={`${movie.title}:${String(movie.watchedAt)}`}>
-                <td>{movieLabel(movie)}</td>
-                <td>{date(movie.watchedAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div class="table-wrapper" tabIndex={0}>
+          <table>
+            <tbody>
+              {history.map((movie) => (
+                <tr key={`${movie.title}:${String(movie.watchedAt)}`}>
+                  <td>{movieLabel(movie)}</td>
+                  <td>{date(movie.watchedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

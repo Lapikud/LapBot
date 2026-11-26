@@ -50,51 +50,53 @@ export function GrantForm({
       action={`/settings/permissions/${subject.type}/${subject.id}${advanced ? '?advanced=1' : ''}`}
     >
       <h2>{subject.name}</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Permission</th>
-            <th>Has</th>
-            {delegation ? <th>Can hand out</th> : null}
-          </tr>
-        </thead>
-        {groupsOf(shown).map(([group, permissions]) => (
-          <tbody key={group}>
+      <div class="table-wrapper" tabIndex={0}>
+        <table>
+          <thead>
             <tr>
-              <th colspan={delegation ? 3 : 2}>{group}</th>
+              <th>Permission</th>
+              <th>Has</th>
+              {delegation ? <th>Can hand out</th> : null}
             </tr>
-            {permissions.toSorted(bundleFirst).map((permission) => (
-              <tr key={permission.id}>
-                <td
-                  class={permission.partOf === undefined ? undefined : 'part'}
-                >
-                  {permission.description} <small>{permission.id}</small>
-                  {permission.partOf !== undefined &&
-                  granted.has(permission.partOf) ? (
-                    <small> · included</small>
-                  ) : null}
-                </td>
-                <td>
-                  <Toggle
-                    value={permission.id}
-                    label={`${subject.name} has ${permission.id}`}
-                    checked={granted.has(permission.id)}
-                  />
-                </td>
-                {delegation ? (
+          </thead>
+          {groupsOf(shown).map(([group, permissions]) => (
+            <tbody key={group}>
+              <tr>
+                <th colspan={delegation ? 3 : 2}>{group}</th>
+              </tr>
+              {permissions.toSorted(bundleFirst).map((permission) => (
+                <tr key={permission.id}>
+                  <td
+                    class={permission.partOf === undefined ? undefined : 'part'}
+                  >
+                    {permission.description} <small>{permission.id}</small>
+                    {permission.partOf !== undefined &&
+                    granted.has(permission.partOf) ? (
+                      <small> · included</small>
+                    ) : null}
+                  </td>
                   <td>
                     <Toggle
-                      value={`delegate:${permission.id}`}
-                      label={`${subject.name} can hand out ${permission.id}`}
-                      checked={granted.has(`delegate:${permission.id}`)}
+                      value={permission.id}
+                      label={`${subject.name} has ${permission.id}`}
+                      checked={granted.has(permission.id)}
                     />
                   </td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-        ))}
-      </table>
+                  {delegation ? (
+                    <td>
+                      <Toggle
+                        value={`delegate:${permission.id}`}
+                        label={`${subject.name} can hand out ${permission.id}`}
+                        checked={granted.has(`delegate:${permission.id}`)}
+                      />
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
       <button type="submit">Save</button>
     </form>
   );

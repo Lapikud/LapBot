@@ -15,38 +15,40 @@ export function EventList({
   canManage,
 }: Readonly<Props>) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Title</th>
-          <th>Starts</th>
-          <th>Channel</th>
-          <th />
-        </tr>
-      </thead>
-      <tbody>
-        {upcoming.map((e) => (
-          <tr key={e.id}>
-            <td>{e.id}</td>
-            <td>
-              <a href={`/events/${e.id}`}>{e.title}</a>
-            </td>
-            <td>{date(e.startsAt)}</td>
-            <td>{server.channelName(e.channelId)}</td>
-            <td>
-              {canManage(e.organizerId) ? (
-                <>
-                  <ActionButton
-                    action={`/events/${e.id}/cancel`}
-                    label="Cancel"
-                  />
-                </>
-              ) : null}
-            </td>
+    <div class="table-wrapper" tabIndex={0}>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Starts</th>
+            <th>Channel</th>
+            <th />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {upcoming.map((e) => (
+            <tr key={e.id}>
+              <td>{e.id}</td>
+              <td>
+                <a href={`/events/${e.id}`}>{e.title}</a>
+              </td>
+              <td>{date(e.startsAt)}</td>
+              <td>{server.channelName(e.channelId)}</td>
+              <td>
+                {canManage(e.organizerId) ? (
+                  <>
+                    <ActionButton
+                      action={`/events/${e.id}/cancel`}
+                      label="Cancel"
+                    />
+                  </>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -28,62 +28,64 @@ export function ReminderPage({
       {reminders.length === 0 ? (
         <p>You have no active reminders.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Message</th>
-              <th>When</th>
-              <th>Where</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {reminders.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <form
-                    method="post"
-                    action={`/reminders/${r.id}`}
-                    class="inline-edit"
-                  >
-                    <input
-                      name="message"
-                      value={r.message}
-                      aria-label="Message"
-                      maxlength={1000}
-                      required
-                    />
-                    <input
-                      name="when"
-                      placeholder={date(r.runAt)}
-                      aria-label="New time"
-                    />
-                    <button type="submit" class="secondary">
-                      Save
-                    </button>
-                  </form>
-                </td>
-                <td>
-                  {date(r.runAt)}
-                  {r.recurrence === null ? null : (
-                    <small> · {r.recurrence}</small>
-                  )}
-                </td>
-                <td>
-                  {r.channelId === null
-                    ? 'DM'
-                    : server.channelName(r.channelId)}
-                </td>
-                <td>
-                  <ActionButton
-                    action={`/reminders/${r.id}/cancel`}
-                    label="Cancel"
-                  />
-                </td>
+        <div class="table-wrapper" tabIndex={0}>
+          <table>
+            <thead>
+              <tr>
+                <th>Message</th>
+                <th>When</th>
+                <th>Where</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {reminders.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    <form
+                      method="post"
+                      action={`/reminders/${r.id}`}
+                      class="inline-edit"
+                    >
+                      <input
+                        name="message"
+                        value={r.message}
+                        aria-label="Message"
+                        maxlength={1000}
+                        required
+                      />
+                      <input
+                        name="when"
+                        placeholder={date(r.runAt)}
+                        aria-label="New time"
+                      />
+                      <button type="submit" class="secondary">
+                        Save
+                      </button>
+                    </form>
+                  </td>
+                  <td>
+                    {date(r.runAt)}
+                    {r.recurrence === null ? null : (
+                      <small> · {r.recurrence}</small>
+                    )}
+                  </td>
+                  <td>
+                    {r.channelId === null
+                      ? 'DM'
+                      : server.channelName(r.channelId)}
+                  </td>
+                  <td>
+                    <ActionButton
+                      action={`/reminders/${r.id}/cancel`}
+                      label="Cancel"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <h2>New reminder</h2>
       <form method="post" action="/reminders">

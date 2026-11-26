@@ -17,20 +17,24 @@ export function UpcomingBirthdays({ upcoming, names }: Readonly<Props>) {
       {upcoming.length === 0 ? (
         <p>No public birthdays saved yet.</p>
       ) : (
-        <table>
-          <tbody>
-            {upcoming.map((birthday, index) => (
-              <tr key={birthday.userId}>
-                <td>{names[index]}</td>
-                <td>
-                  {dayMonth.format(
-                    new Date(Date.UTC(2024, birthday.month - 1, birthday.day)),
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div class="table-wrapper" tabIndex={0}>
+          <table>
+            <tbody>
+              {upcoming.map((birthday, index) => (
+                <tr key={birthday.userId}>
+                  <td>{names[index]}</td>
+                  <td>
+                    {dayMonth.format(
+                      new Date(
+                        Date.UTC(2024, birthday.month - 1, birthday.day),
+                      ),
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

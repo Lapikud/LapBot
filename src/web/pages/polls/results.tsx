@@ -20,22 +20,24 @@ export function PollResultsPage({
 
   return (
     <Layout can={can} title={poll.question} path="/polls">
-      <table>
-        <tbody>
-          {results.options.map((option) => (
-            <tr key={option.id}>
-              <td>{option.label}</td>
-              <td>
-                <progress value={option.votes} max={results.voters || 1} />
-              </td>
-              <td>{option.votes}</td>
-              {voters === undefined ? null : (
-                <td>{(voters.get(option.id) ?? []).join(', ')}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div class="table-wrapper" tabIndex={0}>
+        <table>
+          <tbody>
+            {results.options.map((option) => (
+              <tr key={option.id}>
+                <td>{option.label}</td>
+                <td>
+                  <progress value={option.votes} max={results.voters || 1} />
+                </td>
+                <td>{option.votes}</td>
+                {voters === undefined ? null : (
+                  <td>{(voters.get(option.id) ?? []).join(', ')}</td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p>
         {results.winners.length === 0
           ? 'No votes yet.'

@@ -1,8 +1,15 @@
 :root {
   --pico-font-size: 93.75%;
-  --pico-spacing: 0.75rem;
-  --pico-form-element-spacing-vertical: 0.5rem;
-  --pico-form-element-spacing-horizontal: 0.75rem;
+  /* Compact but readable density for a dense utility dashboard. */
+  --pico-spacing: 0.625rem;
+  --pico-block-spacing-vertical: 1rem;
+  --pico-block-spacing-horizontal: 1rem;
+  --pico-typography-spacing-vertical: 0.75rem;
+  --pico-form-element-spacing-vertical: 0.45rem;
+  --pico-form-element-spacing-horizontal: 0.65rem;
+
+  /* Consistent target size floor; coarse pointers get more. */
+  --target-size: 24px;
 }
 
 form > [type='submit'],
@@ -597,4 +604,351 @@ td.part {
 .question {
   padding-top: var(--pico-spacing);
   border-top: 1px solid var(--pico-muted-border-color);
+}
+
+/* ============================================================
+   Functional rework: density, hierarchy, tables, forms, responsive.
+   Incumbent Pico identity is preserved; we tighten and clarify it.
+   ============================================================ */
+
+/* --- Layout & density --------------------------------------- */
+
+html {
+  /* Keep scrollbar space stable so content doesn't jump. */
+  scrollbar-gutter: stable;
+  /* Focused elements clear sticky headers / safe areas. */
+  scroll-padding-block-start: 4rem;
+  scroll-padding-block-end: max(1rem, env(safe-area-inset-bottom, 0px));
+  /* Theme browser-drawn surfaces (scrollbars, form widgets, caret). */
+  color-scheme: light dark;
+}
+
+body {
+  /* Long words / URLs never force horizontal page scroll. */
+  overflow-wrap: break-word;
+}
+
+main.container {
+  padding-inline: max(1rem, env(safe-area-inset-left, 0px))
+    max(1rem, env(safe-area-inset-right, 0px));
+}
+
+/* Nothing escapes its box; data tables scroll inside their own region. */
+img,
+video {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+/* Constrain prose measure; tables and compact UI can run denser. */
+main :where(p, li, dd) {
+  max-inline-size: 75ch;
+}
+
+/* Tight groups, generous separation; more space above a heading. */
+main h2:not(:first-child) {
+  margin-block-start: calc(var(--pico-spacing) * 3);
+}
+
+main h3:not(:first-child) {
+  margin-block-start: calc(var(--pico-spacing) * 2);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  line-height: 1.2;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+.hint {
+  margin-block: calc(var(--pico-spacing) * 0.5);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--pico-muted-color);
+}
+
+/* --- Hierarchy: page header + section nav ------------------- */
+
+.page-title {
+  align-items: baseline;
+  padding-block-end: var(--pico-spacing);
+  margin-block-end: var(--pico-spacing);
+  border-block-end: 1px solid var(--pico-muted-border-color);
+}
+
+.page-title h1 {
+  margin: 0;
+}
+
+.page-title > :not(h1) {
+  flex-shrink: 0;
+}
+
+.section-nav {
+  margin-bottom: var(--pico-spacing);
+}
+
+/* --- Focus & selection (browser surfaces) ------------------- */
+
+:where(
+  a,
+  button,
+  [role='button'],
+  input,
+  select,
+  textarea,
+  summary,
+  [tabindex]
+):focus-visible {
+  outline: 2px solid var(--pico-primary, currentColor);
+  outline-offset: 2px;
+  border-radius: var(--pico-border-radius, 0.25rem);
+}
+
+/* Pico uses box-shadow rings on controls; keep a visible outline too. */
+:is(input, select, textarea):focus-visible {
+  outline-offset: 1px;
+}
+
+::selection {
+  background: var(--pico-primary-background, #0172ad);
+  color: var(--pico-primary-inverse, #fff);
+}
+
+:root {
+  caret-color: var(--pico-primary, currentColor);
+  accent-color: var(--pico-primary, auto);
+}
+
+/* Keep focus rings visible under transparent scrollers. */
+details.dropdown > summary:focus-visible {
+  outline-offset: -2px;
+}
+
+/* --- State feedback: notice / error ------------------------- */
+
+.notice,
+.error {
+  margin-block: var(--pico-spacing);
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+/* Not color-only: a leading marker + text carries the state. */
+.notice::before {
+  content: '✓ ' / '';
+  font-weight: 700;
+}
+
+.error::before {
+  content: '⚠ ' / '';
+  font-weight: 700;
+}
+
+/* --- Forms -------------------------------------------------- */
+
+/* Single-column scanning by default; no visual reorder vs DOM. */
+form label {
+  font-weight: var(--pico-form-label-font-weight, var(--pico-font-weight, 400));
+}
+
+/* Controls scale with container but never below 1rem (iOS zoom). */
+:is(input, select, textarea, button) {
+  font-size: max(1rem, 1em);
+}
+
+:is(
+  button,
+  [role='button'],
+  input:not([type='checkbox'], [type='radio']),
+  select,
+  textarea
+) {
+  min-block-size: var(--target-size);
+}
+
+/* Validation feedback only after interaction; never raw :invalid. */
+:is(input, select, textarea):user-invalid {
+  --pico-form-element-border-color: var(
+    --pico-form-element-invalid-border-color
+  );
+  --pico-form-element-focus-color: var(--pico-form-element-invalid-focus-color);
+  border-color: var(--pico-form-element-invalid-border-color);
+}
+
+:is(input, select, textarea):user-invalid:focus-visible {
+  outline-color: var(
+    --pico-form-element-invalid-focus-color,
+    var(--pico-del-color)
+  );
+}
+
+:is(input, select, textarea)[aria-invalid='true'] {
+  border-color: var(--pico-form-element-invalid-border-color);
+}
+
+/* Help / error text linked via aria-describedby. */
+.field > small,
+label > small {
+  display: block;
+  margin-block-start: 0.2rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+label > small[role='alert'],
+.field > small[role='alert'] {
+  color: var(--pico-del-color);
+}
+
+/* Compact checkbox / radio rows; size the control to hit 24px. */
+label:has(> input[type='checkbox'], > input[type='radio']) {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:is(input[type='checkbox'], input[type='radio']) {
+  min-inline-size: 1.25em;
+  min-block-size: 1.25em;
+  flex-shrink: 0;
+}
+
+/* --- Tables ------------------------------------------------- */
+
+.table-wrapper {
+  overflow-x: auto;
+  /* Reserve scrollbar space; don't chain scroll. */
+  scrollbar-gutter: stable;
+  overscroll-behavior-inline: contain;
+  max-inline-size: 100%;
+  border-radius: var(--pico-border-radius);
+}
+
+table {
+  margin-block-end: 0;
+  /* tabular numerals align columns. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cells don't shrink below legibility; wrap long strings. */
+td,
+th {
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+th {
+  white-space: nowrap;
+}
+
+/* Dense rows for a utility tool; reduce Pico's generous padding. */
+td,
+th {
+  padding-block: calc(var(--pico-spacing) * 0.5);
+  padding-inline: calc(var(--pico-spacing) * 0.75);
+}
+
+/* Sticky header inside scrollable regions. */
+.table-wrapper thead th,
+.log-table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: var(--pico-background-color);
+}
+
+/* Action column: compact, right-aligned. */
+td:last-child:has([type='submit'], [role='button']) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: end;
+}
+
+/* --- Target size & coarse pointers -------------------------- */
+
+@media (pointer: coarse) {
+  :root {
+    --target-size: 44px;
+  }
+
+  :is(input[type='checkbox'], input[type='radio']) {
+    min-inline-size: 24px;
+    min-block-size: 24px;
+  }
+}
+
+/* --- Responsive --------------------------------------------- */
+
+@media (max-width: 40rem) {
+  main.container {
+    padding-inline: max(0.75rem, env(safe-area-inset-left, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+
+  /* Inline forms stack instead of overflowing. */
+  .inline-edit {
+    flex-wrap: wrap;
+  }
+
+  .inline-edit input,
+  .inline-edit button {
+    min-inline-size: 0;
+  }
+
+  .page-title {
+    flex-wrap: wrap;
+  }
+
+  /* Actions wrap full-width on narrow screens. */
+  .actions > :is(button, [type='submit'], a) {
+    flex: 1 1 auto;
+  }
+}
+
+/* --- Motion ------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  :is(button, [role='button'], a, input, select, textarea) {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Skip link ---------------------------------------------- */
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+  inset-block-start: 0;
+  z-index: 1000;
+  padding: 0.5rem 0.75rem;
+  background: var(--pico-background-color);
+  color: var(--pico-color);
+  border: 1px solid var(--pico-muted-border-color);
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  inset-inline-start: 0.5rem;
+  inset-block-start: 0.5rem;
 }

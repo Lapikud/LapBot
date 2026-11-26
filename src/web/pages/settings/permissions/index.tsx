@@ -92,24 +92,26 @@ export function PermissionPage({
           </p>
           <MemberPicker name="check" label="Member" selected={checked} />
           {access ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Permission</th>
-                  <th>From</th>
-                </tr>
-              </thead>
-              <tbody>
-                {access.map(({ permission, sources }) => (
-                  <tr key={permission.id}>
-                    <td>
-                      {permission.description} <small>{permission.id}</small>
-                    </td>
-                    <td>{sources.length === 0 ? '—' : sources.join(', ')}</td>
+            <div class="table-wrapper" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Permission</th>
+                    <th>From</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {access.map(({ permission, sources }) => (
+                    <tr key={permission.id}>
+                      <td>
+                        {permission.description} <small>{permission.id}</small>
+                      </td>
+                      <td>{sources.length === 0 ? '—' : sources.join(', ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </>
       ) : null}

@@ -46,6 +46,9 @@ export function Layout({
         <script src="/nav.js" defer />
       </head>
       <body>
+        <a class="skip-link" href="#content">
+          Skip to content
+        </a>
         <header class="container">
           <nav class="primary-nav" aria-label="Primary">
             <ul>
@@ -94,7 +97,7 @@ export function Layout({
             </ul>
           </nav>
         </header>
-        <main class="container">
+        <main class="container" id="content">
           {pages.length === 0 ? null : (
             <nav class="section-nav" aria-label={`${section?.label} pages`}>
               <ul>

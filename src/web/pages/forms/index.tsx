@@ -20,28 +20,30 @@ export function FormListPage({ list, can, flash }: Readonly<Props>) {
       {list.length === 0 ? (
         <p>No forms yet.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Form</th>
-              <th>Status</th>
-              <th>Responses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((form) => (
-              <tr key={form.id}>
-                <td>
-                  <a href={`/forms/${form.id}`}>{form.title}</a>
-                </td>
-                <td>{form.status}</td>
-                <td>
-                  <a href={`/forms/${form.id}/responses`}>{form.responses}</a>
-                </td>
+        <div class="table-wrapper" tabIndex={0}>
+          <table>
+            <thead>
+              <tr>
+                <th>Form</th>
+                <th>Status</th>
+                <th>Responses</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.map((form) => (
+                <tr key={form.id}>
+                  <td>
+                    <a href={`/forms/${form.id}`}>{form.title}</a>
+                  </td>
+                  <td>{form.status}</td>
+                  <td>
+                    <a href={`/forms/${form.id}/responses`}>{form.responses}</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <h2>New form</h2>
       <form method="post" action="/forms">
