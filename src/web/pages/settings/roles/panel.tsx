@@ -29,7 +29,7 @@ export function RolePanelForm({
   return (
     <form method="post" action="/settings/roles">
       <input type="hidden" name="channelId" value={channelId} />
-      <h2>{server.channelName(channelId)}</h2>
+      <h2>Panel in {server.channelName(channelId)}</h2>
       <p hidden={unavailable.length === 0}>
         Unavailable roles: {unavailable.map((entry) => entry.label).join(', ')}.{' '}
         <button
@@ -122,14 +122,11 @@ export function RolePanelForm({
             : 'All available roles are already on this panel.'}
         </p>
       )}
-      <details>
-        <summary>Bot permissions</summary>
-        <p>
-          The bot needs Manage Roles and must be above these roles. To remove
-          old reactions, it also needs Manage Messages in this channel. Removing
-          a choice keeps roles already held by members.
-        </p>
-      </details>
+      <p class="hint">
+        The bot needs Manage Roles and must be above these roles. To remove old
+        reactions, it also needs Manage Messages in this channel. Removing a
+        choice keeps roles already held by members.
+      </p>
     </form>
   );
 }

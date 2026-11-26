@@ -94,29 +94,35 @@ export function ReminderPage({
           maxlength={1000}
           required
         />
-        <div class="grid">
-          <Input
-            label="When"
-            name="when"
-            placeholder="e.g. 2h, tomorrow 9:00"
-          />
-          <Select label="Repeat" name="repeat">
-            <option value="">Never</option>
-            {recurrences.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <fieldset>
+          <legend>When</legend>
+          <div class="fields">
+            <Input
+              label="Time"
+              name="when"
+              placeholder="e.g. 2h, tomorrow 9:00"
+              help="Leave empty for this time tomorrow."
+            />
+            <Select label="Repeat" name="repeat">
+              <option value="">Never</option>
+              {recurrences.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </fieldset>
         {can.has('reminder:channel') ? (
-          <>
-            <Select label="Where" name="channelId">
-              <option value="">Direct message</option>
+          <fieldset>
+            <legend>Where</legend>
+            <Select label="Send to" name="channelId">
+              <option value="">Direct message to me</option>
               <ChannelOptions server={server} />
             </Select>
             <MentionPicker server={server} />
-          </>
+            <p class="hint">Mentions only apply to channel reminders.</p>
+          </fieldset>
         ) : null}
         <button type="submit">Remind me</button>
       </form>

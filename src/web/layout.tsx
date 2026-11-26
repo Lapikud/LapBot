@@ -29,9 +29,6 @@ export function Layout({
   const current = pages
     .filter(({ href }) => containsPath(href, path))
     .toSorted((a, b) => b.href.length - a.href.length)[0]?.href;
-  const heading = pages.map(({ label }) => label).includes(title)
-    ? section?.label
-    : title;
 
   return (
     <html lang="en">
@@ -99,7 +96,7 @@ export function Layout({
             </nav>
           )}
           <div class="page-title">
-            <h1>{heading}</h1>
+            <h1>{title}</h1>
             {actions}
           </div>
           {flash.notice === undefined ? null : (

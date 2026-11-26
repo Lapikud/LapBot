@@ -28,19 +28,20 @@ export function BirthdayPage({
 }: Readonly<Props>) {
   return (
     <Layout can={can} title="Birthdays" path="/birthdays" flash={flash}>
+      <MyBirthday mine={mine} />
+      <UpcomingBirthdays upcoming={upcoming} names={names} />
+      <h2>Announcements</h2>
       <p>
         {settings === undefined
           ? 'Birthday announcements are off.'
-          : `Announced in ${server.channelName(settings.channelId)} at ${settings.hour}:00.`}
+          : `Announced in ${server.channelName(settings.channelId)} at ${String(settings.hour).padStart(2, '0')}:00.`}
       </p>
-      <MyBirthday mine={mine} />
       {can.has('birthday:manage') ? (
         <>
           <BirthdaySettingsForm settings={settings} server={server} />
           <BirthdaySignup server={server} />
         </>
       ) : null}
-      <UpcomingBirthdays upcoming={upcoming} names={names} />
     </Layout>
   );
 }

@@ -7,15 +7,14 @@ interface Props {
 export function BirthdaySignup({ server }: Readonly<Props>) {
   return (
     <>
-      <h2>Sign-up message</h2>
-      <p>
-        Post a message with an <q>Add my birthday</q> button. It keeps working
-        after restarts, so one post is enough.
+      <h3>Sign-up message</h3>
+      <p class="hint">
+        Posts a message with an <q>Add my birthday</q> button. One post keeps
+        working after restarts.
       </p>
       <form method="post" action="/birthdays/signup">
-        <label htmlFor="signup-channel">Channel</label>
-        <fieldset class="grid">
-          <select id="signup-channel" name="channelId" required>
+        <fieldset role="group">
+          <select name="channelId" aria-label="Channel" required>
             <ChannelOptions server={server} />
           </select>
           <button type="submit" class="secondary">

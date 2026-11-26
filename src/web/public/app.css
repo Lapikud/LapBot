@@ -145,7 +145,6 @@ td form:last-child {
   margin-right: 0;
 }
 
-.role-channel,
 .role-add-fields {
   display: flex;
   align-items: end;
@@ -153,7 +152,6 @@ td form:last-child {
   flex-wrap: wrap;
 }
 
-.role-channel label,
 .role-add-fields label:first-child {
   flex: 1 1 14rem;
 }
@@ -198,17 +196,14 @@ td form:last-child {
   flex-shrink: 0;
 }
 
-.role-channel label,
-.role-channel select,
-.role-channel button,
 .role-add-fields label,
 .role-add-fields select,
 .role-add-fields button {
   margin-bottom: 0;
 }
 
-.role-channel {
-  margin-bottom: 1.5rem;
+.role-add-fields label > select {
+  display: block;
 }
 
 body:has(.log-view) {
@@ -473,4 +468,53 @@ nav a[aria-current='page'] {
 .inline-edit input,
 .inline-edit button {
   margin: 0;
+}
+
+main form {
+  max-width: 44rem;
+}
+
+td form,
+form.inline-edit {
+  max-width: none;
+}
+
+main h2:not(:first-child) {
+  margin-top: calc(var(--pico-spacing) * 3);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: var(--pico-spacing);
+}
+
+.actions > :is(button, [type='submit'], a) {
+  width: auto;
+  margin: 0;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  align-items: flex-start;
+}
+
+.fields > label {
+  flex: 1 1 12rem;
+}
+
+.fields > label:has(input[type='number']) {
+  flex: 0 0 7rem;
+}
+
+.hint {
+  color: var(--pico-muted-color);
+  font-size: 0.875rem;
+}
+
+legend {
+  font-weight: 600;
 }

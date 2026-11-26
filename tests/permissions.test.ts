@@ -802,7 +802,7 @@ describe('dashboard access', () => {
       const page = await (await get('/birthdays')).text();
 
       expect(page).toMatch(/name="day"[^>]*value="29"/);
-      expect(page).toMatch(/value="private" selected/);
+      expect(page).toMatch(/value="private" checked/);
       await post('/birthdays/mine', { action: 'remove' });
       expect(await (await get('/birthdays')).text()).not.toContain(
         'value="remove"',

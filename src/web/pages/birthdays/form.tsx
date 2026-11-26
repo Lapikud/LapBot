@@ -13,12 +13,12 @@ export function BirthdaySettingsForm({ settings, server }: Readonly<Props>) {
 
   return (
     <form method="post" action="/birthdays">
-      <ChannelSelect
-        server={server}
-        {...(settings && { selected: settings.channelId })}
-      />
-      <div class="grid">
-        <Select label="Announcement time" name="hour" required>
+      <div class="fields">
+        <ChannelSelect
+          server={server}
+          {...(settings && { selected: settings.channelId })}
+        />
+        <Select label="Time" name="hour" required>
           {Array.from({ length: 24 }, (_, hour) => (
             <option key={hour} value={hour} selected={hour === selectedHour}>
               {`${String(hour).padStart(2, '0')}:00`}
@@ -28,7 +28,7 @@ export function BirthdaySettingsForm({ settings, server }: Readonly<Props>) {
       </div>
       <FormActions>
         <button type="submit" name="action" value="save">
-          Save
+          {settings === undefined ? 'Turn on' : 'Save'}
         </button>
         {settings === undefined ? null : (
           <button

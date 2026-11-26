@@ -3,14 +3,25 @@ import {
   birthdayVisibilities,
   birthdayVisibilityLabels,
 } from '~/features/birthdays/rules';
+import { FormActions } from '~/web/components/actions';
 import { Input, Select } from '~/web/components/controls';
 
+const monthName = new Intl.DateTimeFormat('en-GB', {
+  month: 'long',
+  timeZone: 'UTC',
+});
+const months = Array.from({ length: 12 }, (_, index) =>
+  monthName.format(new Date(Date.UTC(2024, index, 1))),
+);
+
 export function MyBirthday({ mine }: Readonly<{ mine: Birthday | undefined }>) {
+  const visibility = mine?.visibility ?? 'public';
+
   return (
     <>
       <h2>Your birthday</h2>
       <form method="post" action="/birthdays/mine">
-        <div class="grid">
+        <div class="fields">
           <Input
             label="Day"
             name="day"
@@ -20,30 +31,35 @@ export function MyBirthday({ mine }: Readonly<{ mine: Birthday | undefined }>) {
             required
             value={mine?.day}
           />
-          <Input
-            label="Month"
-            name="month"
-            type="number"
-            min={1}
-            max={12}
-            required
-            value={mine?.month}
-          />
+          <Select label="Month" name="month" required>
+            {months.map((name, index) => (
+              <option
+                key={name}
+                value={index + 1}
+                selected={mine?.month === index + 1}
+              >
+                {name}
+              </option>
+            ))}
+          </Select>
         </div>
-        <Select label="Who sees it" name="visibility">
-          {birthdayVisibilities.map((visibility) => (
-            <option
-              key={visibility}
-              value={visibility}
-              selected={mine?.visibility === visibility}
-            >
-              {birthdayVisibilityLabels[visibility]}
-            </option>
+        <fieldset>
+          <legend>Who sees it</legend>
+          {birthdayVisibilities.map((value) => (
+            <label key={value}>
+              <input
+                type="radio"
+                name="visibility"
+                value={value}
+                checked={visibility === value}
+              />
+              {birthdayVisibilityLabels[value]}
+            </label>
           ))}
-        </Select>
-        <div class="grid">
+        </fieldset>
+        <FormActions>
           <button type="submit" name="action" value="save">
-            Save
+            Save birthday
           </button>
           {mine === undefined ? null : (
             <button
@@ -56,7 +72,7 @@ export function MyBirthday({ mine }: Readonly<{ mine: Birthday | undefined }>) {
               Remove
             </button>
           )}
-        </div>
+        </FormActions>
       </form>
     </>
   );
