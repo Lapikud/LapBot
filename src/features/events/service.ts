@@ -25,9 +25,17 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
-import type { Event, NewEvent, RsvpStatus, EventRepository } from './model';
+import type {
+  Event,
+  NewEvent,
+  RsvpCounts,
+  RsvpStatus,
+  EventRepository,
+} from './model';
 
 const maxReminders = 3;
+const liveView = (event: Event, counts: RsvpCounts) =>
+  withMentions(eventView(event, counts), event.mentions);
 const reminderKey = (id: number, minutes: number) =>
   `event:${id}:remind:${minutes}`;
 
@@ -181,7 +189,7 @@ export function createEventService(deps: Deps) {
     const edited = await messenger.edit(
       event.channelId,
       event.messageId,
-      eventView(event, await events.counts(event.id)),
+      liveView(event, await events.counts(event.id)),
     );
 
     if (!edited) {
@@ -327,10 +335,12 @@ export function createEventService(deps: Deps) {
       return events.update(id, { calendarEventId });
     },
     get: requireEvent,
+    refresh: async (actor: Actor, id: number) =>
+      refresh(await requireEvent(actor, id)),
     view: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
 
-      return eventView(event, await events.counts(event.id));
+      return liveView(event, await events.counts(event.id));
     },
     upcoming: (guildId: string) => events.upcoming(guildId),
     sameDay: async (actor: Actor, start: string) => {
@@ -518,7 +528,7 @@ export function createEventService(deps: Deps) {
 
       await events.setRsvp(event.id, actor.userId, status);
 
-      return eventView(event, await events.counts(event.id));
+      return liveView(event, await events.counts(event.id));
     },
   };
 }
