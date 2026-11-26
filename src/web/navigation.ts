@@ -23,7 +23,7 @@ export const sections: readonly Section[] = [
       {
         href: '/post/announcements',
         label: 'Announcements',
-        permission: 'announcement:create',
+        permission: 'announcement:post',
       },
       { href: '/post/events', label: 'Events' },
       {

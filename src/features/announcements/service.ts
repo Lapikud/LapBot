@@ -20,6 +20,7 @@ import { visibleRecords } from '~/core/helpers/visibility';
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
 const open: AnnouncementStatus[] = ['draft', 'scheduled'];
+const poster = 'announcement:post';
 
 export const maxAnnouncementLength = 4000;
 
@@ -27,6 +28,13 @@ export interface AnnouncementDraft {
   channelId: string;
   title?: string;
   content: string;
+  mentions?: Mentions;
+}
+
+export interface AnnouncementEdit {
+  title?: string;
+  content: string;
+  channelId?: string;
   mentions?: Mentions;
 }
 
@@ -50,9 +58,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
     if (
       post?.guildId !== actor.guildId ||
       !(await directory.canView(actor, post.channelId)) ||
-      (post.status !== 'published' &&
-        post.authorId !== actor.userId &&
-        !(await authz.can(actor, 'announcement:publish')))
+      (post.status !== 'published' && !(await authz.can(actor, poster)))
     ) {
       throw new UserError(`Announcement #${id} does not exist.`);
     }
@@ -61,13 +67,9 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
   };
 
   const requireEditable = async (actor: Actor, id: number) => {
-    const post = await requireReadable(actor, id);
+    await authz.require(actor, poster);
 
-    if (post.authorId !== actor.userId) {
-      await authz.require(actor, 'announcement:publish');
-    }
-
-    return post;
+    return requireReadable(actor, id);
   };
 
   const checkTargets = async (
@@ -162,29 +164,18 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         return null;
       }
 
-      const author = await directory.member(post.guildId, post.authorId);
+      const publisher = await directory.member(
+        post.guildId,
+        scheduledBy ?? post.authorId,
+      );
 
       try {
-        if (!author) {
-          throw new UserError('The author is no longer a server member.');
-        }
-
-        await authz.require(author, 'announcement:create');
-        const publisher =
-          scheduledBy === undefined || scheduledBy === post.authorId
-            ? author
-            : await directory.member(post.guildId, scheduledBy);
-
         if (!publisher) {
           throw new UserError('The scheduler is no longer a server member.');
         }
 
-        await authz.require(publisher, 'announcement:schedule');
-        await checkTargets(author, post);
-        if (publisher.userId !== post.authorId) {
-          await authz.require(publisher, 'announcement:publish');
-          await checkTargets(publisher, post);
-        }
+        await authz.require(publisher, poster);
+        await checkTargets(publisher, post);
       } catch (error) {
         if (!(error instanceof UserError)) {
           throw error;
@@ -225,57 +216,59 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
     jobs: [publishJob],
     view: announcementView,
     list: async (actor: Actor) => {
-      const [records, publisher] = await Promise.all([
+      const [records, canPost] = await Promise.all([
         posts.list(actor.guildId),
-        authz.can(actor, 'announcement:publish'),
+        authz.can(actor, poster),
       ]);
       const accessible = records.filter(
-        (record) =>
-          record.status === 'published' ||
-          record.authorId === actor.userId ||
-          publisher,
+        (record) => record.status === 'published' || canPost,
       );
 
       return visibleRecords(directory, actor, accessible);
     },
     get: requireReadable,
-    draft: guard(
-      authz,
-      'announcement:create',
-      async (actor, draft: AnnouncementDraft) => {
-        validate(draft);
-        await checkTargets(actor, draft);
+    draft: guard(authz, poster, async (actor, draft: AnnouncementDraft) => {
+      validate(draft);
+      await checkTargets(actor, draft);
 
-        const title = draft.title?.trim() ?? '';
-        const post = {
-          title: title === '' ? null : title,
-          content: draft.content,
-          mentions: draft.mentions ?? {},
-        };
+      const title = draft.title?.trim() ?? '';
+      const post = {
+        title: title === '' ? null : title,
+        content: draft.content,
+        mentions: draft.mentions ?? {},
+        authorId: actor.userId,
+      };
 
-        announcementView(post);
+      announcementView(post);
 
-        return await posts.insert({
-          ...post,
-          guildId: actor.guildId,
-          authorId: actor.userId,
-          channelId: draft.channelId,
-        });
-      },
-    ),
-    edit: async (
-      actor: Actor,
-      id: number,
-      changes: { title?: string; content: string },
-    ) => {
-      await authz.require(actor, 'announcement:create');
+      return await posts.insert({
+        ...post,
+        guildId: actor.guildId,
+        channelId: draft.channelId,
+      });
+    }),
+    edit: async (actor: Actor, id: number, changes: AnnouncementEdit) => {
       const post = await requireEditable(actor, id);
+      const published = post.status === 'published';
+      const target = {
+        channelId: changes.channelId ?? post.channelId,
+        mentions: changes.mentions ?? post.mentions,
+      };
 
-      validate({ channelId: post.channelId, content: changes.content });
+      if (published && target.channelId !== post.channelId) {
+        throw new UserError('A published announcement stays in its channel.');
+      }
+
+      validate({ ...target, content: changes.content });
+
+      if (!published) {
+        await checkTargets(actor, target);
+      }
 
       const title = changes.title?.trim() ?? '';
       const updated = {
         ...post,
+        ...(!published && target),
         title: title === '' ? null : title,
         content: changes.content,
       };
@@ -285,10 +278,12 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         mentions: {},
       }));
 
-      if (post.status !== 'published' || post.messageIds.length === 0) {
+      if (!published || post.messageIds.length === 0) {
         await posts.update(id, {
           title: updated.title,
           content: updated.content,
+          channelId: updated.channelId,
+          mentions: updated.mentions,
         });
 
         return updated;
@@ -321,7 +316,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
       return { ...updated, messageIds };
     },
-    publish: guard(authz, 'announcement:publish', async (actor, id: number) => {
+    publish: guard(authz, poster, async (actor, id: number) => {
       const post = await requireReadable(actor, id);
 
       await checkTargets(actor, post);
@@ -329,40 +324,36 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
       return publish(id, open);
     }),
-    schedule: guard(
-      authz,
-      'announcement:schedule',
-      async (actor, id: number, when: string) => {
-        const post = await requireReadable(actor, id);
-        const runAt = parseFutureWhen(when, deps.timezone, clock.now());
+    schedule: guard(authz, poster, async (actor, id: number, when: string) => {
+      const post = await requireReadable(actor, id);
+      const runAt = parseFutureWhen(when, deps.timezone, clock.now());
 
-        await checkTargets(actor, post);
+      await checkTargets(actor, post);
 
-        const scheduled = await posts.update(
-          id,
-          {
-            status: 'scheduled',
-            scheduledAt: runAt,
-            failure: null,
-          },
-          open,
+      const scheduled = await posts.update(
+        id,
+        {
+          status: 'scheduled',
+          scheduledAt: runAt,
+          failure: null,
+        },
+        open,
+      );
+
+      if (!scheduled) {
+        throw new UserError(
+          `Announcement #${id} is already published or cancelled.`,
         );
+      }
 
-        if (!scheduled) {
-          throw new UserError(
-            `Announcement #${id} is already published or cancelled.`,
-          );
-        }
+      await scheduler.schedule(
+        publishJob,
+        { announcementId: id, scheduledBy: actor.userId },
+        { runAt, key: jobKey(id) },
+      );
 
-        await scheduler.schedule(
-          publishJob,
-          { announcementId: id, scheduledBy: actor.userId },
-          { runAt, key: jobKey(id) },
-        );
-
-        return scheduled;
-      },
-    ),
+      return scheduled;
+    }),
     cancel: async (actor: Actor, id: number) => {
       const post = await requireEditable(actor, id);
       const cancelled = await posts.update(

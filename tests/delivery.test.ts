@@ -92,7 +92,7 @@ describe('announcement publication', () => {
       expect(
         announcementView(sample({ mentions: { roles: ['r1', 'r2'] } }))[0],
       ).toMatchObject({
-        content: '<@&r1> <@&r2>\n# Hello\nWorld',
+        content: '<@&r1> <@&r2>\n# Hello\nWorld\n-# toimetaja: <@a>',
         mentions: { roles: ['r1', 'r2'] },
       });
     });
@@ -181,13 +181,7 @@ describe('announcement publication', () => {
 
 describe('announcement lifecycle', () => {
   describe.skipIf(noDatabase)('managed post API', () => {
-    const setup = async (
-      permissions: Permission[] = [
-        'announcement:create',
-        'announcement:publish',
-        'announcement:schedule',
-      ],
-    ) => {
+    const setup = async (permissions: Permission[] = ['announcement:post']) => {
       const author = actor({ guildId: snowflake(), roleIds: ['staff'] });
       const grants = createGrantRepository(testDb());
 
@@ -240,7 +234,7 @@ describe('announcement lifecycle', () => {
       };
     };
 
-    it('rejects edits after create permission is revoked', async () => {
+    it('rejects edits after the permission is revoked', async () => {
       const { service, author, draft } = await setup();
       const post = await draft();
       const grants = createGrantRepository(testDb());
@@ -248,14 +242,14 @@ describe('announcement lifecycle', () => {
       await grants.revoke({
         guildId: author.guildId,
         roleId: 'staff',
-        permission: 'announcement:create',
+        permission: 'announcement:post',
       });
       await expect(
         service.edit(author, post.id, { content: 'Changed' }),
-      ).rejects.toThrow('announcement:create');
+      ).rejects.toThrow('announcement:post');
     });
 
-    it('does not publish after scheduling permission is revoked', async () => {
+    it('does not publish after the scheduler loses the permission', async () => {
       const { service, author, posts, messenger, draft, advance } =
         await setup();
       const post = await draft();
@@ -265,7 +259,7 @@ describe('announcement lifecycle', () => {
       await createGrantRepository(testDb()).revoke({
         guildId: author.guildId,
         roleId: 'staff',
-        permission: 'announcement:schedule',
+        permission: 'announcement:post',
       });
       await service.jobs[0]?.run({ announcementId: post.id });
       expect(messenger.send).not.toHaveBeenCalled();
@@ -422,16 +416,35 @@ describe('announcement lifecycle', () => {
       await expect(draft()).rejects.toThrow();
     });
 
-    it('requires publication and scheduling permissions even for the author', async () => {
-      const { service, author, draft } = await setup(['announcement:create']);
+    it("lets any poster manage another member's announcement", async () => {
+      const { service, author, draft } = await setup();
       const post = await draft();
+      const colleague = { ...author, userId: 'colleague' };
 
-      await expect(service.publish(author, post.id)).rejects.toThrow();
-      await expect(service.schedule(author, post.id, '1h')).rejects.toThrow();
-      await service.cancel(author, post.id);
+      await service.edit(colleague, post.id, { content: 'Fixed' });
+      await service.cancel(colleague, post.id);
       await expect(service.cancel(author, post.id)).rejects.toThrow(
         'already cancelled',
       );
+    });
+
+    it('moves a draft to another channel, but not a published post', async () => {
+      const { service, author, messenger, draft } = await setup();
+      const post = await draft();
+
+      await service.edit(author, post.id, {
+        content: 'Hello',
+        channelId: 'other',
+        mentions: {},
+      });
+      await service.publish(author, post.id);
+      expect(messenger.send).toHaveBeenCalledWith('other', {
+        content: `Hello\n-# toimetaja: <@${author.userId}>`,
+        mentions: {},
+      });
+      await expect(
+        service.edit(author, post.id, { content: 'Hi', channelId: 'c' }),
+      ).rejects.toThrow('stays in its channel');
     });
 
     it('rechecks channel access and mention permissions before publication', async () => {

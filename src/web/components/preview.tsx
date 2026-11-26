@@ -23,8 +23,14 @@ function Piece({ part, server }: Readonly<{ part: string; server: Server }>) {
     return <span class="mention">@{server.roleName(role)}</span>;
   }
 
-  if (/^<@\d+>$/.test(part)) {
-    return <span class="mention">@user</span>;
+  const user = /^<@(\d+)>$/.exec(part)?.[1];
+
+  if (user !== undefined) {
+    return (
+      <span class="mention">
+        @{server.members.find(({ id }) => id === user)?.name ?? 'user'}
+      </span>
+    );
   }
 
   if (channel !== undefined) {
@@ -39,13 +45,19 @@ function Piece({ part, server }: Readonly<{ part: string; server: Server }>) {
 }
 
 function Line({ text, server }: Readonly<{ text: string; server: Server }>) {
-  const heading = text.startsWith('# ');
-  const body = heading ? text.slice(2) : text;
+  const prefix = /^(# |-# )/.exec(text)?.[0] ?? '';
   const pieces = withOffsets(
-    body.split(token).filter((part) => part !== ''),
+    text
+      .slice(prefix.length)
+      .split(token)
+      .filter((part) => part !== ''),
   ).map(({ part, start }) => <Piece key={start} part={part} server={server} />);
 
-  return heading ? <div class="h1">{pieces}</div> : <div>{pieces}</div>;
+  if (prefix === '# ') {
+    return <div class="h1">{pieces}</div>;
+  }
+
+  return prefix === '' ? <div>{pieces}</div> : <small>{pieces}</small>;
 }
 
 export function MessagePreview({

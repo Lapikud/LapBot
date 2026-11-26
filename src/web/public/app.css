@@ -414,3 +414,8 @@ nav a[aria-current='page'] {
   border: none;
   color: inherit;
 }
+
+.discord small {
+  display: block;
+  color: var(--pico-muted-color);
+}

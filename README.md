@@ -43,7 +43,7 @@ Settings are documented in `.env.example`.
 | Command                                                             | Who                                                    |
 | ------------------------------------------------------------------- | ------------------------------------------------------ |
 | `/remindme`, `/reminders list/edit/cancel`                          | everyone; channel reminders need `reminder:channel`    |
-| `/announce create/edit`                                             | `announcement:create`, `:publish`, `:schedule`         |
+| `/announce create/edit`                                             | `announcement:post`                                    |
 | `/event create/edit/cancel/list/view/attendees`                     | `event:create`; the organizer or `event:manage` edits  |
 | `/birthday set/remove/view/upcoming/post/settings`                  | everyone; `post` and `settings` need `birthday:manage` |
 | `/poll create/list/results/close/cancel`                            | `poll:create`; the creator or `poll:manage` manages    |

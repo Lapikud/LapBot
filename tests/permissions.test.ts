@@ -658,12 +658,8 @@ describe('dashboard access', () => {
                   { id: 'web:access', description: 'Open the dashboard' },
                 ],
                 [
-                  'announcement:create',
-                  { id: 'announcement:create', description: 'Write PSAs' },
-                ],
-                [
-                  'announcement:publish',
-                  { id: 'announcement:publish', description: 'Publish PSAs' },
+                  'announcement:post',
+                  { id: 'announcement:post', description: 'Post PSAs' },
                 ],
               ]),
           }),
@@ -733,7 +729,7 @@ describe('dashboard access', () => {
         channelId: 'general',
         title: '<b>Hi</b>',
         content: `Meeting <@&${teamId}> **now**`,
-        role: teamId,
+        mention: `role:${teamId}`,
         action: 'preview',
       });
       const page = await response.text();
@@ -741,6 +737,33 @@ describe('dashboard access', () => {
       expect(page).toContain('&lt;b&gt;Hi&lt;/b&gt;');
       expect(page).toMatch(/class="mention"\s*>@Team</);
       expect(messenger.send).not.toHaveBeenCalled();
+    });
+
+    it('edits a saved draft from the dashboard', async () => {
+      const saved = await post('/post/announcements', {
+        channelId: 'general',
+        content: 'First',
+        action: 'draft',
+      });
+      const notice = new URL(
+        saved.headers.get('location') ?? '',
+        'http://localhost',
+      ).searchParams.get('notice');
+      const id = /PSA #(\d+)/.exec(notice ?? '')?.[1];
+      const form = await (await get(`/post/announcements/${id}`)).text();
+
+      expect(form).toContain('First');
+      const edited = await post(`/post/announcements/${id}`, {
+        channelId: 'general',
+        content: 'Second',
+        mention: `role:${teamId}`,
+        action: 'draft',
+      });
+
+      expect(edited.headers.get('location')).toContain('saved');
+      expect(await (await get(`/post/announcements/${id}`)).text()).toContain(
+        'Second',
+      );
     });
 
     it('keeps members without dashboard access out', async () => {
@@ -1050,10 +1073,7 @@ describe('private records on the dashboard', () => {
     app.use(async (c, next) => {
       c.set('actor', member);
       c.set('server', async () => server);
-      c.set(
-        'can',
-        new Set(['announcement:create', 'birthday:manage'] as const),
-      );
+      c.set('can', new Set(['announcement:post', 'birthday:manage'] as const));
       await next();
     });
 

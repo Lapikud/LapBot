@@ -1,4 +1,3 @@
-import type { Permission } from '~/core/permission';
 import type { Announcement } from '~/features/announcements/model';
 import { ActionButton } from '~/web/components/actions';
 import { type Server } from '~/web/context';
@@ -7,17 +6,11 @@ export function Recent({
   list,
   server,
   date,
-  can,
-  userId,
 }: Readonly<{
   list: Announcement[];
   server: Server;
   date: (value: Date | null) => string;
-  can: ReadonlySet<Permission>;
-  userId: string;
 }>) {
-  const publisher = can.has('announcement:publish');
-
   return (
     <table>
       <thead>
@@ -44,23 +37,27 @@ export function Recent({
               )}
             </td>
             <td>{server.channelName(a.channelId)}</td>
-            <td>{a.title ?? a.content.slice(0, 60)}</td>
+            <td>
+              {a.status === 'cancelled' ? (
+                (a.title ?? a.content.slice(0, 60))
+              ) : (
+                <a href={`/post/announcements/${a.id}`}>
+                  {a.title ?? a.content.slice(0, 60)}
+                </a>
+              )}
+            </td>
             <td>{date(a.publishedAt ?? a.scheduledAt)}</td>
             <td>
               {a.status === 'draft' || a.status === 'scheduled' ? (
                 <>
-                  {publisher ? (
-                    <ActionButton
-                      action={`/post/announcements/${a.id}/publish`}
-                      label="Publish"
-                    />
-                  ) : null}
-                  {publisher || a.authorId === userId ? (
-                    <ActionButton
-                      action={`/post/announcements/${a.id}/cancel`}
-                      label="Cancel"
-                    />
-                  ) : null}
+                  <ActionButton
+                    action={`/post/announcements/${a.id}/publish`}
+                    label="Publish"
+                  />
+                  <ActionButton
+                    action={`/post/announcements/${a.id}/cancel`}
+                    label="Cancel"
+                  />
                 </>
               ) : null}
             </td>

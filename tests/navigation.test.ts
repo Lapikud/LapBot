@@ -22,7 +22,7 @@ describe('primary navigation', () => {
   });
 
   it('links publishers to announcements while retaining the active parent section', async () => {
-    const html = await page(['announcement:create'], '/post/polls');
+    const html = await page(['announcement:post'], '/post/polls');
 
     expect(html).toContain(
       'href="/post/announcements" aria-current="page">Post</a>',

@@ -21,28 +21,38 @@ export function typedMentions(
   return text === null ? undefined : { mentions: parseMentions(text) };
 }
 
-export function mentionInputs(): LabelBuilder[] {
+export function mentionInputs(current: Mentions = {}): LabelBuilder[] {
+  const select = new MentionableSelectMenuBuilder()
+    .setCustomId('mentions')
+    .setRequired(false)
+    .setMaxValues(25);
+
+  if ((current.roles ?? []).length > 0) {
+    select.addDefaultRoles(...(current.roles ?? []));
+  }
+
+  if ((current.users ?? []).length > 0) {
+    select.addDefaultUsers(...(current.users ?? []));
+  }
+
   return [
     new LabelBuilder()
       .setLabel('Mention')
-      .setMentionableSelectMenuComponent(
-        new MentionableSelectMenuBuilder()
-          .setCustomId('mentions')
-          .setRequired(false)
-          .setMaxValues(25),
-      ),
-    new LabelBuilder()
-      .setLabel('Ping')
-      .setCheckboxGroupComponent(
-        new CheckboxGroupBuilder()
-          .setCustomId('pings')
-          .setRequired(false)
-          .setMinValues(0)
-          .setOptions(
-            { label: '@here', value: 'here' },
-            { label: '@everyone', value: 'everyone' },
-          ),
-      ),
+      .setMentionableSelectMenuComponent(select),
+    new LabelBuilder().setLabel('Ping').setCheckboxGroupComponent(
+      new CheckboxGroupBuilder()
+        .setCustomId('pings')
+        .setRequired(false)
+        .setMinValues(0)
+        .setOptions(
+          { label: '@here', value: 'here', default: current.here === true },
+          {
+            label: '@everyone',
+            value: 'everyone',
+            default: current.everyone === true,
+          },
+        ),
+    ),
   ];
 }
 

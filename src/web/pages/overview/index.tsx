@@ -16,7 +16,7 @@ export function OverviewPage({
   return (
     <Layout can={can} title="Overview" path="/">
       <ul>
-        {can.has('announcement:create') ? (
+        {can.has('announcement:post') ? (
           <li>
             <a href="/post/announcements">
               {pendingCount} PSA drafts and scheduled posts

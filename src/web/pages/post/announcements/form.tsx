@@ -1,5 +1,4 @@
 import type { Child } from 'hono/jsx';
-import type { Permission } from '~/core/permission';
 import { maxAnnouncementLength } from '~/features/announcements/service';
 import { FormActions } from '~/web/components/actions';
 import { Input, Textarea } from '~/web/components/controls';
@@ -8,37 +7,34 @@ import { type Server } from '~/web/context';
 import { MentionPicker } from '~/web/components/mentions';
 import type { Draft } from './submission';
 
-export const actions: ReadonlyArray<
-  readonly [
-    value: string,
-    label: string,
-    variant: string | undefined,
-    needs?: Permission,
-  ]
-> = [
+const actions = [
   ['preview', 'Preview', 'secondary outline'],
   ['draft', 'Save draft', 'secondary'],
-  ['schedule', 'Schedule', 'secondary', 'announcement:schedule'],
-  ['publish', 'Publish now', undefined, 'announcement:publish'],
-];
+  ['schedule', 'Schedule', 'secondary'],
+  ['publish', 'Publish now', undefined],
+] as const;
 
 export function Composer({
   server,
-  can,
+  action,
+  published = false,
   draft,
   preview,
 }: Readonly<{
   server: Server;
-  can: ReadonlySet<Permission>;
-  draft?: Draft;
+  action: string;
+  published?: boolean;
+  draft?: Draft | undefined;
   preview?: Child;
 }>) {
   return (
-    <form method="post" action="/post/announcements">
-      <ChannelSelect
-        server={server}
-        {...(draft && { selected: draft.channelId })}
-      />
+    <form method="post" action={action}>
+      {published ? null : (
+        <ChannelSelect
+          server={server}
+          {...(draft && { selected: draft.channelId })}
+        />
+      )}
       <Input label="Title" name="title" maxlength={256} value={draft?.title} />
       <Textarea
         label="Message"
@@ -49,18 +45,21 @@ export function Composer({
       >
         {draft?.content}
       </Textarea>
-      <MentionPicker server={server} mentions={draft?.mentions} />
-      <Input
-        label="Publish later"
-        name="when"
-        value={draft?.when}
-        placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
-      />
+      {published ? null : (
+        <>
+          <MentionPicker server={server} mentions={draft?.mentions} />
+          <Input
+            label="Publish later"
+            name="when"
+            value={draft?.when}
+            placeholder="e.g. 2h, tomorrow 9:00, fri 18:00"
+          />
+        </>
+      )}
       {preview}
       <FormActions>
-        {actions
-          .filter(([, , , needs]) => needs === undefined || can.has(needs))
-          .map(([value, label, variant]) => (
+        {(published ? actions.slice(0, 2) : actions).map(
+          ([value, label, variant]) => (
             <button
               key={value}
               type="submit"
@@ -68,9 +67,10 @@ export function Composer({
               value={value}
               class={variant}
             >
-              {label}
+              {published && value === 'draft' ? 'Save' : label}
             </button>
-          ))}
+          ),
+        )}
       </FormActions>
     </form>
   );

@@ -11,7 +11,6 @@ interface Props {
   server: Server;
   date: (value: Date | null) => string;
   can: ReadonlySet<Permission>;
-  userId: string;
   flash: Flash;
 }
 
@@ -20,7 +19,6 @@ export function AnnouncementPage({
   server,
   date,
   can,
-  userId,
   flash,
 }: Readonly<Props>) {
   return (
@@ -31,13 +29,7 @@ export function AnnouncementPage({
       flash={flash}
       actions={<a href="/post/announcements/new">New PSA</a>}
     >
-      <Recent
-        list={list}
-        server={server}
-        date={date}
-        can={can}
-        userId={userId}
-      />
+      <Recent list={list} server={server} date={date} />
     </Layout>
   );
 }
