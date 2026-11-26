@@ -2,6 +2,7 @@ export interface Mentions {
   users?: readonly string[];
   roles?: readonly string[];
   here?: boolean;
+  everyone?: boolean;
 }
 
 export interface EmbedField {
@@ -71,6 +72,36 @@ export const roleMention = (id: string) => `<@&${id}>`;
 export const channelMention = (id: string) => `<#${id}>`;
 
 export const hereMention = () => '@here';
+
+export function mentionLine(mentions: Mentions = {}): string {
+  return [
+    ...(mentions.everyone === true ? ['@everyone'] : []),
+    ...(mentions.here === true ? [hereMention()] : []),
+    ...(mentions.roles ?? []).map((id) => roleMention(id)),
+    ...(mentions.users ?? []).map((id) => userMention(id)),
+  ].join(' ');
+}
+
+export function parseMentions(text: string): Mentions {
+  const ids = (pattern: RegExp) => [
+    ...new Set([...text.matchAll(pattern)].map((match) => match[1] ?? '')),
+  ];
+
+  return {
+    users: ids(/<@!?(\d+)>/g),
+    roles: ids(/<@&(\d+)>/g),
+    here: text.includes('@here'),
+    everyone: text.includes('@everyone'),
+  };
+}
+
+export function withMentions(message: Message, mentions: Mentions): Message {
+  const line = mentionLine(mentions);
+
+  return line === ''
+    ? message
+    : { ...message, content: `${line}\n${message.content ?? ''}`, mentions };
+}
 
 export const controlId = (prefix: string, ...args: Array<string | number>) => {
   const id = [prefix, ...args].join(':');

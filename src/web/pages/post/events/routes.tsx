@@ -9,6 +9,7 @@ import {
   flashOf,
   formatter,
   inputTime,
+  mentionsFrom,
   owns,
   type Env,
   type WebDeps,
@@ -94,6 +95,7 @@ export function eventRoutes({
         ...fieldsOf(form),
         channelId: field(form, 'channelId') ?? '',
         calendar: checked(form, 'calendar'),
+        mentions: mentionsFrom(form),
         ...(reminders !== undefined && { reminders }),
       });
 

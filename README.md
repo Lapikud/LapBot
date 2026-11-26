@@ -18,8 +18,14 @@ Migrations and command registration run on start.
 ### Discord permissions
 
 View Channels, Send Messages, Embed Links, Read Message History, Add Reactions,
-Manage Messages and Manage Roles. The bot's role must be
+Manage Messages, Manage Roles and Mention Everyone. The bot's role must be
 above every role it hands out.
+
+Turn on the Server Members intent (developer portal → Bot → Privileged Gateway
+Intents) so the dashboard can suggest members when mentioning.
+
+Mentions follow Discord's rules: members need Mention Everyone in the channel to
+ping @everyone, @here or a role that isn't mentionable.
 
 ### Configuration
 

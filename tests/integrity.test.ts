@@ -143,7 +143,7 @@ describe('events', () => {
     organizerId: snowflake(),
     channelId: snowflake(),
     capacity: null,
-    mentionRoleId: null,
+    mentions: {},
     reminderMinutes: [],
     icons: true,
   });

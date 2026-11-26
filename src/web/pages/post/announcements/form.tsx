@@ -5,7 +5,7 @@ import { FormActions } from '~/web/components/actions';
 import { Input, Textarea } from '~/web/components/controls';
 import { ChannelSelect } from '~/web/components/selectors';
 import { type Server } from '~/web/context';
-import { MentionPicker } from './mentions';
+import { MentionPicker } from '~/web/components/mentions';
 import type { Draft } from './submission';
 
 export const actions: ReadonlyArray<
@@ -49,7 +49,7 @@ export function Composer({
       >
         {draft?.content}
       </Textarea>
-      <MentionPicker server={server} draft={draft} />
+      <MentionPicker server={server} mentions={draft?.mentions} />
       <Input
         label="Publish later"
         name="when"

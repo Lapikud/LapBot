@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -10,6 +11,7 @@ import {
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core';
+import type { Mentions } from '~/core/message';
 
 export const pollStatus = pgEnum('poll_status', [
   'open',
@@ -36,6 +38,7 @@ export const polls = pgTable(
     closesAt: timestamp('closes_at', { withTimezone: true }),
     status: pollStatus('status').notNull().default('open'),
     source: text('source'),
+    mentions: jsonb('mentions').$type<Mentions>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

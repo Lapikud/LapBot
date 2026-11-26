@@ -1,7 +1,12 @@
 import { eventCalendarEntry } from './calendar';
 import { eventView, reminderText, type DayEntry } from './message';
 import { z } from 'zod';
-import { channelMention, maxContentLength, roleMention } from '~/core/message';
+import {
+  maxContentLength,
+  mentionLine,
+  withMentions,
+  type Mentions,
+} from '~/core/message';
 import {
   addCalendarDays,
   calendarDay,
@@ -12,7 +17,7 @@ import {
 import { visibleRecords } from '~/core/helpers/visibility';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { requireMentionable } from '~/core/helpers/roles';
+import { requirePostable } from '~/core/helpers/posting';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Calendar } from '~/core/ports/calendar';
 import type { Directory } from '~/core/ports/directory';
@@ -34,7 +39,7 @@ export interface EventRequest {
   location?: string;
   channelId: string;
   capacity?: number;
-  mentionRoleId?: string;
+  mentions?: Mentions;
   reminders?: string;
   calendar?: boolean;
   icons?: boolean;
@@ -86,10 +91,8 @@ function requirePublishable(input: NewEvent, mention = false) {
     },
     { going: 2_147_483_647, maybe: 2_147_483_647, not_going: 0 },
   );
-  const prefix =
-    mention && input.mentionRoleId !== null
-      ? `${roleMention(input.mentionRoleId)}\n`
-      : '';
+  const line = mention ? mentionLine(input.mentions) : '';
+  const prefix = line === '' ? '' : `${line}\n`;
 
   if (prefix.length + (view.content?.length ?? 0) > maxContentLength) {
     throw new UserError(
@@ -266,13 +269,7 @@ export function createEventService(deps: Deps) {
     const view = eventView(event, { going: 0, maybe: 0, not_going: 0 });
     const sent = await messenger.send(
       event.channelId,
-      event.mentionRoleId === null
-        ? view
-        : {
-            ...view,
-            content: `${roleMention(event.mentionRoleId)}\n${view.content ?? ''}`,
-            mentions: { roles: [event.mentionRoleId] },
-          },
+      withMentions(view, event.mentions),
     );
 
     event = await events.update(event.id, { messageId: sent.messageId });
@@ -307,14 +304,6 @@ export function createEventService(deps: Deps) {
     }
 
     return event;
-  };
-
-  const requirePostable = async (actor: Actor, channelId: string) => {
-    if (!(await directory.canPost(actor, channelId))) {
-      throw new UserError(
-        `You cannot post in ${channelMention(channelId)} yourself.`,
-      );
-    }
   };
 
   return {
@@ -386,27 +375,22 @@ export function createEventService(deps: Deps) {
       return { event, attendees: await events.attendees(event.id) };
     },
     publish: async (actor: Actor, input: NewEvent) => {
-      await requirePostable(actor, input.channelId);
+      await requirePostable(directory, actor, input.channelId);
 
       return publish(input);
     },
     create: async (actor: Actor, request: EventRequest) => {
       await authz.require(actor, 'event:create');
-      await requirePostable(actor, request.channelId);
+      await requirePostable(
+        directory,
+        actor,
+        request.channelId,
+        request.mentions,
+      );
 
       if (request.calendar === true) {
         await authz.require(actor, 'event:calendar:publish');
         await requireCalendarChannel(actor, request.channelId);
-      }
-
-      if (request.mentionRoleId !== undefined) {
-        const role = await directory.role(actor.guildId, request.mentionRoleId);
-
-        if (!role) {
-          throw new UserError('That role no longer exists.');
-        }
-
-        requireMentionable(role);
       }
 
       const { timezone } = deps;
@@ -435,7 +419,7 @@ export function createEventService(deps: Deps) {
           organizerId: actor.userId,
           channelId: request.channelId,
           capacity: request.capacity ?? null,
-          mentionRoleId: request.mentionRoleId ?? null,
+          mentions: request.mentions ?? {},
           reminderMinutes: parseReminderMinutes(request.reminders),
           icons: request.icons ?? true,
         },

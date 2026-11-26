@@ -101,10 +101,14 @@ export function fakeDirectory(
     role: vi.fn<Directory['role']>(async (_g, id) =>
       roles.find((r) => r.id === id),
     ),
+    members: vi.fn<Directory['members']>(async () => []),
     member: vi.fn<Directory['member']>(async () => undefined),
     displayName: vi.fn<Directory['displayName']>(async () => undefined),
     canView: vi.fn<Directory['canView']>(async () => true),
     canPost: vi.fn<Directory['canPost']>(async () => options.canPost ?? true),
+    canMentionEveryone: vi.fn<Directory['canMentionEveryone']>(
+      async () => false,
+    ),
     isPublic: vi.fn<Directory['isPublic']>(async () => true),
     addRoles: vi.fn<Directory['addRoles']>(async () => undefined),
     removeRoles: vi.fn<Directory['removeRoles']>(async () => undefined),

@@ -6,7 +6,10 @@ import { posts } from './table';
 export function createAnnouncementRepository(db: Db): AnnouncementRepository {
   return {
     insert: async (input) => {
-      const [row] = await db.insert(posts).values(input).returning();
+      const [row] = await db
+        .insert(posts)
+        .values({ ...input, mentionRoleIds: [...(input.mentions.roles ?? [])] })
+        .returning();
 
       if (!row) {
         throw new Error('Insert returned no row');
@@ -30,7 +33,12 @@ export function createAnnouncementRepository(db: Db): AnnouncementRepository {
     update: async (id, changes, onlyIf) => {
       const [row] = await db
         .update(posts)
-        .set(changes)
+        .set({
+          ...changes,
+          ...(changes.mentions && {
+            mentionRoleIds: [...(changes.mentions.roles ?? [])],
+          }),
+        })
         .where(
           and(eq(posts.id, id), onlyIf && inArray(posts.status, [...onlyIf])),
         )

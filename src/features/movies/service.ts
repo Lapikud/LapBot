@@ -182,7 +182,7 @@ export function createMovieService(deps: Deps) {
         organizerId: actor.userId,
         channelId: night.channelId,
         capacity: night.capacity ?? null,
-        mentionRoleId: null,
+        mentions: {},
         reminderMinutes: [60],
         icons: true,
       });

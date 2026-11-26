@@ -43,7 +43,11 @@ export function createWebApp(deps: WebDeps) {
   const { guildId, signIn, directory, authz, services, log } = deps;
   const app = new Hono<Env>();
   const fetchMetadata = () =>
-    Promise.all([directory.channels(guildId), directory.roles(guildId)]);
+    Promise.all([
+      directory.channels(guildId),
+      directory.roles(guildId),
+      directory.members(guildId),
+    ]);
   let metadata: ReturnType<typeof fetchMetadata> | undefined;
   let expiresAt = 0;
   const getMetadata = () => {
@@ -66,6 +70,7 @@ export function createWebApp(deps: WebDeps) {
     secureHeaders({
       contentSecurityPolicy: {
         defaultSrc: ["'none'"],
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", 'https://cdn.jsdelivr.net'],
         imgSrc: ["'self'", 'https://image.tmdb.org'],
         formAction: ["'self'"],
@@ -144,14 +149,14 @@ export function createWebApp(deps: WebDeps) {
     c.set(
       'server',
       () =>
-        (server ??= getMetadata().then(async ([channels, roles]) => {
+        (server ??= getMetadata().then(async ([channels, roles, members]) => {
           const visible = await visibleRecords(
             directory,
             actor,
             channels.map((channel) => ({ ...channel, channelId: channel.id })),
           );
 
-          return serverOf(visible, roles);
+          return serverOf(visible, roles, members);
         })),
     );
 

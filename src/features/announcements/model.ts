@@ -1,3 +1,4 @@
+import type { Mentions } from '~/core/message';
 import type { Post } from '~/core/posts';
 
 export type AnnouncementStatus =
@@ -9,7 +10,7 @@ export interface Announcement extends Post {
   authorId: string;
   channelId: string;
   title: string | null;
-  mentionRoleIds: string[];
+  mentions: Mentions;
   status: AnnouncementStatus;
   scheduledAt: Date | null;
   publishedAt: Date | null;
@@ -20,7 +21,7 @@ export interface Announcement extends Post {
 
 export type NewAnnouncement = Pick<
   Announcement,
-  'guildId' | 'authorId' | 'channelId' | 'title' | 'content' | 'mentionRoleIds'
+  'guildId' | 'authorId' | 'channelId' | 'title' | 'content' | 'mentions'
 >;
 
 export type AnnouncementChanges = Partial<

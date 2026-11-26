@@ -1,6 +1,7 @@
 import { renderPoll, pollDetails } from './message';
 import { z } from 'zod';
-import { channelMention, type Message } from '~/core/message';
+import { withMentions, type Mentions, type Message } from '~/core/message';
+import { requirePostable } from '~/core/helpers/posting';
 import { parseFutureWhen } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
@@ -30,6 +31,7 @@ export interface PollRequest {
   anonymous?: boolean;
   showResults?: 'live' | 'closed';
   closes?: string;
+  mentions?: Mentions;
 }
 
 interface Deps {
@@ -56,7 +58,7 @@ export function createPollService(deps: Deps) {
       !(await messenger.edit(
         poll.channelId,
         poll.messageId,
-        pollView(poll, await polls.results(poll)),
+        withMentions(pollView(poll, await polls.results(poll)), poll.mentions),
       ))
     ) {
       log.warn({ pollId: id }, 'Poll message or channel was deleted');
@@ -74,11 +76,7 @@ export function createPollService(deps: Deps) {
   });
 
   const publish = async (actor: Actor, input: NewPoll) => {
-    if (!(await directory.canPost(actor, input.channelId))) {
-      throw new UserError(
-        `You cannot post in ${channelMention(input.channelId)} yourself.`,
-      );
-    }
+    await requirePostable(directory, actor, input.channelId, input.mentions);
 
     if (input.question.trim() === '' || input.question.length > 256) {
       throw new UserError('Poll questions must be 1-256 characters.');
@@ -93,7 +91,7 @@ export function createPollService(deps: Deps) {
 
     const sent = await messenger.send(
       poll.channelId,
-      pollView(poll, await polls.results(poll)),
+      withMentions(pollView(poll, await polls.results(poll)), poll.mentions),
     );
 
     await polls.setMessage(poll.id, sent.messageId);
@@ -174,6 +172,7 @@ export function createPollService(deps: Deps) {
           request.closes === undefined
             ? null
             : parseFutureWhen(request.closes, deps.timezone),
+        mentions: request.mentions ?? {},
       });
     },
     vote,

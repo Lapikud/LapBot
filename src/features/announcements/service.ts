@@ -1,10 +1,10 @@
 import { announcementView } from './message';
 import { z } from 'zod';
-import { channelMention } from '~/core/message';
+import { type Mentions } from '~/core/message';
 import { parseFutureWhen } from '~/core/helpers/time';
 import { ignore, PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { requireMentionable } from '~/core/helpers/roles';
+import { requirePostable } from '~/core/helpers/posting';
 import type { AnnouncementRepository, AnnouncementStatus } from './model';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
@@ -27,7 +27,7 @@ export interface AnnouncementDraft {
   channelId: string;
   title?: string;
   content: string;
-  mentionRoleIds?: readonly string[];
+  mentions?: Mentions;
 }
 
 export interface AnnouncementDeps {
@@ -72,27 +72,9 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
   const checkTargets = async (
     actor: Actor,
-    draft: Pick<AnnouncementDraft, 'channelId' | 'mentionRoleIds'>,
+    draft: Pick<AnnouncementDraft, 'channelId' | 'mentions'>,
   ) => {
-    if (!(await directory.canPost(actor, draft.channelId))) {
-      throw new UserError(
-        `You cannot post in ${channelMention(draft.channelId)} yourself.`,
-      );
-    }
-
-    const roles = await Promise.all(
-      (draft.mentionRoleIds ?? []).map((id) =>
-        directory.role(actor.guildId, id),
-      ),
-    );
-
-    for (const role of roles) {
-      if (!role) {
-        throw new UserError('One of the mentioned roles no longer exists.');
-      }
-
-      requireMentionable(role);
-    }
+    await requirePostable(directory, actor, draft.channelId, draft.mentions);
   };
 
   const publish = async (id: number, from: readonly AnnouncementStatus[]) => {
@@ -268,7 +250,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         const post = {
           title: title === '' ? null : title,
           content: draft.content,
-          mentionRoleIds: [...(draft.mentionRoleIds ?? [])],
+          mentions: draft.mentions ?? {},
         };
 
         announcementView(post);

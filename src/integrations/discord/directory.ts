@@ -4,7 +4,7 @@ import {
   type Client,
   type Guild,
 } from 'discord.js';
-import type { Directory } from '~/core/ports/directory';
+import type { Directory, MemberInfo } from '~/core/ports/directory';
 import { toActor, toRoleInfo } from '~/discord/interactions/actor';
 import { isPermanentDiscordError, permanent } from './errors';
 
@@ -54,6 +54,36 @@ export function createDiscordDirectory(client: Client): Directory {
       return roles
         .sort((a, b) => b.position - a.position)
         .map((role) => toRoleInfo(role));
+    },
+    members: async (guildId) => {
+      const found = await guild(guildId);
+      const from = async (after?: string): Promise<MemberInfo[]> => {
+        const page = await found.members
+          .list({
+            limit: 1000,
+            cache: false,
+            ...(after !== undefined && { after }),
+          })
+          .catch(absentOrThrow);
+
+        if (page === null) {
+          return [];
+        }
+
+        const members = page
+          .filter((member) => !member.user.bot)
+          .map((member) => ({
+            id: member.id,
+            name: member.displayName,
+            username: member.user.username,
+          }));
+
+        return page.size === 1000
+          ? [...members, ...(await from(page.lastKey()))]
+          : members;
+      };
+
+      return from();
     },
     role: async (guildId, roleId) => {
       const found = await guild(guildId);
@@ -105,6 +135,19 @@ export function createDiscordDirectory(client: Client): Directory {
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
         ]);
+    },
+    canMentionEveryone: async (actor, channelId) => {
+      const found = await guild(actor.guildId);
+      const [channel, member] = await Promise.all([
+        found.channels.fetch(channelId).catch(absentOrThrow),
+        found.members.fetch(actor.userId).catch(absentOrThrow),
+      ]);
+
+      return (
+        !!channel &&
+        !!member &&
+        channel.permissionsFor(member).has(PermissionFlagsBits.MentionEveryone)
+      );
     },
     isPublic: async (guildId, channelId) => {
       const found = await guild(guildId);

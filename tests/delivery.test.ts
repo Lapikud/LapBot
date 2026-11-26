@@ -23,6 +23,8 @@ import { createGrantRepository } from '~/integrations/db/permissions/repository'
 import { createAuthorizer } from '~/features/permissions/service';
 import { createBirthdayService } from '~/features/birthdays/service';
 import { calendarDay } from '~/core/helpers/time';
+import { parseMentions, type Mentions } from '~/core/message';
+import { requireMentions } from '~/core/helpers/posting';
 import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
 import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { createReminderService } from '~/features/reminders/service';
@@ -72,7 +74,7 @@ describe('announcement publication', () => {
     channelId: 'c',
     title: 'Hello',
     content: 'World',
-    mentionRoleIds: [],
+    mentions: {},
     status: 'draft',
     scheduledAt: null,
     publishedAt: null,
@@ -86,13 +88,46 @@ describe('announcement publication', () => {
     it('only pings the chosen roles, never text in the body', () => {
       expect(
         announcementView(sample({ content: '@everyone hi' }))[0]?.mentions,
-      ).toEqual({ roles: [] });
+      ).toEqual({});
       expect(
-        announcementView(sample({ mentionRoleIds: ['r1', 'r2'] }))[0],
+        announcementView(sample({ mentions: { roles: ['r1', 'r2'] } }))[0],
       ).toMatchObject({
         content: '<@&r1> <@&r2>\n# Hello\nWorld',
         mentions: { roles: ['r1', 'r2'] },
       });
+    });
+  });
+
+  describe('mentions', () => {
+    it('reads mentions typed in Discord', () => {
+      expect(parseMentions('<@1> <@!1> <@&2> @here hi')).toEqual({
+        users: ['1'],
+        roles: ['2'],
+        here: true,
+        everyone: false,
+      });
+    });
+
+    it("follows Discord's Mention Everyone rule", async () => {
+      const directory = fakeDirectory([
+        role({ id: 'open', mentionable: true }),
+        role({ id: 'closed', mentionable: false }),
+      ]);
+      const check = (mentions: Mentions) =>
+        requireMentions(directory, actor(), 'c', mentions);
+
+      await expect(
+        check({ users: ['u'], roles: ['open'] }),
+      ).resolves.toBeUndefined();
+      await expect(check({ roles: ['closed'] })).rejects.toThrow(
+        'Mention Everyone',
+      );
+      await expect(check({ here: true })).rejects.toThrow('Mention Everyone');
+      await expect(check({ roles: ['gone'] })).rejects.toThrow('no longer');
+      directory.canMentionEveryone.mockResolvedValue(true);
+      await expect(
+        check({ roles: ['closed'], everyone: true }),
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -188,7 +223,7 @@ describe('announcement lifecycle', () => {
         service.draft(author, {
           channelId: 'c',
           content: 'Hello',
-          mentionRoleIds: ['team'],
+          mentions: { roles: ['team'] },
         });
 
       return {
@@ -282,7 +317,7 @@ describe('announcement lifecycle', () => {
       const created = await service.draft(author, {
         channelId: 'c',
         content: `${'a '.repeat(1200)}\n${'b '.repeat(700)}`,
-        mentionRoleIds: ['team'],
+        mentions: { roles: ['team'] },
       });
       const published = await service.publish(author, created.id);
       const sent = messenger.send.mock.calls.map(([, message]) => message);
@@ -367,7 +402,7 @@ describe('announcement lifecycle', () => {
         channelId: 'c',
         title: null,
         content: 'Hidden',
-        mentionRoleIds: [],
+        mentions: {},
       });
 
       await expect(service.get(author, post.id)).rejects.toThrow(
@@ -406,9 +441,9 @@ describe('announcement lifecycle', () => {
         service.draft(author, {
           channelId: 'c',
           content: 'x',
-          mentionRoleIds: ['secret'],
+          mentions: { roles: ['secret'] },
         }),
-      ).rejects.toThrow('may not mention');
+      ).rejects.toThrow('Mention Everyone');
       const post = await draft();
 
       directory.canPost.mockResolvedValue(false);
@@ -682,6 +717,22 @@ describe('reminders', () => {
       await service.cancel(member, reminder.id);
       await deliver?.run({ reminderId: reminder.id });
       expect(messenger.direct).not.toHaveBeenCalled();
+    });
+
+    it('pings the owner and chosen mentions in channel reminders', async () => {
+      const { service, messenger, deliver, member } = setup();
+      const reminder = await service.create(member, {
+        when: '10m',
+        message: 'stand-up',
+        channelId: 'c',
+        mentions: { users: ['friend', member.userId] },
+      });
+
+      await deliver?.run({ reminderId: reminder.id });
+      expect(messenger.send).toHaveBeenCalledWith('c', {
+        content: `<@${member.userId}> <@friend>\n⏰ **Reminder:** stand-up`,
+        mentions: { users: [member.userId, 'friend'] },
+      });
     });
 
     it('requires permission for channel reminders', async () => {

@@ -1,5 +1,6 @@
 import { Checkbox } from '~/web/components/choices';
 import { Input, Select, Textarea } from '~/web/components/controls';
+import { MentionPicker } from '~/web/components/mentions';
 import { ChannelSelect } from '~/web/components/selectors';
 import type { Server } from '~/web/context';
 
@@ -17,6 +18,7 @@ export function PollForm({ server }: Readonly<Props>) {
         required
       />
       <ChannelSelect server={server} />
+      <MentionPicker server={server} />
       <fieldset>
         <Checkbox name="multiple" label="Allow several choices" />
         <Checkbox name="anonymous" label="Anonymous" />

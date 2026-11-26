@@ -7,6 +7,7 @@ import {
   checked,
   field,
   flashOf,
+  mentionsFrom,
   formatter,
   owns,
   type Env,
@@ -66,6 +67,7 @@ export function pollRoutes({
         anonymous: checked(form, 'anonymous'),
         showResults: form.get('results') === 'closed' ? 'closed' : 'live',
         ...(closes !== undefined && { closes }),
+        mentions: mentionsFrom(form),
       });
 
       return back(c, '/post/polls', { notice: `Poll #${poll.id} started.` });

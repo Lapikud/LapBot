@@ -3,7 +3,6 @@ import {
   InteractionContextType,
   LabelBuilder,
   ModalBuilder,
-  RoleSelectMenuBuilder,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -24,6 +23,7 @@ import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { toActor } from '~/discord/interactions/actor';
+import { mentionInputs, mentionsOf } from '~/discord/interactions/mentions';
 import { bySubcommand } from './handlers';
 import type {
   AppContext,
@@ -177,12 +177,11 @@ export function announcementCommands(
       }
 
       const actor = toActor(interaction.member);
-      const roles = interaction.fields.getSelectedRoles('mentions');
       const announcement = await announcements.draft(actor, {
         channelId,
         title: interaction.fields.getTextInputValue('title'),
         content: interaction.fields.getTextInputValue('content'),
-        mentionRoleIds: roles ? [...roles.keys()] : [],
+        mentions: mentionsOf(interaction.fields),
       });
 
       await respondView(interaction, await draftView(announcement, actor, ctx));
@@ -310,16 +309,7 @@ export function announcementCommands(
               contentModal(
                 controlId('announcements:create', channel.id),
                 'New announcement',
-              ).addLabelComponents(
-                new LabelBuilder()
-                  .setLabel('Mention roles')
-                  .setRoleSelectMenuComponent(
-                    new RoleSelectMenuBuilder()
-                      .setCustomId('mentions')
-                      .setRequired(false)
-                      .setMaxValues(25),
-                  ),
-              ),
+              ).addLabelComponents(...mentionInputs()),
             );
           },
           edit: async (interaction) => {

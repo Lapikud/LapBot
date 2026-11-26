@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  jsonb,
   integer,
   pgEnum,
   pgTable,
@@ -9,6 +10,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
+import type { Mentions } from '~/core/message';
 
 export const eventStatus = pgEnum('event_status', ['scheduled', 'cancelled']);
 export const rsvpStatus = pgEnum('rsvp_status', [
@@ -33,6 +35,7 @@ export const events = pgTable(
     messageId: text('message_id'),
     capacity: integer('capacity'),
     mentionRoleId: text('mention_role_id'),
+    mentions: jsonb('mentions').$type<Mentions>().notNull().default({}),
     reminderMinutes: integer('reminder_minutes').array().notNull().default([]),
     icons: boolean('icons').notNull().default(true),
     calendarEventId: text('calendar_event_id'),

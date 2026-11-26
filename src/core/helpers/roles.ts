@@ -28,9 +28,3 @@ export function requireManageable(role: RoleInfo): void {
     );
   }
 }
-
-export function requireMentionable(role: RoleInfo): void {
-  if (role.everyone || !role.mentionable) {
-    throw new UserError('You may not mention that role.');
-  }
-}

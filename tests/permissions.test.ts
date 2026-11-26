@@ -1042,7 +1042,7 @@ describe('private records on the dashboard', () => {
   ];
   const member = actor();
   const directory = fakeDirectory();
-  const server = serverOf(channels, []);
+  const server = serverOf(channels, [], []);
 
   function appFor(pages: Hono<Env>) {
     const app = new Hono<Env>();

@@ -1,3 +1,4 @@
+import { requirePostable } from '~/core/helpers/posting';
 import type { Actor } from '~/core/actor';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Directory } from '~/core/ports/directory';
@@ -21,13 +22,7 @@ export function createEventSuggestionService(deps: {
         throw new UserError('Give an idea of 1–1500 characters.');
       }
 
-      if (!(await directory.canView(actor, channelId))) {
-        throw new UserError('You cannot access that channel.');
-      }
-
-      if (!(await directory.canPost(actor, channelId))) {
-        throw new UserError('You cannot post in that channel.');
-      }
+      await requirePostable(directory, actor, channelId);
 
       const suggestion = await suggestions.insert({
         guildId: actor.guildId,

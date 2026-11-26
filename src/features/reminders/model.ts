@@ -1,3 +1,4 @@
+import type { Mentions } from '~/core/message';
 import type { Recurrence } from '~/core/helpers/time';
 
 export type ReminderStatus = 'active' | 'done' | 'cancelled' | 'failed';
@@ -8,6 +9,7 @@ export interface Reminder {
   userId: string;
   channelId: string | null;
   message: string;
+  mentions: Mentions;
   runAt: Date;
   recurrence: Recurrence | null;
   timezone: string;

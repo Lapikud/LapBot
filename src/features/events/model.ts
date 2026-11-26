@@ -1,3 +1,5 @@
+import type { Mentions } from '~/core/message';
+
 export const rsvpStatuses = ['going', 'maybe', 'not_going'] as const;
 
 export type RsvpStatus = (typeof rsvpStatuses)[number];
@@ -17,7 +19,7 @@ export interface Event {
   channelId: string;
   messageId: string | null;
   capacity: number | null;
-  mentionRoleId: string | null;
+  mentions: Mentions;
   reminderMinutes: number[];
   icons: boolean;
   calendarEventId: string | null;

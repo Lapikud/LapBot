@@ -1,11 +1,13 @@
 import {
   index,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
+import type { Mentions } from '~/core/message';
 
 export const reminderRecurrence = pgEnum('reminder_recurrence', [
   'daily',
@@ -27,6 +29,7 @@ export const reminders = pgTable(
     userId: text('user_id').notNull(),
     channelId: text('channel_id'),
     message: text('message').notNull(),
+    mentions: jsonb('mentions').$type<Mentions>().notNull().default({}),
     runAt: timestamp('run_at', { withTimezone: true }).notNull(),
     recurrence: reminderRecurrence('recurrence'),
     timezone: text('timezone').notNull(),

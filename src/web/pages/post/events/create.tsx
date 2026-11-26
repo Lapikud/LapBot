@@ -2,6 +2,7 @@ import type { Permission } from '~/core/permission';
 import { reminderChoices } from '~/features/events/service';
 import { Checkbox } from '~/web/components/choices';
 import { Input, Select } from '~/web/components/controls';
+import { MentionPicker } from '~/web/components/mentions';
 import { ChannelSelect } from '~/web/components/selectors';
 import type { Flash, Server } from '~/web/context';
 import { Layout } from '~/web/layout';
@@ -76,6 +77,7 @@ export function NewEventPage({
             ))}
           </Select>
         </div>
+        <MentionPicker server={server} />
         <fieldset>
           {calendar && (
             <Checkbox

@@ -383,3 +383,34 @@ nav a[aria-current='page'] {
   text-decoration: underline;
   text-underline-offset: 0.35em;
 }
+
+.mentions .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.mentions .chips:empty {
+  display: none;
+}
+
+.mentions .chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.125rem 0.25rem 0.125rem 0.75rem;
+  border-radius: 1rem;
+  background: var(--pico-secondary-background);
+  color: var(--pico-secondary-inverse);
+  list-style: none;
+}
+
+.mentions .chips button {
+  margin: 0;
+  padding: 0 0.5rem;
+  border: none;
+  color: inherit;
+}
