@@ -23,7 +23,7 @@ describe('primary navigation', () => {
   });
 
   it('marks the section and the deepest matching page as current', async () => {
-    const html = await page(['announcement:post'], '/events/movies/new');
+    const html = await page(['announcement:create'], '/events/movies/new');
 
     expect(html).toContain('href="/announcements">Announcements</a>');
     expect(html).toContain(
@@ -51,7 +51,7 @@ describe('help page', () => {
     const admin = await help([
       'web:access',
       applicationAdmin,
-      'announcement:post',
+      'announcement:publish',
     ]);
 
     expect(member).toContain('<h3>Polls</h3>');

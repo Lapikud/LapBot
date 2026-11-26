@@ -1,3 +1,4 @@
+import type { Permission } from '~/core/permission';
 import type { Announcement } from '~/features/announcements/model';
 import { ActionButton } from '~/web/components/actions';
 import { type Server } from '~/web/context';
@@ -6,10 +7,12 @@ export function Recent({
   list,
   server,
   date,
+  can,
 }: Readonly<{
   list: Announcement[];
   server: Server;
   date: (value: Date | null) => string;
+  can: ReadonlySet<Permission>;
 }>) {
   return (
     <table>
@@ -50,10 +53,12 @@ export function Recent({
             <td>
               {a.status === 'draft' || a.status === 'scheduled' ? (
                 <>
-                  <ActionButton
-                    action={`/announcements/${a.id}/publish`}
-                    label="Publish"
-                  />
+                  {can.has('announcement:publish') ? (
+                    <ActionButton
+                      action={`/announcements/${a.id}/publish`}
+                      label="Publish"
+                    />
+                  ) : null}
                   <ActionButton
                     action={`/announcements/${a.id}/cancel`}
                     label="Cancel"

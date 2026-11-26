@@ -29,7 +29,7 @@ export function AnnouncementPage({
       flash={flash}
       actions={<a href="/announcements/new">New PSA</a>}
     >
-      <Recent list={list} server={server} date={date} />
+      <Recent list={list} server={server} date={date} can={can} />
     </Layout>
   );
 }

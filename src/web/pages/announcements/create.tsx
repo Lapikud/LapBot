@@ -31,6 +31,7 @@ export function ComposerPage({
     <Layout can={can} title={title} path="/announcements" flash={flash}>
       <Composer
         server={server}
+        can={can}
         action={action}
         published={published}
         draft={draft}

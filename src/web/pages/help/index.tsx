@@ -1,5 +1,7 @@
 import {
+  announcementParts,
   applicationAdmin,
+  holdsAny,
   managePermissions,
   type Permission,
 } from '~/core/permission';
@@ -10,7 +12,7 @@ interface Feature {
   text: string;
   command?: string;
   href?: string;
-  needs?: Permission;
+  needs?: Permission | readonly Permission[];
 }
 
 const features: readonly Feature[] = [
@@ -19,7 +21,7 @@ const features: readonly Feature[] = [
     text: 'Write a post, preview it, then publish it now or schedule it. Drafts can still move channel. Every post ends with a toimetaja line naming its author.',
     command: '/announce',
     href: '/announcements',
-    needs: 'announcement:post',
+    needs: announcementParts,
   },
   {
     name: 'Events',
@@ -112,7 +114,7 @@ export function HelpPage({ can, now }: Readonly<Props>) {
         <>
           <h2>Right now</h2>
           <ul class="now">
-            {allowed.has('announcement:post') ? (
+            {holdsAny(allowed, announcementParts) ? (
               <li>
                 <a href="/announcements">
                   {now.pending} drafts and scheduled PSAs
@@ -131,7 +133,9 @@ export function HelpPage({ can, now }: Readonly<Props>) {
       <h2>{can === undefined ? 'What it does' : 'What you can do'}</h2>
       <div class="features">
         {features
-          .filter(({ needs }) => needs === undefined || allowed.has(needs))
+          .filter(
+            ({ needs }) => needs === undefined || holdsAny(allowed, needs),
+          )
           .map(({ name, text, command, href }) => (
             <article key={name}>
               <h3>{name}</h3>

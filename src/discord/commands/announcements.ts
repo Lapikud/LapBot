@@ -25,7 +25,13 @@ import { UserError } from '~/core/errors';
 import { toActor } from '~/discord/interactions/actor';
 import { mentionInputs, mentionsOf } from '~/discord/interactions/mentions';
 import { bySubcommand } from './handlers';
-import type { ComponentHandler, Feature } from '~/discord/contracts';
+import type {
+  AppContext,
+  ComponentHandler,
+  Feature,
+} from '~/discord/contracts';
+import type { Actor } from '~/core/actor';
+import type { Permission } from '~/core/permission';
 import { render } from '~/discord/render';
 import { respond, respondView } from '~/discord/interactions/responses';
 
@@ -122,10 +128,16 @@ const data = new SlashCommandBuilder()
       ),
   );
 
+const granted = (ctx: AppContext, actor: Actor) =>
+  ctx.authz.granted(actor, ['announcement:publish', 'announcement:schedule']);
+
 export function announcementCommands(
   announcements: AnnouncementService,
 ): Feature {
-  const draftView = (announcement: Announcement): Message => {
+  const draftView = (
+    announcement: Announcement,
+    can: ReadonlySet<Permission>,
+  ): Message => {
     const [first, ...rest] = announcements.view(announcement);
     const heading = `-# Preview for ${channelMention(announcement.channelId)}`;
     const plural = rest.length === 1 ? '' : 's';
@@ -145,18 +157,26 @@ export function announcementCommands(
       content: `${heading}\n${body}${more}`,
       controls: [
         [
-          {
-            kind: 'button',
-            id: action('publish'),
-            label: 'Publish now',
-            style: 'primary',
-          },
-          {
-            kind: 'button',
-            id: action('schedule'),
-            label: 'Schedule…',
-            style: 'secondary',
-          },
+          ...(can.has('announcement:publish')
+            ? [
+                {
+                  kind: 'button' as const,
+                  id: action('publish'),
+                  label: 'Publish now',
+                  style: 'primary' as const,
+                },
+              ]
+            : []),
+          ...(can.has('announcement:schedule')
+            ? [
+                {
+                  kind: 'button' as const,
+                  id: action('schedule'),
+                  label: 'Schedule…',
+                  style: 'secondary' as const,
+                },
+              ]
+            : []),
           {
             kind: 'button',
             id: action('edit'),
@@ -178,7 +198,7 @@ export function announcementCommands(
 
   const create: ComponentHandler = {
     prefix: 'announcements:create',
-    execute: async (interaction, [channelId = '']) => {
+    execute: async (interaction, [channelId = ''], ctx) => {
       if (!interaction.isModalSubmit()) {
         return;
       }
@@ -191,7 +211,10 @@ export function announcementCommands(
         mentions: mentionsOf(interaction.fields),
       });
 
-      await respondView(interaction, draftView(announcement));
+      await respondView(
+        interaction,
+        draftView(announcement, await granted(ctx, actor)),
+      );
     },
   };
 
@@ -264,7 +287,7 @@ export function announcementCommands(
 
   const edit: ComponentHandler = {
     prefix: 'announcements:edit',
-    execute: async (interaction, [id, scope]) => {
+    execute: async (interaction, [id, scope], ctx) => {
       if (!interaction.isModalSubmit()) {
         return;
       }
@@ -285,7 +308,9 @@ export function announcementCommands(
       });
 
       if (interaction.isFromMessage() && updated.status === 'draft') {
-        const { content, components } = render(draftView(updated));
+        const { content, components } = render(
+          draftView(updated, await granted(ctx, actor)),
+        );
 
         await interaction.update({ content, components });
 
@@ -303,12 +328,30 @@ export function announcementCommands(
         id: 'announcement:post',
         description: 'Write, publish, schedule and edit announcements',
       },
+      {
+        id: 'announcement:create',
+        description: 'Write and edit announcements',
+        partOf: 'announcement:post',
+      },
+      {
+        id: 'announcement:publish',
+        description: 'Publish announcements',
+        partOf: 'announcement:post',
+      },
+      {
+        id: 'announcement:schedule',
+        description: 'Schedule announcements',
+        partOf: 'announcement:post',
+      },
     ],
     components: [create, act, when, edit],
     commands: [
       {
         data: data.toJSON(),
-        permissions: { create: 'announcement:post', edit: 'announcement:post' },
+        permissions: {
+          create: 'announcement:create',
+          edit: 'announcement:create',
+        },
         execute: bySubcommand({
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);

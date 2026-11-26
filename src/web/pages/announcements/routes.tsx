@@ -1,8 +1,8 @@
 import { Hono, type Context } from 'hono';
 import { UserError } from '~/core/errors';
+import { announcementParts, holdsAny } from '~/core/permission';
 import type { Announcement } from '~/features/announcements/model';
 import {
-  allows,
   back,
   field,
   flashOf,
@@ -81,8 +81,8 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
 
   return new Hono<Env>()
     .use(async (c, next) => {
-      if (!allows(c, 'announcement:post')) {
-        throw new UserError('You need the "announcement:post" permission.');
+      if (!holdsAny(c.var.can, announcementParts)) {
+        throw new UserError('You need an announcement permission.');
       }
 
       await next();

@@ -18,7 +18,7 @@ import type { Announcement } from '~/features/announcements/model';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { PermanentError, UserError } from '~/core/errors';
-import type { Permission } from '~/core/permission';
+import type { Permission, PermissionDefinition } from '~/core/permission';
 import { createGrantRepository } from '~/integrations/db/permissions/repository';
 import { createAuthorizer } from '~/features/permissions/service';
 import { createBirthdayService } from '~/features/birthdays/service';
@@ -179,6 +179,16 @@ describe('announcement publication', () => {
   });
 });
 
+const announcementCatalogue = new Map<Permission, PermissionDefinition>(
+  (
+    [
+      'announcement:create',
+      'announcement:publish',
+      'announcement:schedule',
+    ] as const
+  ).map((id) => [id, { id, description: id, partOf: 'announcement:post' }]),
+);
+
 describe('announcement lifecycle', () => {
   describe.skipIf(noDatabase)('managed post API', () => {
     const setup = async (permissions: Permission[] = ['announcement:post']) => {
@@ -194,7 +204,7 @@ describe('announcement lifecycle', () => {
         });
       }
 
-      const authz = createAuthorizer(grants);
+      const authz = createAuthorizer(grants, () => announcementCatalogue);
       const posts = createAnnouncementRepository(testDb());
       const directory = fakeDirectory([
         role({ id: 'team' }),
@@ -246,7 +256,7 @@ describe('announcement lifecycle', () => {
       });
       await expect(
         service.edit(author, post.id, { content: 'Changed' }),
-      ).rejects.toThrow('announcement:post');
+      ).rejects.toThrow('announcement:create');
     });
 
     it('does not publish after the scheduler loses the permission', async () => {
@@ -414,6 +424,19 @@ describe('announcement lifecycle', () => {
       ).rejects.toThrow();
       expect(await service.list(author)).toEqual([]);
       await expect(draft()).rejects.toThrow();
+    });
+
+    it('lets a writer draft but not publish or schedule', async () => {
+      const { service, author, draft } = await setup(['announcement:create']);
+      const post = await draft();
+
+      await expect(service.publish(author, post.id)).rejects.toThrow(
+        'announcement:publish',
+      );
+      await expect(service.schedule(author, post.id, '1h')).rejects.toThrow(
+        'announcement:schedule',
+      );
+      await service.edit(author, post.id, { content: 'Still mine' });
     });
 
     it("lets any poster manage another member's announcement", async () => {

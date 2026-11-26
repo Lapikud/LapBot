@@ -1,5 +1,7 @@
 import {
+  announcementParts,
   applicationAdmin,
+  holdsAny,
   managePermissions,
   type Permission,
 } from '~/core/permission';
@@ -7,7 +9,7 @@ import {
 interface PageLink {
   href: string;
   label: string;
-  permission?: Permission;
+  permission?: Permission | readonly Permission[];
 }
 
 export interface Section extends PageLink {
@@ -19,7 +21,7 @@ export const sections: readonly Section[] = [
   {
     href: '/announcements',
     label: 'Announcements',
-    permission: 'announcement:post',
+    permission: announcementParts,
   },
   {
     href: '/events',
@@ -60,7 +62,7 @@ export function visibleLinks<T extends Section>(
     ? []
     : links.filter(
         ({ permission, pages }) =>
-          (permission === undefined || can.has(permission)) &&
+          (permission === undefined || holdsAny(can, permission)) &&
           (pages === undefined || visibleLinks(pages, can).length > 0),
       );
 }

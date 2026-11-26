@@ -1,4 +1,5 @@
 import type { Child } from 'hono/jsx';
+import type { Permission } from '~/core/permission';
 import { maxAnnouncementLength } from '~/features/announcements/service';
 import { FormActions } from '~/web/components/actions';
 import { Input, Textarea } from '~/web/components/controls';
@@ -8,20 +9,22 @@ import { MentionPicker } from '~/web/components/mentions';
 import type { Draft } from './submission';
 
 const actions = [
-  ['preview', 'Preview', 'secondary outline'],
-  ['draft', 'Save draft', 'secondary'],
-  ['schedule', 'Schedule', 'secondary'],
-  ['publish', 'Publish now', undefined],
+  ['preview', 'Preview', 'secondary outline', 'announcement:create'],
+  ['draft', 'Save draft', 'secondary', 'announcement:create'],
+  ['schedule', 'Schedule', 'secondary', 'announcement:schedule'],
+  ['publish', 'Publish now', undefined, 'announcement:publish'],
 ] as const;
 
 export function Composer({
   server,
+  can,
   action,
   published = false,
   draft,
   preview,
 }: Readonly<{
   server: Server;
+  can: ReadonlySet<Permission>;
   action: string;
   published?: boolean;
   draft?: Draft | undefined;
@@ -58,8 +61,9 @@ export function Composer({
       )}
       {preview}
       <FormActions>
-        {(published ? actions.slice(0, 2) : actions).map(
-          ([value, label, variant]) => (
+        {(published ? actions.slice(0, 2) : actions)
+          .filter(([, , , needs]) => can.has(needs))
+          .map(([value, label, variant]) => (
             <button
               key={value}
               type="submit"
@@ -69,8 +73,7 @@ export function Composer({
             >
               {published && value === 'draft' ? 'Save' : label}
             </button>
-          ),
-        )}
+          ))}
       </FormActions>
     </form>
   );

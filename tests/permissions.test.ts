@@ -179,6 +179,51 @@ describe('permission grants', () => {
       ).toBe(false);
     });
 
+    it('lets a bundle grant its parts, but not the reverse', async () => {
+      const db = testDb();
+      const bundleRole = snowflake();
+      const partRole = snowflake();
+
+      await grant(db, {
+        guildId,
+        roleId: bundleRole,
+        permission: 'announcement:post',
+        grantedBy: 'x',
+      });
+      await grant(db, {
+        guildId,
+        roleId: partRole,
+        permission: 'announcement:publish',
+        grantedBy: 'x',
+      });
+      const authz = createAuthorizer(
+        createGrantRepository(db),
+        () =>
+          new Map<Permission, PermissionDefinition>([
+            [
+              'announcement:publish',
+              {
+                id: 'announcement:publish',
+                description: 'Publish',
+                partOf: 'announcement:post',
+              },
+            ],
+          ]),
+      );
+
+      expect(
+        await authz.can(member(guildId, [bundleRole]), 'announcement:publish'),
+      ).toBe(true);
+      expect(
+        await authz.granted(member(guildId, [bundleRole]), [
+          'announcement:publish',
+        ]),
+      ).toEqual(new Set(['announcement:publish']));
+      expect(
+        await authz.can(member(guildId, [partRole]), 'announcement:post'),
+      ).toBe(false);
+    });
+
     it('combines grants from all roles of a member', async () => {
       const authz = createAuthorizer(createGrantRepository(testDb()));
       const both = member(guildId, [organizers, helpers]);
@@ -670,6 +715,19 @@ describe('dashboard access', () => {
                   'announcement:post',
                   { id: 'announcement:post', description: 'Post PSAs' },
                 ],
+                ...(
+                  [
+                    'announcement:create',
+                    'announcement:publish',
+                    'announcement:schedule',
+                  ] as const
+                ).map(
+                  (id) =>
+                    [
+                      id,
+                      { id, description: id, partOf: 'announcement:post' },
+                    ] as const,
+                ),
               ]),
           }),
         },
@@ -1143,7 +1201,10 @@ describe('private records on the dashboard', () => {
     app.use(async (c, next) => {
       c.set('actor', member);
       c.set('server', async () => server);
-      c.set('can', new Set(['announcement:post', 'birthday:manage'] as const));
+      c.set(
+        'can',
+        new Set(['announcement:create', 'birthday:manage'] as const),
+      );
       await next();
     });
 

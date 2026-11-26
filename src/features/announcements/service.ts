@@ -20,7 +20,10 @@ import { visibleRecords } from '~/core/helpers/visibility';
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
 const open: AnnouncementStatus[] = ['draft', 'scheduled'];
-const poster = 'announcement:post';
+const write = 'announcement:create';
+const publishPart = 'announcement:publish';
+const schedulePart = 'announcement:schedule';
+const allParts = [write, publishPart, schedulePart] as const;
 
 export const maxAnnouncementLength = 4000;
 
@@ -52,13 +55,19 @@ export interface AnnouncementDeps {
 export function createAnnouncementService(deps: AnnouncementDeps) {
   const { posts, scheduler, messenger, directory, authz, log, clock } = deps;
 
+  const involved = async (actor: Actor) => {
+    const { size } = await authz.granted(actor, allParts);
+
+    return size > 0;
+  };
+
   const requireReadable = async (actor: Actor, id: number) => {
     const post = await posts.find(id);
 
     if (
       post?.guildId !== actor.guildId ||
       !(await directory.canView(actor, post.channelId)) ||
-      (post.status !== 'published' && !(await authz.can(actor, poster)))
+      (post.status !== 'published' && !(await involved(actor)))
     ) {
       throw new UserError(`Announcement #${id} does not exist.`);
     }
@@ -67,7 +76,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
   };
 
   const requireEditable = async (actor: Actor, id: number) => {
-    await authz.require(actor, poster);
+    await authz.require(actor, write);
 
     return requireReadable(actor, id);
   };
@@ -174,7 +183,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
           throw new UserError('The scheduler is no longer a server member.');
         }
 
-        await authz.require(publisher, poster);
+        await authz.require(publisher, schedulePart);
         await checkTargets(publisher, post);
       } catch (error) {
         if (!(error instanceof UserError)) {
@@ -218,7 +227,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
     list: async (actor: Actor) => {
       const [records, canPost] = await Promise.all([
         posts.list(actor.guildId),
-        authz.can(actor, poster),
+        involved(actor),
       ]);
       const accessible = records.filter(
         (record) => record.status === 'published' || canPost,
@@ -227,7 +236,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
       return visibleRecords(directory, actor, accessible);
     },
     get: requireReadable,
-    draft: guard(authz, poster, async (actor, draft: AnnouncementDraft) => {
+    draft: guard(authz, write, async (actor, draft: AnnouncementDraft) => {
       validate(draft);
       await checkTargets(actor, draft);
 
@@ -316,7 +325,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
       return { ...updated, messageIds };
     },
-    publish: guard(authz, poster, async (actor, id: number) => {
+    publish: guard(authz, publishPart, async (actor, id: number) => {
       const post = await requireReadable(actor, id);
 
       await checkTargets(actor, post);
@@ -324,36 +333,40 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
       return publish(id, open);
     }),
-    schedule: guard(authz, poster, async (actor, id: number, when: string) => {
-      const post = await requireReadable(actor, id);
-      const runAt = parseFutureWhen(when, deps.timezone, clock.now());
+    schedule: guard(
+      authz,
+      schedulePart,
+      async (actor, id: number, when: string) => {
+        const post = await requireReadable(actor, id);
+        const runAt = parseFutureWhen(when, deps.timezone, clock.now());
 
-      await checkTargets(actor, post);
+        await checkTargets(actor, post);
 
-      const scheduled = await posts.update(
-        id,
-        {
-          status: 'scheduled',
-          scheduledAt: runAt,
-          failure: null,
-        },
-        open,
-      );
-
-      if (!scheduled) {
-        throw new UserError(
-          `Announcement #${id} is already published or cancelled.`,
+        const scheduled = await posts.update(
+          id,
+          {
+            status: 'scheduled',
+            scheduledAt: runAt,
+            failure: null,
+          },
+          open,
         );
-      }
 
-      await scheduler.schedule(
-        publishJob,
-        { announcementId: id, scheduledBy: actor.userId },
-        { runAt, key: jobKey(id) },
-      );
+        if (!scheduled) {
+          throw new UserError(
+            `Announcement #${id} is already published or cancelled.`,
+          );
+        }
 
-      return scheduled;
-    }),
+        await scheduler.schedule(
+          publishJob,
+          { announcementId: id, scheduledBy: actor.userId },
+          { runAt, key: jobKey(id) },
+        );
+
+        return scheduled;
+      },
+    ),
     cancel: async (actor: Actor, id: number) => {
       const post = await requireEditable(actor, id);
       const cancelled = await posts.update(
