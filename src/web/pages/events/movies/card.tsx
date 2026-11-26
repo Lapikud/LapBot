@@ -6,10 +6,12 @@ export function MovieCard({
   movie,
   suggestedBy,
   editable,
+  manager,
 }: Readonly<{
   movie: MovieSuggestion;
   suggestedBy: string;
   editable: boolean;
+  manager: boolean;
 }>) {
   return (
     <article class="movie">
@@ -53,6 +55,12 @@ export function MovieCard({
               label="Remove"
             />
           </>
+        ) : null}
+        {manager ? (
+          <ActionButton
+            action={`/events/movies/${movie.id}/watched`}
+            label="Watched"
+          />
         ) : null}
       </div>
     </article>

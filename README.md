@@ -43,7 +43,7 @@ Settings are documented in `.env.example`.
 | Command                                                             | Who                                                    |
 | ------------------------------------------------------------------- | ------------------------------------------------------ |
 | `/remindme`, `/reminders list/edit/cancel`                          | everyone; channel reminders need `reminder:channel`    |
-| `/announce create/edit`                                             | `announcement:post`                                    |
+| `/announce create/edit`                                             | `announcement:post` or its parts                       |
 | `/event create/edit/cancel/list/view/attendees`                     | `event:create`; the organizer or `event:manage` edits  |
 | `/birthday set/remove/view/upcoming/post/settings`                  | everyone; `post` and `settings` need `birthday:manage` |
 | `/poll create/list/results/close/cancel`                            | `poll:create`; the creator or `poll:manage` manages    |
@@ -58,10 +58,16 @@ the dashboard's Permissions page.
 Discord administrators and members of `JUHATUS_ROLE_ID` hold every bot permission.
 Roles and Logs are admin-only. Losing Juhatus removes its admin access.
 
-Grant permissions to a role or member with `/permissions grant/revoke`, using
-`role:` or `user:`. Personal and role grants combine. Non-admins can only grant
-permissions they hold, to roles or members below their own. Only admins can
-delegate `permissions:manage`.
+Grant permissions to a role or member on the dashboard, or with
+`/permissions grant/revoke` using `role:` or `user:`. Personal and role grants
+combine. Non-admins can only grant permissions they hold, to roles or members
+below their own. Only admins can delegate `permissions:manage`.
+
+Some permissions are bundles: `announcement:post` includes
+`announcement:create`, `:publish` and `:schedule`. The dashboard's advanced view
+grants the parts separately, grants to members, shows where a member's access
+comes from, and lets admins choose who can hand out a permission they don't
+hold.
 
 ### Events
 

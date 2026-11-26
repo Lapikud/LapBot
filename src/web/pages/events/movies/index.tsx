@@ -1,12 +1,16 @@
 import type { Permission } from '~/core/permission';
-import type { MovieSuggestion } from '~/features/movies/model';
-import type { Flash } from '~/web/context';
+import type { MovieSuggestion, WatchedMovie } from '~/features/movies/model';
+import { MovieNightForms, WatchedList } from './manage';
+import type { Flash, Server } from '~/web/context';
 import { Layout } from '~/web/layout';
 import { MovieCard } from './card';
 
 interface Props {
   list: MovieSuggestion[];
   names: string[];
+  history: WatchedMovie[];
+  server: Server;
+  date: (value: Date | null) => string;
   can: ReadonlySet<Permission>;
   flash: Flash;
   canManage: (ownerId: string) => boolean;
@@ -15,6 +19,9 @@ interface Props {
 export function MoviePage({
   list,
   names,
+  history,
+  server,
+  date,
   can,
   flash,
   canManage,
@@ -36,8 +43,13 @@ export function MoviePage({
           movie={movie}
           suggestedBy={names[index] ?? ''}
           editable={canManage(movie.suggestedBy)}
+          manager={can.has('movie:manage')}
         />
       ))}
+      {can.has('movie:manage') ? (
+        <MovieNightForms list={list} server={server} />
+      ) : null}
+      <WatchedList history={history} date={date} />
     </Layout>
   );
 }

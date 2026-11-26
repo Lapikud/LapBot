@@ -1009,6 +1009,23 @@ describe('dashboard access', () => {
       expect(await (await get('/polls')).text()).not.toContain('Pizza');
     });
 
+    it('suggests ideas and records watched movies', async () => {
+      const idea = await post('/events/suggest', {
+        channelId: 'general',
+        text: 'Board game night',
+      });
+
+      expect(idea.headers.get('location')).toContain('suggested');
+      await post('/events/movies', { title: 'Paddington 2' });
+      const list = await (await get('/events/movies')).text();
+      const id = /\/events\/movies\/(\d+)\/remove/.exec(list)?.[1];
+
+      await post(`/events/movies/${id}/watched`, {});
+      const page = await (await get('/events/movies')).text();
+
+      expect(page).toMatch(/<h2>Watched<\/h2>[\s\S]*Paddington 2/);
+    });
+
     it('opens the default permissions for everyone first', async () => {
       const page = await (await get('/settings/permissions')).text();
 
@@ -1315,7 +1332,11 @@ describe('private records on the dashboard', () => {
   ];
   const member = actor();
   const directory = fakeDirectory();
-  const server = serverOf(channels, [], []);
+  const server = serverOf(
+    channels.filter(({ id }) => id === 'public'),
+    [],
+    [],
+  );
 
   function appFor(pages: Hono<Env>) {
     const app = new Hono<Env>();

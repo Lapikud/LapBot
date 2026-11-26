@@ -139,6 +139,20 @@ export function eventRoutes({
 
       return back(c, '/events', { notice: `Event #${id} updated.` });
     })
+    .post('/suggest', async (c) => {
+      const form = await c.req.formData();
+      const { posted } = await services.eventSuggestions.suggest(
+        c.var.actor,
+        field(form, 'channelId') ?? '',
+        field(form, 'text') ?? '',
+      );
+
+      return back(c, '/events', {
+        notice: posted
+          ? 'Idea suggested.'
+          : 'Idea saved, but it could not be posted in that channel.',
+      });
+    })
     .post(String.raw`/:id{\d+}/rsvp`, async (c) => {
       const id = Number(c.req.param('id'));
       const answer = field(await c.req.formData(), 'status');
