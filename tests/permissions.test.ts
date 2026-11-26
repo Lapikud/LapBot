@@ -22,7 +22,7 @@ import {
   listGrants,
   revoke,
 } from '~/integrations/db/permissions/repository';
-import type { GrantRepository } from '~/features/permissions/model';
+import type { Grant, GrantRepository } from '~/features/permissions/model';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
   actor,
@@ -335,6 +335,123 @@ describe('permission grants', () => {
 });
 
 describe('permission changes', () => {
+  const catalogue = new Map<Permission, PermissionDefinition>([
+    ['event:create', { id: 'event:create', description: 'Create events' }],
+    ['poll:create', { id: 'poll:create', description: 'Create polls' }],
+    [
+      'announcement:publish',
+      {
+        id: 'announcement:publish',
+        description: 'Publish',
+        partOf: 'announcement:post',
+      },
+    ],
+  ]);
+  const serviceWith = (
+    held: Grant[],
+    can: (permission: Permission) => boolean,
+    directory = fakeDirectory([role()]),
+  ) => {
+    const grants = {
+      holds: async () => false,
+      held: async () => [],
+      list: vi.fn<GrantRepository['list']>(async () => held),
+      grant: vi.fn(async () => true),
+      revoke: vi.fn(async () => true),
+      apply: vi.fn<GrantRepository['apply']>(async () => undefined),
+    } satisfies GrantRepository;
+
+    return {
+      grants,
+      service: createPermissionService({
+        grants,
+        directory,
+        log: silentLog,
+        known: () => catalogue,
+        authz: {
+          require: async () => undefined,
+          can: async (_actor, permission) => can(permission),
+          granted: async () => new Set(),
+        },
+      }),
+    };
+  };
+
+  it('only changes the permissions that were shown', async () => {
+    const { service, grants } = serviceWith(
+      [
+        { roleId: 'r', permission: 'event:create' },
+        { roleId: 'r', permission: 'announcement:publish' },
+      ],
+      () => true,
+    );
+
+    await service.setGrants(
+      actor(),
+      { type: 'role', id: 'r' },
+      [],
+      ['event:create'],
+    );
+    expect(grants.apply).toHaveBeenCalledWith(
+      expect.objectContaining({ grant: [], revoke: ['event:create'] }),
+    );
+  });
+
+  it('lets delegation hand out a permission the manager lacks', async () => {
+    const { service, grants } = serviceWith(
+      [],
+      (permission) => permission === 'delegate:poll:create',
+    );
+
+    await service.setGrants(
+      actor(),
+      { type: 'role', id: 'r' },
+      ['poll:create'],
+      ['poll:create'],
+    );
+    expect(grants.apply).toHaveBeenCalledOnce();
+    await expect(
+      service.setGrants(
+        actor(),
+        { type: 'role', id: 'r' },
+        ['delegate:poll:create'],
+        ['delegate:poll:create'],
+      ),
+    ).rejects.toThrow('Only administrators');
+  });
+
+  it('explains where each permission comes from', async () => {
+    const directory = fakeDirectory([
+      role({ id: 'r', name: 'Board' }),
+      role({ id: 'g', name: '@everyone', everyone: true }),
+    ]);
+
+    directory.member.mockResolvedValue(
+      actor({ userId: 'm', roleIds: ['r', 'g'] }),
+    );
+    const { service } = serviceWith(
+      [
+        { roleId: 'r', permission: 'announcement:post' },
+        { roleId: 'g', permission: 'event:create' },
+        { roleId: 'm', subjectType: 'user', permission: 'event:create' },
+      ],
+      () => true,
+      directory,
+    );
+    const rows = new Map(
+      (await service.explain(actor(), 'm')).map(({ permission, sources }) => [
+        permission.id,
+        sources,
+      ]),
+    );
+
+    expect(rows.get('event:create')).toEqual(['Everyone', 'Personal']);
+    expect(rows.get('announcement:publish')).toEqual([
+      '@Board (announcement:post)',
+    ]);
+    expect(rows.get('poll:create')).toEqual([]);
+  });
+
   it('validates every permission change before writing any', async () => {
     const grants: GrantRepository = {
       holds: async () => false,
@@ -355,13 +472,18 @@ describe('permission changes', () => {
       known: () => known,
       authz: {
         require: async () => undefined,
-        can: async (_actor, p) => p !== 'poll:create',
+        can: async (_actor, p) => p === 'event:create',
         granted: async () => new Set(),
       },
     });
 
     await expect(
-      service.setRole(actor(), 'r', ['event:create', 'poll:create']),
+      service.setGrants(
+        actor(),
+        { type: 'role', id: 'r' },
+        ['event:create', 'poll:create'],
+        ['event:create', 'poll:create'],
+      ),
     ).rejects.toThrow();
     expect(grants.grant).not.toHaveBeenCalled();
     expect(grants.revoke).not.toHaveBeenCalled();
@@ -891,7 +1013,7 @@ describe('dashboard access', () => {
       const page = await (await get('/settings/permissions')).text();
 
       expect(page).toContain('<h2>Everyone (all members)</h2>');
-      expect(page).toContain(`action="/settings/permissions/${guildId}"`);
+      expect(page).toContain(`action="/settings/permissions/role/${guildId}"`);
     });
 
     it('keeps members without dashboard access out', async () => {

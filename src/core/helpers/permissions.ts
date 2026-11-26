@@ -22,6 +22,10 @@ export function checkDelegation(delegation: Delegation): void {
     );
   }
 
+  if (permission.startsWith('delegate:')) {
+    throw new UserError('Only administrators can set delegation rules.');
+  }
+
   if (actor.highestRolePosition <= rolePosition) {
     throw new UserError('That role is not below your highest role.');
   }

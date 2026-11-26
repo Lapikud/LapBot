@@ -1,6 +1,7 @@
 import { checkDelegation } from '~/core/helpers/permissions';
 import {
   applicationAdmin,
+  delegation,
   managePermissions,
   type Permission,
   type PermissionDefinition,
@@ -89,14 +90,43 @@ export function createPermissionService(deps: Deps) {
       );
     }
 
-    const found = [...known().values()].find((p) => p.id === value);
+    const inner = value.startsWith('delegate:') ? value.slice(9) : value;
+    const found = [...known().values()].find((p) => p.id === inner);
 
     if (!found) {
       throw new UserError(`Unknown permission "${value}".`);
     }
 
-    return found;
+    return inner === value
+      ? found
+      : {
+          id: delegation(found.id),
+          description: `Hand out: ${found.description}`,
+        };
   };
+
+  const positionOf = async (
+    actor: Actor,
+    subjectType: GrantSubject,
+    id: string,
+  ) => {
+    const [member, role] =
+      subjectType === 'user'
+        ? [await directory.member(actor.guildId, id), undefined]
+        : [undefined, await directory.role(actor.guildId, id)];
+    const position = member?.highestRolePosition ?? role?.position;
+
+    if (position === undefined) {
+      throw new UserError('That member or role does not exist.');
+    }
+
+    return position;
+  };
+
+  const mayHandOut = async (actor: Actor, permission: Permission) =>
+    (await authz.can(actor, permission)) ||
+    (!permission.startsWith('delegate:') &&
+      (await authz.can(actor, delegation(permission))));
 
   const change = (action: 'grant' | 'revoke') =>
     guard(
@@ -109,25 +139,12 @@ export function createPermissionService(deps: Deps) {
         subjectType: GrantSubject = 'role',
       ) => {
         const { id: permission } = definition(value);
-        const role =
-          subjectType === 'user'
-            ? await directory
-                .member(actor.guildId, roleId)
-                .then(
-                  (member) =>
-                    member && { position: member.highestRolePosition },
-                )
-            : await directory.role(actor.guildId, roleId);
-
-        if (!role) {
-          throw new UserError('That member or role does not exist.');
-        }
 
         checkDelegation({
           actor,
-          rolePosition: role.position,
+          rolePosition: await positionOf(actor, subjectType, roleId),
           permission,
-          actorHolds: await authz.can(actor, permission),
+          actorHolds: await mayHandOut(actor, permission),
         });
 
         const input = {
@@ -163,38 +180,44 @@ export function createPermissionService(deps: Deps) {
       (actor, roleId?: string, subjectType?: GrantSubject) =>
         grants.list(actor.guildId, roleId, subjectType),
     ),
-    setRole: guard(
+    setGrants: guard(
       authz,
       managePermissions,
-      async (actor, roleId: string, wanted: readonly string[]) => {
-        const target = new Set(wanted.map((value) => definition(value).id));
-        const granted = await grants.list(actor.guildId, roleId, 'role');
-        const current = new Set(granted.map((g) => g.permission));
+      async (
+        actor,
+        subject: { type: GrantSubject; id: string },
+        wanted: readonly string[],
+        shown: readonly string[],
+      ) => {
+        const scope = new Set(shown.map((value) => definition(value).id));
+        const target = new Set(
+          wanted
+            .map((value) => definition(value).id)
+            .filter((permission) => scope.has(permission)),
+        );
+        const held = await grants.list(actor.guildId, subject.id, subject.type);
+        const current = new Set(held.map((g) => g.permission));
         const toGrant = [...target].filter((p) => !current.has(p));
-        const toRevoke = [...known().keys()].filter(
+        const toRevoke = [...scope].filter(
           (p) => current.has(p) && !target.has(p),
         );
-
-        const role = await directory.role(actor.guildId, roleId);
-
-        if (!role) {
-          throw new UserError('That role does not exist.');
-        }
+        const position = await positionOf(actor, subject.type, subject.id);
 
         await Promise.all(
           [...toGrant, ...toRevoke].map(async (permission) => {
             checkDelegation({
               actor,
-              rolePosition: role.position,
+              rolePosition: position,
               permission,
-              actorHolds: await authz.can(actor, permission),
+              actorHolds: await mayHandOut(actor, permission),
             });
           }),
         );
 
         await grants.apply({
           guildId: actor.guildId,
-          roleId,
+          roleId: subject.id,
+          subjectType: subject.type,
           grantedBy: actor.userId,
           grant: toGrant,
           revoke: toRevoke,
@@ -202,7 +225,7 @@ export function createPermissionService(deps: Deps) {
         log.info(
           {
             guildId: actor.guildId,
-            roleId,
+            subject,
             actorId: actor.userId,
             granted: toGrant,
             revoked: toRevoke,
@@ -213,6 +236,50 @@ export function createPermissionService(deps: Deps) {
         return { granted: toGrant.length, revoked: toRevoke.length };
       },
     ),
+    explain: guard(authz, managePermissions, async (actor, userId: string) => {
+      const member = await directory.member(actor.guildId, userId);
+
+      if (!member) {
+        throw new UserError('That member is not in the server.');
+      }
+
+      const [all, roles] = await Promise.all([
+        grants.list(actor.guildId),
+        directory.roles(actor.guildId),
+      ]);
+      const names = new Map(
+        roles.map((role) => [
+          role.id,
+          role.everyone ? 'Everyone' : `@${role.name}`,
+        ]),
+      );
+      const mine = all.filter((held) =>
+        held.subjectType === 'user'
+          ? held.roleId === userId
+          : member.roleIds.includes(held.roleId),
+      );
+      const source = (held: (typeof all)[number]) =>
+        held.subjectType === 'user'
+          ? 'Personal'
+          : (names.get(held.roleId) ?? 'a deleted role');
+
+      return [...known().values()].map((permission) => ({
+        permission,
+        sources: member.administrator
+          ? ['Administrator']
+          : mine
+              .filter(
+                (held) =>
+                  held.permission === permission.id ||
+                  held.permission === permission.partOf,
+              )
+              .map((held) =>
+                held.permission === permission.id
+                  ? source(held)
+                  : `${source(held)} (${held.permission})`,
+              ),
+      }));
+    }),
   };
 }
 

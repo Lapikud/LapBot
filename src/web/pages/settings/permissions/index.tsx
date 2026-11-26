@@ -1,27 +1,39 @@
 import type { Permission, PermissionDefinition } from '~/core/permission';
-import type { RoleInfo } from '~/core/ports/directory';
-import type { Grant } from '~/features/permissions/model';
+import type { MemberInfo, RoleInfo } from '~/core/ports/directory';
+import type { GrantSubject } from '~/features/permissions/model';
 import type { Flash } from '~/web/context';
 import { Layout } from '~/web/layout';
-import { RoleForm } from './form';
-import { RolePicker } from './picker';
+import { GrantForm } from './form';
+import { MemberPicker, RolePicker } from './picker';
 
 interface Props {
   roles: RoleInfo[];
-  selected: RoleInfo | undefined;
+  members: MemberInfo[];
   counts: ReadonlyMap<string, number>;
-  grants: Grant[];
+  subject: { type: GrantSubject; id: string; name: string } | undefined;
+  granted: ReadonlySet<string>;
+  access:
+    | ReadonlyArray<{ permission: PermissionDefinition; sources: string[] }>
+    | undefined;
+  checked: string | undefined;
   catalogue: PermissionDefinition[];
+  advanced: boolean;
+  delegation: boolean;
   can: ReadonlySet<Permission>;
   flash: Flash;
 }
 
 export function PermissionPage({
   roles,
-  selected,
+  members,
   counts,
-  grants,
+  subject,
+  granted,
+  access,
+  checked,
   catalogue,
+  advanced,
+  delegation,
   can,
   flash,
 }: Readonly<Props>) {
@@ -31,63 +43,75 @@ export function PermissionPage({
       title="Permissions"
       path="/settings/permissions"
       flash={flash}
+      actions={
+        <a href={advanced ? '/settings/permissions' : '?advanced=1'}>
+          {advanced ? 'Hide advanced' : 'Show advanced'}
+        </a>
+      }
     >
       <p>
         Discord administrators and Juhatus can do everything. Everyone sets what
-        every member may do by default. Pick a role to add more, or manage a
-        member grant below.
+        every member may do; roles and members add to it.
       </p>
-      <details>
-        <summary>Individual member permissions</summary>
-        <form method="post" action="/settings/permissions/member">
-          <label>
-            Discord member ID
-            <input name="userId" required pattern="[0-9]{17,20}" />
-          </label>
-          <label>
-            Permission
-            <select name="permission" required>
-              {catalogue.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.id} — {p.description}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" name="action" value="grant">
-            Grant
-          </button>
-          <button type="submit" name="action" value="revoke">
-            Revoke
-          </button>
-        </form>
-        <ul>
-          {grants
-            .filter((g) => g.subjectType === 'user')
-            .map((g) => (
-              <li key={`${g.roleId}:${g.permission}`}>
-                {g.roleId}: {g.permission}
-              </li>
+      <RolePicker
+        roles={roles}
+        selected={subject?.type === 'role' ? subject.id : undefined}
+        counts={counts}
+        advanced={advanced}
+      />
+      {advanced ? (
+        <>
+          <datalist id="permission-members">
+            {members.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name} ({member.username})
+              </option>
             ))}
-        </ul>
-      </details>
-      <RolePicker roles={roles} selected={selected?.id} counts={counts} />
-      {selected ? (
-        <RoleForm
-          role={selected}
-          granted={
-            new Set(
-              grants
-                .filter(
-                  (grant) =>
-                    grant.subjectType !== 'user' &&
-                    grant.roleId === selected.id,
-                )
-                .map((grant) => grant.permission),
-            )
-          }
+          </datalist>
+          <MemberPicker
+            name="member"
+            label="Member grants"
+            selected={subject?.type === 'user' ? subject.id : undefined}
+          />
+        </>
+      ) : null}
+      {subject ? (
+        <GrantForm
+          subject={subject}
+          granted={granted}
           catalogue={catalogue}
+          advanced={advanced}
+          delegation={delegation}
         />
+      ) : null}
+      {advanced ? (
+        <>
+          <h2>Effective access</h2>
+          <p class="hint">
+            Everything a member can do, and where each permission comes from.
+          </p>
+          <MemberPicker name="check" label="Member" selected={checked} />
+          {access ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Permission</th>
+                  <th>From</th>
+                </tr>
+              </thead>
+              <tbody>
+                {access.map(({ permission, sources }) => (
+                  <tr key={permission.id}>
+                    <td>
+                      {permission.description} <small>{permission.id}</small>
+                    </td>
+                    <td>{sources.length === 0 ? '—' : sources.join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </>
       ) : null}
     </Layout>
   );

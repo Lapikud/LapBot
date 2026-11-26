@@ -518,3 +518,7 @@ main h2:not(:first-child) {
 legend {
   font-weight: 600;
 }
+
+td.part {
+  padding-left: 2rem;
+}
