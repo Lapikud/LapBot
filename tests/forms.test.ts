@@ -13,7 +13,13 @@ import { questionsOf } from '~/web/pages/forms/routes';
 import type { AppContext, ComponentInteraction } from '~/discord/contracts';
 import { createFormRepository } from '~/integrations/db/forms/repository';
 import { noDatabase, testDb } from './db';
-import { actor, fakeMessenger, serviceFakes } from './fakes';
+import {
+  actor,
+  fakeDirectory,
+  fakeMessenger,
+  role,
+  serviceFakes,
+} from './fakes';
 
 describe('birthday submissions', () => {
   it('keeps leap days and defaults unknown visibility to public', () => {
@@ -119,6 +125,18 @@ describe('built forms', () => {
     expect(() => validateAnswers(fields, ['x', '', 'c'])).toThrow('choice');
   });
 
+  it('checks role questions and stores picked roles as mentions', () => {
+    expect(() => validateFields([question({ kind: 'grant' })])).toThrow(
+      '1-25 roles',
+    );
+    const fields = [question({ kind: 'grant', options: ['a', 'b'] })];
+
+    expect(validateAnswers(fields, ['a b'])).toEqual([
+      { label: 'Name', value: '<@&a> <@&b>' },
+    ]);
+    expect(() => validateAnswers(fields, ['c'])).toThrow('unknown role');
+  });
+
   describe.skipIf(noDatabase)('form service', () => {
     it('stores responses, posts them, and rejects closed forms', async () => {
       const { messenger } = fakeMessenger();
@@ -150,6 +168,54 @@ describe('built forms', () => {
       expect(responses.map(({ answers }) => answers)).toEqual([
         [{ label: 'Name', value: 'Mari' }],
       ]);
+    });
+
+    it('gives picked roles, removes the rest and skips unsafe ones', async () => {
+      const directory = fakeDirectory([
+        role({ id: 'a' }),
+        role({ id: 'b' }),
+        role({ id: 'mod', moderator: true }),
+      ]);
+      const service = createFormService({
+        ...serviceFakes(),
+        directory,
+        forms: createFormRepository(testDb()),
+      });
+      const admin = actor({ administrator: true });
+      const form = await service.create(admin, 'Roles');
+      const settings = (options: string[]) => ({
+        title: 'Roles',
+        description: null,
+        fields: [question({ kind: 'grant', required: false, options })],
+        responseChannelId: null,
+        mentions: {},
+      });
+
+      await expect(
+        service.update(admin, form.id, settings(['a', 'mod'])),
+      ).rejects.toThrow('moderator');
+      await expect(
+        service.update(actor(), form.id, settings(['a', 'b'])),
+      ).rejects.toThrow('administrators');
+      await service.update(admin, form.id, settings(['a', 'b']));
+      directory.role.mockResolvedValueOnce(role({ id: 'a', moderator: true }));
+      await service.submit(actor({ userId: 'm' }), form.id, ['b']);
+
+      const member = { guildId: 'g', userId: 'm' };
+
+      expect(directory.addRoles).toHaveBeenCalledWith(
+        member,
+        ['b'],
+        expect.any(String),
+      );
+      expect(directory.removeRoles).not.toHaveBeenCalled();
+
+      await service.submit(actor({ userId: 'm' }), form.id, ['']);
+      expect(directory.removeRoles).toHaveBeenCalledWith(
+        member,
+        ['a', 'b'],
+        expect.any(String),
+      );
     });
   });
 });
