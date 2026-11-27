@@ -2,6 +2,7 @@ import type { Permission } from '~/core/permission';
 import type { RoleInfo } from '~/core/ports/directory';
 import type { PanelRole, RolePanel } from '~/features/roles/model';
 import type { Flash, Server } from '~/web/context';
+import { Confirm } from '~/web/components/actions';
 import { Layout } from '~/web/layout';
 import { RoleChannelPicker } from './channel-picker';
 import { RolePanelForm } from './panel';
@@ -39,6 +40,11 @@ export function RolePage({
         Members react in Discord to get a role. Removing their reaction removes
         the role.
       </p>
+      <p>
+        For a dropdown panel, or several panels in one channel,{' '}
+        <a href="/forms">create a form</a> with a "Give roles" question and post
+        it.
+      </p>
       <RoleChannelPicker server={server} channelId={channelId} />
       {channelId !== undefined ? (
         <RolePanelForm
@@ -55,6 +61,17 @@ export function RolePage({
       ) : (
         <p>There are no available channels.</p>
       )}
+      {channelId !== undefined && panel !== undefined ? (
+        <Confirm
+          label="Delete panel"
+          question="Delete this panel and its Discord message? Members keep the roles they already have."
+        >
+          <form method="post" action="/settings/roles/delete">
+            <input type="hidden" name="channelId" value={channelId} />
+            <button type="submit">Yes, delete panel</button>
+          </form>
+        </Confirm>
+      ) : null}
     </Layout>
   );
 }

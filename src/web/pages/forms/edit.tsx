@@ -1,6 +1,8 @@
+import { selfAssignProblem } from '~/core/helpers/roles';
 import type { Permission } from '~/core/permission';
+import type { RoleInfo } from '~/core/ports/directory';
 import { fieldKinds, type Form, type FormField } from '~/features/forms/model';
-import { FormActions } from '~/web/components/actions';
+import { ActionButton, FormActions } from '~/web/components/actions';
 import { Checkbox } from '~/web/components/choices';
 import { Input, Select, Textarea } from '~/web/components/controls';
 import { MentionPicker } from '~/web/components/mentions';
@@ -15,6 +17,7 @@ const kindLabels: Record<FormField['kind'], string> = {
   choice: 'Choice',
   user: 'Member',
   role: 'Role',
+  grant: 'Give roles',
 };
 
 const blank: FormField = {
@@ -29,7 +32,13 @@ function Question({
   field,
   index,
   last,
-}: Readonly<{ field: FormField; index: number; last: boolean }>) {
+  roles,
+}: Readonly<{
+  field: FormField;
+  index: number;
+  last: boolean;
+  roles: RoleInfo[];
+}>) {
   const added = field.label === '';
 
   return (
@@ -59,6 +68,26 @@ function Question({
         >
           {field.options.join('\n')}
         </Textarea>
+      </div>
+      <div class="grants">
+        <label htmlFor={`grants-${index}`}>Roles members can pick</label>
+        <select id={`grants-${index}`} name={`grants-${index}`} multiple>
+          {roles.map((role) => (
+            <option
+              key={role.id}
+              value={role.id}
+              selected={
+                field.kind === 'grant' && field.options.includes(role.id)
+              }
+            >
+              {role.name}
+            </option>
+          ))}
+        </select>
+        <small>
+          Members get the roles they pick and lose the ones they leave out. Only
+          administrators can save these.
+        </small>
       </div>
       <div class="placeholder">
         <Input
@@ -135,6 +164,13 @@ export function FormEditPage({
   flash,
 }: Readonly<Props>) {
   const rows = [...form.fields, blank];
+  const roles = server.roles.filter(
+    (role) =>
+      selfAssignProblem(role) === undefined ||
+      form.fields.some(
+        (f) => f.kind === 'grant' && f.options.includes(role.id),
+      ),
+  );
 
   return (
     <Layout
@@ -166,6 +202,15 @@ export function FormEditPage({
           <Textarea label="Description" name="description" rows={2}>
             {form.description}
           </Textarea>
+          <Textarea
+            label="Message after submitting"
+            name="confirmation"
+            rows={2}
+            maxlength={2000}
+            help="Leave empty for: Thanks, your response is saved."
+          >
+            {form.confirmation}
+          </Textarea>
         </fieldset>
         <h2 id="questions">Questions</h2>
         <p class="hint">Discord shows five questions per page.</p>
@@ -176,6 +221,7 @@ export function FormEditPage({
             field={field}
             index={index}
             last={index === form.fields.length - 1}
+            roles={roles}
           />
         ))}
         <fieldset>
@@ -212,6 +258,12 @@ export function FormEditPage({
           {form.status === 'open' ? 'Close form' : 'Reopen form'}
         </button>
       </form>
+      <ActionButton
+        action={`/forms/${form.id}/delete`}
+        label="Delete"
+        subject={form.title}
+        confirm="Delete this form and its Discord message? Responses are kept, and roles members already got stay."
+      />
     </Layout>
   );
 }

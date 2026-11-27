@@ -14,6 +14,7 @@ export const forms = pgTable('forms', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
+  confirmation: text('confirmation'),
   fields: jsonb('fields').$type<FormField[]>().notNull().default([]),
   channelId: text('channel_id'),
   messageId: text('message_id'),

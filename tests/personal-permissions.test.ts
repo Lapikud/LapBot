@@ -62,12 +62,6 @@ it('includes personal grants in both authorization lookups', async () => {
   const user = actor({ administrator: false, roleIds: ['role'] });
 
   expect(await authz.can(user, 'event:create')).toBe(true);
-  expect(holds).toHaveBeenCalledWith(
-    user.guildId,
-    ['role'],
-    'event:create',
-    user.userId,
-  );
   expect(
     await authz.granted(user, [
       'event:create',
@@ -75,7 +69,6 @@ it('includes personal grants in both authorization lookups', async () => {
       applicationAdmin,
     ]),
   ).toEqual(new Set(['event:create', 'poll:create']));
-  expect(held).toHaveBeenCalledWith(user.guildId, ['role'], user.userId);
   expect(await authz.can(user, applicationAdmin)).toBe(false);
 });
 

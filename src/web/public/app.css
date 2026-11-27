@@ -511,8 +511,14 @@ td :is(form, .confirm):last-child {
 }
 
 .question:not(:has(option[value='choice']:checked)) .choices,
+.question:not(:has(option[value='grant']:checked)) .grants,
 .question:has(
-    option:is([value='choice'], [value='user'], [value='role']):checked
+    option:is(
+        [value='choice'],
+        [value='user'],
+        [value='role'],
+        [value='grant']
+      ):checked
   )
   .placeholder {
   display: none;

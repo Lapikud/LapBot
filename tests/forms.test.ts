@@ -13,7 +13,13 @@ import { questionsOf } from '~/web/pages/forms/routes';
 import type { AppContext, ComponentInteraction } from '~/discord/contracts';
 import { createFormRepository } from '~/integrations/db/forms/repository';
 import { noDatabase, testDb } from './db';
-import { actor, fakeMessenger, serviceFakes } from './fakes';
+import {
+  actor,
+  fakeDirectory,
+  fakeMessenger,
+  role,
+  serviceFakes,
+} from './fakes';
 
 describe('birthday submissions', () => {
   it('keeps leap days and defaults unknown visibility to public', () => {
@@ -119,6 +125,18 @@ describe('built forms', () => {
     expect(() => validateAnswers(fields, ['x', '', 'c'])).toThrow('choice');
   });
 
+  it('checks role questions and stores picked roles as mentions', () => {
+    expect(() => validateFields([question({ kind: 'grant' })])).toThrow(
+      '1-25 roles',
+    );
+    const fields = [question({ kind: 'grant', options: ['a', 'b'] })];
+
+    expect(validateAnswers(fields, ['a b'])).toEqual([
+      { label: 'Name', value: '<@&a> <@&b>' },
+    ]);
+    expect(() => validateAnswers(fields, ['c'])).toThrow('unknown role');
+  });
+
   describe.skipIf(noDatabase)('form service', () => {
     it('stores responses, posts them, and rejects closed forms', async () => {
       const { messenger } = fakeMessenger();
@@ -133,6 +151,7 @@ describe('built forms', () => {
       await service.update(admin, form.id, {
         title: 'Sign-up',
         description: null,
+        confirmation: null,
         fields: [question()],
         responseChannelId: 'answers',
         mentions: {},
@@ -151,11 +170,94 @@ describe('built forms', () => {
         [{ label: 'Name', value: 'Mari' }],
       ]);
     });
+
+    it('deletes a form and its message but keeps responses', async () => {
+      const { messenger } = fakeMessenger();
+      const repository = createFormRepository(testDb());
+      const service = createFormService({
+        ...serviceFakes(),
+        messenger,
+        forms: repository,
+      });
+      const admin = actor({ administrator: true });
+      const form = await service.create(admin, 'Oops');
+
+      await service.update(admin, form.id, {
+        title: 'Oops',
+        description: null,
+        confirmation: null,
+        fields: [question()],
+        responseChannelId: null,
+        mentions: {},
+      });
+      const posted = await service.post(admin, form.id, 'c');
+
+      await service.submit(actor(), form.id, ['x']);
+      await service.remove(admin, form.id);
+
+      expect(messenger.remove).toHaveBeenCalledWith('c', posted.messageId);
+      expect((await service.list(admin)).map(({ id }) => id)).not.toContain(
+        form.id,
+      );
+      await expect(service.submit(actor(), form.id, ['x'])).rejects.toThrow(
+        'does not exist',
+      );
+      await expect(repository.responses(form.id)).resolves.toHaveLength(1);
+    });
+
+    it('gives picked roles, removes the rest and skips unsafe ones', async () => {
+      const directory = fakeDirectory([
+        role({ id: 'a' }),
+        role({ id: 'b' }),
+        role({ id: 'mod', moderator: true }),
+      ]);
+      const service = createFormService({
+        ...serviceFakes(),
+        directory,
+        forms: createFormRepository(testDb()),
+      });
+      const admin = actor({ administrator: true });
+      const form = await service.create(admin, 'Roles');
+      const settings = (options: string[]) => ({
+        title: 'Roles',
+        description: null,
+        confirmation: null,
+        fields: [question({ kind: 'grant', required: false, options })],
+        responseChannelId: null,
+        mentions: {},
+      });
+
+      await expect(
+        service.update(admin, form.id, settings(['a', 'mod'])),
+      ).rejects.toThrow('moderator');
+      await expect(
+        service.update(actor(), form.id, settings(['a', 'b'])),
+      ).rejects.toThrow('administrators');
+      await service.update(admin, form.id, settings(['a', 'b']));
+      directory.role.mockResolvedValueOnce(role({ id: 'a', moderator: true }));
+      await service.submit(actor({ userId: 'm' }), form.id, ['b']);
+
+      const member = { guildId: 'g', userId: 'm' };
+
+      expect(directory.addRoles).toHaveBeenCalledWith(
+        member,
+        ['b'],
+        expect.any(String),
+      );
+      expect(directory.removeRoles).not.toHaveBeenCalled();
+
+      await service.submit(actor({ userId: 'm' }), form.id, ['']);
+      expect(directory.removeRoles).toHaveBeenCalledWith(
+        member,
+        ['a', 'b'],
+        expect.any(String),
+      );
+    });
   });
 });
 
 describe('filling in forms on Discord', () => {
-  it('collects answers across pages before submitting', async () => {
+  it("collects answers across pages, then shows the form's own message", async () => {
     const fields = Array.from({ length: 6 }, (_, index): FormField => ({
       label: `Q${index}`,
       kind: 'short',
@@ -165,7 +267,13 @@ describe('filling in forms on Discord', () => {
     }));
     const submit = vi.fn(async () => undefined);
     const feature = formCommands({
-      open: async () => ({ id: 1, title: 'Long', status: 'open', fields }),
+      open: async () => ({
+        id: 1,
+        title: 'Long',
+        status: 'open',
+        confirmation: 'Welcome to the club!',
+        fields,
+      }),
       submit,
     } as unknown as FormService);
     const save = feature.components?.find((c) => c.prefix === 'forms:page');
@@ -175,6 +283,7 @@ describe('filling in forms on Discord', () => {
       roles: { cache: new Map(), highest: { position: 0 } },
       permissions: { has: () => false },
     };
+    const reply = vi.fn(async (_message: unknown) => undefined);
     const page = (number: number) =>
       ({
         isModalSubmit: () => true,
@@ -182,7 +291,7 @@ describe('filling in forms on Discord', () => {
         member,
         replied: false,
         deferred: false,
-        reply: vi.fn(async () => undefined),
+        reply,
         fields: {
           getTextInputValue: (id: string) => `${number}-${id}`,
         },
@@ -199,6 +308,9 @@ describe('filling in forms on Discord', () => {
       '0-q4',
       '1-q0',
     ]);
+    expect(reply).toHaveBeenLastCalledWith(
+      expect.objectContaining({ content: 'Welcome to the club!' }),
+    );
   });
 });
 

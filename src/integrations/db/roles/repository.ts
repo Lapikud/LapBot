@@ -65,6 +65,9 @@ export function createRolePanelRepository(db: Db): RolePanelRepository {
         .set({ messageId })
         .where(eq(rolePanels.id, panelId));
     },
+    remove: async (panelId) => {
+      await db.delete(rolePanels).where(eq(rolePanels.id, panelId));
+    },
     replaceRoles: async (panelId, roles) => {
       await db.transaction(async (tx) => {
         await tx

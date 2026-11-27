@@ -19,14 +19,21 @@ import { ResponsesPage } from './responses';
 export function questionsOf(form: Submitted) {
   const rows = Array.from(
     { length: Number(field(form, 'rows') ?? 0) },
-    (_, i) => ({
-      label: field(form, `label-${i}`) ?? '',
-      kind:
-        fieldKinds.find((kind) => kind === field(form, `kind-${i}`)) ?? 'short',
-      required: checked(form, `required-${i}`),
-      options: (field(form, `options-${i}`) ?? '').split('\n'),
-      placeholder: field(form, `placeholder-${i}`) ?? null,
-    }),
+    (_, i) => {
+      const kind =
+        fieldKinds.find((k) => k === field(form, `kind-${i}`)) ?? 'short';
+
+      return {
+        label: field(form, `label-${i}`) ?? '',
+        kind,
+        required: checked(form, `required-${i}`),
+        options:
+          kind === 'grant'
+            ? form.getAll(`grants-${i}`).map(String)
+            : (field(form, `options-${i}`) ?? '').split('\n'),
+        placeholder: field(form, `placeholder-${i}`) ?? null,
+      };
+    },
   );
   const [direction, at] = (field(form, 'move') ?? '').split(':');
   const from = Number(at);
@@ -119,6 +126,7 @@ export function formRoutes({
       await forms.update(c.var.actor, id, {
         title: field(form, 'title') ?? '',
         description: field(form, 'description') ?? null,
+        confirmation: field(form, 'confirmation') ?? null,
         fields: questionsOf(form),
         responseChannelId: field(form, 'responseChannelId') ?? null,
         mentions: mentionsFrom(form),
@@ -151,6 +159,11 @@ export function formRoutes({
       return back(c, `/forms/${id}`, {
         notice: status === 'closed' ? 'Form closed.' : 'Form reopened.',
       });
+    })
+    .post(String.raw`/:id{\d+}/delete`, async (c) => {
+      await forms.remove(c.var.actor, Number(c.req.param('id')));
+
+      return back(c, '/forms', { notice: 'Form deleted.' });
     })
     .get(String.raw`/:id{\d+}/responses`, async (c) => {
       const { form, responses } = await forms.responses(

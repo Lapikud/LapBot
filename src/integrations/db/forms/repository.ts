@@ -1,4 +1,4 @@
-import { asc, count, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq, ne } from 'drizzle-orm';
 import type { FormRepository } from '~/features/forms/model';
 import type { Db } from '../client';
 import { formResponses, forms } from './table';
@@ -24,6 +24,7 @@ export function createFormRepository(db: Db): FormRepository {
         .select({ form: forms, responses: count(formResponses.id) })
         .from(forms)
         .leftJoin(formResponses, eq(formResponses.formId, forms.id))
+        .where(ne(forms.status, 'deleted'))
         .groupBy(forms.id)
         .orderBy(desc(forms.id));
 

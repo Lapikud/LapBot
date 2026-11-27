@@ -7,11 +7,12 @@ export const fieldKinds = [
   'choice',
   'user',
   'role',
+  'grant',
 ] as const;
 
 export type FieldKind = (typeof fieldKinds)[number];
 
-export type FormStatus = 'open' | 'closed';
+export type FormStatus = 'open' | 'closed' | 'deleted';
 
 export interface FormField {
   label: string;
@@ -25,6 +26,7 @@ export interface Form {
   id: number;
   title: string;
   description: string | null;
+  confirmation: string | null;
   fields: FormField[];
   channelId: string | null;
   messageId: string | null;
@@ -53,6 +55,7 @@ export type FormChanges = Partial<
     Form,
     | 'title'
     | 'description'
+    | 'confirmation'
     | 'fields'
     | 'channelId'
     | 'messageId'

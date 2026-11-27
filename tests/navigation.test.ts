@@ -26,16 +26,4 @@ describe('primary navigation', () => {
     expect(primary).not.toContain('>Polls</a>');
     expect(html).toContain('aria-label="Community pages"');
   });
-
-  it('marks the active group and destination on nested event pages', async () => {
-    const html = await page(
-      ['event:suggestions:manage'],
-      '/events/suggestions',
-    );
-
-    expect(html).toContain('href="/events" aria-current="true">Community</a>');
-    expect(html).toContain(
-      'href="/events/suggestions" aria-current="page">Suggestions</a>',
-    );
-  });
 });

@@ -70,6 +70,18 @@ describe('role service', () => {
       expect(directory.removeRoles).toHaveBeenCalledOnce();
     });
 
+    it('deletes the panel and its message', async () => {
+      const { service, messenger, sent, admin, channelId, guildId } =
+        await setup();
+
+      await expect(
+        service.remove(actor({ guildId }), channelId),
+      ).rejects.toThrow('Only server administrators');
+      await service.remove(admin, channelId);
+      expect(messenger.remove).toHaveBeenCalledWith(channelId, sent[0]);
+      await expect(service.list(admin)).resolves.toEqual([]);
+    });
+
     it('skips roles that are no longer assignable', async () => {
       const { service, sent, directory, guildId, channelId } = await setup();
 
@@ -99,6 +111,7 @@ describe('role message configuration', () => {
       replaceRoles: vi.fn(async () => undefined),
       setMessage: vi.fn(async () => undefined),
       reactionRole: vi.fn(async () => 'r'),
+      remove: vi.fn(async () => undefined),
     } satisfies RolePanelRepository;
     const { messenger } = fakeMessenger();
     const directory = fakeDirectory([role()]);
@@ -115,13 +128,15 @@ describe('role message configuration', () => {
   it('rejects unauthorized configuration and unsafe roles before writing', async () => {
     const { service, panels, directory } = setup();
 
-    await expect(service.save(actor(), 'c', [])).rejects.toThrow();
+    await expect(service.save(actor(), 'c', [])).rejects.toThrow(
+      'Only server administrators',
+    );
     directory.role.mockResolvedValue(role({ moderator: true }));
     await expect(
       service.save(actor({ administrator: true }), 'c', [
         { roleId: 'r', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('moderator');
     expect(panels.create).not.toHaveBeenCalled();
   });
 
@@ -133,7 +148,7 @@ describe('role message configuration', () => {
         { roleId: 'r', emoji: '🎉' },
         { roleId: 'x', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('different role and emoji');
     expect(panels.create).not.toHaveBeenCalled();
   });
 
@@ -169,7 +184,7 @@ describe('role message configuration', () => {
       service.save(actor({ administrator: true }), 'c', [
         { roleId: 'r', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('Choose a server channel');
     expect(panels.create).not.toHaveBeenCalled();
   });
 

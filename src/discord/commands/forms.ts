@@ -7,6 +7,7 @@ import {
   TextInputStyle,
   UserSelectMenuBuilder,
   type ModalSubmitFields,
+  type RoleManager,
 } from 'discord.js';
 import { UserError } from '~/core/errors';
 import { controlId, roleMention, userMention } from '~/core/message';
@@ -17,8 +18,24 @@ import type { ComponentHandler, Feature } from '~/discord/contracts';
 import { toActor } from '~/discord/interactions/actor';
 import { respond, respondView } from '~/discord/interactions/responses';
 
-const input = (field: FormField, id: string) => {
+const input = (field: FormField, id: string, roles: RoleManager) => {
   const label = new LabelBuilder().setLabel(field.label);
+
+  if (field.kind === 'grant') {
+    return label.setStringSelectMenuComponent(
+      new StringSelectMenuBuilder()
+        .setCustomId(id)
+        .setRequired(field.required)
+        .setMinValues(field.required ? 1 : 0)
+        .setMaxValues(field.options.length)
+        .addOptions(
+          field.options.map((roleId) => ({
+            label: (roles.cache.get(roleId)?.name ?? roleId).slice(0, 100),
+            value: roleId,
+          })),
+        ),
+    );
+  }
 
   if (field.kind === 'choice') {
     return label.setStringSelectMenuComponent(
@@ -60,6 +77,10 @@ const input = (field: FormField, id: string) => {
 };
 
 const valueOf = (fields: ModalSubmitFields, field: FormField, id: string) => {
+  if (field.kind === 'grant') {
+    return fields.getStringSelectValues(id).join(' ');
+  }
+
   if (field.kind === 'choice') {
     return fields.getStringSelectValues(id).join(', ');
   }
@@ -112,7 +133,9 @@ export function formCommands(forms: FormService): Feature {
             ).slice(0, 45),
           )
           .addLabelComponents(
-            ...questions.map((field, index) => input(field, `q${index}`)),
+            ...questions.map((field, index) =>
+              input(field, `q${index}`, interaction.guild.roles),
+            ),
           ),
       );
     },
@@ -160,7 +183,10 @@ export function formCommands(forms: FormService): Feature {
 
       pending.delete(key);
       await forms.submit(toActor(interaction.member), form.id, values);
-      await respond(interaction, 'Thanks, your response is saved.');
+      await respond(
+        interaction,
+        form.confirmation ?? 'Thanks, your response is saved.',
+      );
     },
   };
 

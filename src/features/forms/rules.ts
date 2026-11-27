@@ -1,4 +1,5 @@
 import { UserError } from '~/core/errors';
+import { roleMention } from '~/core/message';
 import type { Answer, FormField } from './model';
 
 export const fieldsPerPage = 5;
@@ -18,7 +19,9 @@ export function validateFields(fields: readonly FormField[]): FormField[] {
 
   return fields.map((field) => {
     const label = field.label.trim();
-    const options = field.options.map((o) => o.trim()).filter(Boolean);
+    const options = [
+      ...new Set(field.options.map((o) => o.trim()).filter(Boolean)),
+    ];
 
     if (label === '' || label.length > 45) {
       throw new UserError('Questions need a label of 1-45 characters.');
@@ -33,10 +36,17 @@ export function validateFields(fields: readonly FormField[]): FormField[] {
       );
     }
 
+    if (
+      field.kind === 'grant' &&
+      (options.length === 0 || options.length > maxChoices)
+    ) {
+      throw new UserError(`"${label}" needs 1-${maxChoices} roles.`);
+    }
+
     return {
       ...field,
       label,
-      options: field.kind === 'choice' ? options : [],
+      options: field.kind === 'choice' || field.kind === 'grant' ? options : [],
     };
   });
 }
@@ -73,6 +83,19 @@ export function validateAnswers(
       !field.options.includes(value)
     ) {
       throw new UserError(`"${field.label}" has an unknown choice.`);
+    }
+
+    if (field.kind === 'grant') {
+      const chosen = value.split(' ').filter(Boolean);
+
+      if (chosen.some((roleId) => !field.options.includes(roleId))) {
+        throw new UserError(`"${field.label}" has an unknown role.`);
+      }
+
+      return {
+        label: field.label,
+        value: chosen.map((roleId) => roleMention(roleId)).join(' '),
+      };
     }
 
     return { label: field.label, value };
