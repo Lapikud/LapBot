@@ -177,6 +177,12 @@ td:last-child:has([type='submit'], [role='button']) {
   text-align: end;
 }
 
+th[scope='rowgroup'] {
+  padding-block-start: var(--pico-spacing);
+  background: var(--pico-card-sectioning-background-color);
+  font-weight: 600;
+}
+
 .table-wrapper {
   overflow-x: auto;
   scrollbar-gutter: stable;
@@ -339,10 +345,13 @@ td form {
   display: inline-block;
   max-width: none;
   margin: 0;
+}
+
+td :is(form, .confirm) {
   margin-inline-end: 0.25rem;
 }
 
-td form:last-child {
+td :is(form, .confirm):last-child {
   margin-inline-end: 0;
 }
 
@@ -415,11 +424,46 @@ td form:last-child {
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 0.5rem;
   margin-block-end: var(--pico-spacing);
 }
 
 .actions > :is(button, [type='submit'], a) {
+  width: auto;
+  margin: 0;
+}
+
+.confirm {
+  display: inline-block;
+  margin: 0;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.confirm[open] {
+  display: block;
+  margin-block-end: 0.5rem;
+}
+
+.confirm > summary[role='button'] {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  text-align: center;
+}
+
+.confirm > summary[role='button']::after {
+  display: none;
+}
+
+.confirm > p {
+  max-inline-size: 18rem;
+  margin-block: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.confirm button {
   width: auto;
   margin: 0;
 }

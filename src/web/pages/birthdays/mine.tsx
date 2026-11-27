@@ -3,7 +3,7 @@ import {
   birthdayVisibilities,
   birthdayVisibilityLabels,
 } from '~/features/birthdays/rules';
-import { FormActions } from '~/web/components/actions';
+import { Confirm, FormActions } from '~/web/components/actions';
 import { Input, Select } from '~/web/components/controls';
 
 const monthName = new Intl.DateTimeFormat('en-GB', {
@@ -62,16 +62,11 @@ export function MyBirthday({ mine }: Readonly<{ mine: Birthday | undefined }>) {
             Save birthday
           </button>
           {mine === undefined ? null : (
-            <button
-              type="submit"
-              name="action"
-              value="remove"
-              class="secondary outline"
-              formnovalidate
-              data-confirm="Remove your birthday?"
-            >
-              Remove
-            </button>
+            <Confirm label="Remove" question="Remove your birthday?">
+              <button type="submit" name="action" value="remove" formnovalidate>
+                Yes, remove
+              </button>
+            </Confirm>
           )}
         </FormActions>
       </form>

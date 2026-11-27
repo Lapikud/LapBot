@@ -43,7 +43,6 @@ export function Layout({
         <title>{`${title} · LAPbot`}</title>
         <link rel="stylesheet" href={pico} />
         <link rel="stylesheet" href="/app.css" />
-        <script src="/confirm.js" defer />
       </head>
       <body>
         <a class="skip-link" href="#main">

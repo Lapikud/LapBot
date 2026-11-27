@@ -1,7 +1,7 @@
 import type { Child } from 'hono/jsx';
 import type { Permission } from '~/core/permission';
 import { maxAnnouncementLength } from '~/features/announcements/service';
-import { FormActions } from '~/web/components/actions';
+import { Confirm, FormActions } from '~/web/components/actions';
 import { Input, Textarea } from '~/web/components/controls';
 import { ChannelSelect } from '~/web/components/selectors';
 import { type Server } from '~/web/context';
@@ -12,13 +12,7 @@ const actions = [
   ['preview', 'Preview', 'secondary outline', 'announcement:create'],
   ['draft', 'Save draft', 'secondary', 'announcement:create'],
   ['schedule', 'Schedule', 'secondary', 'announcement:schedule'],
-  [
-    'publish',
-    'Publish now',
-    undefined,
-    'announcement:publish',
-    'Post this announcement to Discord now?',
-  ],
+  ['publish', 'Publish now', undefined, 'announcement:publish'],
 ] as const;
 
 export function Composer({
@@ -69,18 +63,29 @@ export function Composer({
       <FormActions>
         {(published ? actions.slice(0, 2) : actions)
           .filter(([, , , needs]) => can.has(needs))
-          .map(([value, label, variant, , confirm]) => (
-            <button
-              key={value}
-              type="submit"
-              name="action"
-              value={value}
-              class={variant}
-              data-confirm={confirm}
-            >
-              {published && value === 'draft' ? 'Save' : label}
-            </button>
-          ))}
+          .map(([value, label, variant]) =>
+            value === 'publish' ? (
+              <Confirm
+                key={value}
+                label={label}
+                question="Post this announcement to Discord now?"
+              >
+                <button type="submit" name="action" value={value}>
+                  Yes, publish
+                </button>
+              </Confirm>
+            ) : (
+              <button
+                key={value}
+                type="submit"
+                name="action"
+                value={value}
+                class={variant}
+              >
+                {published && value === 'draft' ? 'Save' : label}
+              </button>
+            ),
+          )}
       </FormActions>
     </form>
   );
