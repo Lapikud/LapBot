@@ -113,7 +113,15 @@ def build(release):
     run("tar", "-x", "-C", str(release), stdin=archive)
     (release / ".env").symlink_to(env_file)
     (release / "logs").symlink_to(logs_dir)
-    run(*one_cpu, "pnpm", "install", "--frozen-lockfile", cwd=release)
+    run(
+        *one_cpu,
+        "pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--network-concurrency=4",
+        "--child-concurrency=1",
+        cwd=release,
+    )
     run(*one_cpu, "pnpm", "build", cwd=release)
     print(f"build: {release}")
 
