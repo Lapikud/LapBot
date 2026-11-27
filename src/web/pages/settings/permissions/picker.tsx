@@ -74,19 +74,20 @@ export function MemberPicker({
           <ul
             id={`${name}-options`}
             role="listbox"
+            class="suggestions"
             aria-label={`${label} suggestions`}
             hidden
           />
         </div>
+        {matches === undefined ? null : (
+          <MemberMatches
+            name={name}
+            label={label}
+            query={query}
+            matches={matches}
+          />
+        )}
       </form>
-      {matches === undefined ? null : (
-        <MemberMatches
-          name={name}
-          label={label}
-          query={query}
-          matches={matches}
-        />
-      )}
     </>
   );
 }
@@ -107,11 +108,12 @@ function MemberMatches({
   }
 
   return (
-    <ul aria-label={`${label} results`}>
+    <ul class="suggestions" aria-label={`${label} results`}>
       {matches.map((member) => (
         <li key={member.id}>
-          <a href={`?advanced=1&${name}=${member.id}`}>{member.name}</a>{' '}
-          <small>{member.username}</small>
+          <a href={`?advanced=1&${name}=${member.id}`}>
+            {member.name} <small>{member.username}</small>
+          </a>
         </li>
       ))}
     </ul>

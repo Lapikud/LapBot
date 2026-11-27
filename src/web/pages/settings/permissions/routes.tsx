@@ -30,6 +30,22 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
         (findMembers(server.members, c.req.query('q')) ?? []).slice(0, 10),
       );
     })
+    .get('/', async (c, next) => {
+      const { members } = await c.var.server();
+      const url = new URL(c.req.url);
+
+      for (const name of ['member', 'check']) {
+        const matches = search(members, c.req.query(name));
+
+        if (matches?.length === 1) {
+          url.searchParams.set(name, matches[0]?.id ?? '');
+
+          return c.redirect(`${url.pathname}${url.search}`, 303);
+        }
+      }
+
+      return next();
+    })
     .get('/', async (c) => {
       const { actor } = c.var;
       const advanced = c.req.query('advanced') === '1';
