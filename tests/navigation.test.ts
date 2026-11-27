@@ -33,16 +33,9 @@ describe('primary navigation', () => {
       '/events/suggestions',
     );
 
-    expect(html).toContain('href="/events" aria-current="page">Community</a>');
+    expect(html).toContain('href="/events" aria-current="true">Community</a>');
     expect(html).toContain(
       'href="/events/suggestions" aria-current="page">Suggestions</a>',
     );
-  });
-
-  it('offers a primary menu control for narrow layouts', async () => {
-    const html = await page([]);
-
-    expect(html).toContain('popovertarget="primary-links"');
-    expect(html).toMatch(/id="primary-links"[^>]*popover="auto"/);
   });
 });

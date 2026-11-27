@@ -1,5 +1,5 @@
 import type { Child } from 'hono/jsx';
-import { type Permission } from '~/core/permission';
+import type { Permission } from '~/core/permission';
 import type { Flash } from './context';
 import {
   containsPage,
@@ -43,91 +43,81 @@ export function Layout({
         <title>{`${title} · LAPbot`}</title>
         <link rel="stylesheet" href={pico} />
         <link rel="stylesheet" href="/app.css" />
-        <script src="/nav.js" defer />
       </head>
       <body>
         <a class="skip-link" href="#content">
           Skip to content
         </a>
-        <header class="container">
-          <nav class="primary-nav" aria-label="Primary">
-            <ul>
-              <li>
-                <strong>LAPbot</strong>
-              </li>
-            </ul>
-            {visible.length === 0 ? null : (
-              <button
-                type="button"
-                class="nav-menu-button"
-                popovertarget="primary-links"
-                aria-controls="primary-links"
-              >
-                Menu
-              </button>
-            )}
-            <ul id="primary-links" class="primary-links" popover="auto">
+
+        <header class="app-header">
+          <div class="container header-content">
+            <a href="/" class="brand">
+              LAPbot
+            </a>
+
+            <nav class="primary-nav" aria-label="Primary">
               {visible.map(({ href, label, pages: destinations }) => (
-                <li key={href}>
-                  <a
-                    href={
-                      visibleLinks(destinations ?? [], can)[0]?.href ?? href
-                    }
-                    aria-current={section?.href === href ? 'page' : undefined}
-                  >
-                    {label}
-                  </a>
-                </li>
+                <a
+                  key={href}
+                  href={visibleLinks(destinations ?? [], can)[0]?.href ?? href}
+                  aria-current={section?.href === href ? 'true' : undefined}
+                >
+                  {label}
+                </a>
               ))}
-            </ul>
-            <ul>
-              <li>
-                {signedIn ? (
-                  <form method="post" action="/logout">
-                    <button type="submit" class="secondary outline">
-                      Sign out
-                    </button>
-                  </form>
-                ) : (
-                  <a href="/login" role="button" class="secondary outline">
-                    Sign in
-                  </a>
-                )}
-              </li>
-            </ul>
-          </nav>
-        </header>
-        <main class="container" id="content">
-          {pages.length === 0 ? null : (
-            <nav class="section-nav" aria-label={`${section?.label} pages`}>
-              <ul>
-                {pages.map(({ href, label }) => (
-                  <li key={href}>
-                    <a
-                      href={href}
-                      aria-current={href === current ? 'page' : undefined}
-                    >
-                      {label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
             </nav>
-          )}
+
+            <div class="account">
+              {signedIn ? (
+                <form method="post" action="/logout">
+                  <button type="submit" class="secondary outline">
+                    Sign out
+                  </button>
+                </form>
+              ) : (
+                <a href="/login">Sign in</a>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {pages.length > 0 && (
+          <div class="section-header">
+            <nav
+              class="container section-nav"
+              aria-label={`${section?.label} pages`}
+            >
+              {pages.map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  aria-current={href === current ? 'page' : undefined}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+          </div>
+        )}
+
+        <main class="container" id="content">
           <div class="page-title">
             <h1>{title}</h1>
-            {actions}
+            {actions === undefined ? null : (
+              <div class="page-actions">{actions}</div>
+            )}
           </div>
-          {flash.notice === undefined ? null : (
-            <p class="notice" role="status">
-              {flash.notice}
-            </p>
+
+          {flash.notice !== undefined && (
+            <output class="notice">{flash.notice}</output>
           )}
-          {flash.error === undefined ? null : (
+
+          {flash.error !== undefined && (
             <p class="error" role="alert">
               {flash.error}
             </p>
           )}
+
           {children}
         </main>
       </body>

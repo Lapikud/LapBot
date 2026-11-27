@@ -1,6 +1,5 @@
 :root {
   --pico-font-size: 93.75%;
-  /* Compact but readable density for a dense utility dashboard. */
   --pico-spacing: 0.625rem;
   --pico-block-spacing-vertical: 1rem;
   --pico-block-spacing-horizontal: 1rem;
@@ -8,17 +7,16 @@
   --pico-form-element-spacing-vertical: 0.45rem;
   --pico-form-element-spacing-horizontal: 0.65rem;
 
-  /* Consistent target size floor; coarse pointers get more. */
   --target-size: 24px;
+  --pico-border-radius: 0.375rem;
+
+  caret-color: var(--pico-primary, currentColor);
+  accent-color: var(--pico-primary, auto);
 }
 
 form > [type='submit'],
 form > [role='group'] {
   width: auto;
-}
-
-td {
-  vertical-align: middle;
 }
 
 td form {
@@ -30,25 +28,8 @@ td [type='submit'],
 td [role='button'] {
   --pico-form-element-spacing-vertical: 0.25rem;
   --pico-form-element-spacing-horizontal: 0.75rem;
-
   margin: 0;
   font-size: 0.875rem;
-}
-
-.notice,
-.error {
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--pico-border-radius);
-}
-
-.notice {
-  background: var(--pico-ins-color);
-  color: var(--pico-primary-inverse);
-}
-
-.error {
-  background: var(--pico-del-color);
-  color: var(--pico-primary-inverse);
 }
 
 .discord {
@@ -104,18 +85,6 @@ fieldset label small {
   color: var(--pico-muted-color);
 }
 
-nav form,
-nav [type='submit'] {
-  margin: 0;
-}
-
-nav [type='submit'] {
-  --pico-form-element-spacing-vertical: 0.25rem;
-  --pico-form-element-spacing-horizontal: 0.75rem;
-
-  font-size: 0.875rem;
-}
-
 details.dropdown > ul {
   max-height: 18rem;
   overflow-y: auto;
@@ -129,23 +98,6 @@ details.dropdown > summary {
 
 fieldset > details.dropdown {
   width: 100%;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.page-title [role='button'] {
-  margin-bottom: var(--pico-typography-spacing-vertical);
-}
-
-td:last-child:has([type='submit'], [role='button']) {
-  width: 1%;
-  text-align: right;
-  white-space: nowrap;
 }
 
 td form:last-child {
@@ -248,6 +200,7 @@ main:has(.log-view) {
   flex: 1;
   margin: 0;
 }
+
 .log-view label,
 .log-view input,
 .log-view select,
@@ -255,6 +208,7 @@ main:has(.log-view) {
   margin-bottom: 0;
   font-size: 0.75rem;
 }
+
 .log-view input[type='search'] {
   border-radius: min(0.25rem, var(--pico-border-radius));
   height: 2.25rem;
@@ -268,15 +222,18 @@ main:has(.log-view) {
   padding-block: 0;
   flex-grow: 1;
 }
+
 .log-view > p {
   margin: 0;
   font-size: 0.75rem;
 }
+
 .log-pagination {
   flex-shrink: 0;
   gap: 1rem;
   font-size: 0.75rem;
 }
+
 .log-pagination [aria-disabled] {
   color: var(--pico-muted-color);
 }
@@ -301,25 +258,25 @@ main:has(.log-view) {
   padding: 0.15rem 0.4rem;
   overflow-wrap: anywhere;
 }
-.log-table th {
-  position: sticky;
-  top: 0;
-  background: var(--pico-background-color);
-}
+
 .log-table th:nth-child(1) {
   width: 10rem;
 }
+
 .log-table th:nth-child(2) {
   width: 4rem;
 }
+
 .log-table th:nth-child(3) {
   width: 7rem;
 }
+
 .log-table code {
   font-size: inherit;
   padding: 0;
   background: none;
 }
+
 .log-table details:not([open]) {
   display: inline-block;
   margin: 0 0 0 0.5rem;
@@ -363,98 +320,6 @@ main:has(.log-view) {
   max-height: 20rem;
   overflow: auto;
   font-size: 0.8em;
-}
-
-.primary-nav {
-  flex-wrap: nowrap;
-  gap: 0.75rem;
-}
-
-.primary-nav.is-measuring {
-  visibility: hidden;
-}
-
-.primary-nav .nav-menu-button {
-  margin: 0;
-}
-
-.primary-nav.is-wide .nav-menu-button {
-  display: none;
-}
-
-.primary-nav.is-wide .primary-links {
-  position: static;
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  width: auto;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  white-space: nowrap;
-}
-
-.primary-nav .primary-links a {
-  display: block;
-  padding: 0.4rem 0.6rem;
-  border-radius: var(--pico-border-radius);
-  text-decoration: none;
-}
-
-.primary-nav .primary-links a:hover,
-.primary-nav .primary-links a[aria-current='page'] {
-  background: var(--pico-secondary-background);
-  color: var(--pico-secondary-inverse);
-}
-
-:is(
-  .primary-nav .primary-links:popover-open,
-  .primary-nav.nav-fallback.menu-open .primary-links
-) {
-  display: flex;
-  position: fixed;
-  inset: auto 1rem auto auto;
-  top: 4rem;
-  top: anchor(--primary-menu bottom);
-  flex-direction: column;
-  width: min(20rem, calc(100dvw - 2rem));
-  max-height: calc(100dvh - 5rem);
-  margin: 0.5rem 0 0;
-  padding: 0.75rem;
-  overflow: auto;
-  border: 1px solid var(--pico-muted-border-color);
-  border-radius: var(--pico-border-radius);
-  background: var(--pico-background-color);
-  box-shadow: var(--pico-box-shadow);
-}
-
-.primary-nav.nav-fallback:not(.is-wide):not(.menu-open) .primary-links {
-  display: none;
-}
-
-.primary-nav .nav-menu-button {
-  anchor-name: --primary-menu;
-}
-
-.section-nav {
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--pico-muted-border-color);
-}
-
-.section-nav ul {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-nav a[aria-current='page'] {
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.35em;
 }
 
 .mentions .chips {
@@ -557,10 +422,6 @@ form.inline-edit {
   max-width: none;
 }
 
-main h2:not(:first-child) {
-  margin-top: calc(var(--pico-spacing) * 3);
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -588,11 +449,6 @@ main h2:not(:first-child) {
   flex: 0 0 7rem;
 }
 
-.hint {
-  color: var(--pico-muted-color);
-  font-size: 0.875rem;
-}
-
 legend {
   font-weight: 600;
 }
@@ -606,46 +462,27 @@ td.part {
   border-top: 1px solid var(--pico-muted-border-color);
 }
 
-/* ============================================================
-   Functional rework: density, hierarchy, tables, forms, responsive.
-   Incumbent Pico identity is preserved; we tighten and clarify it.
-   ============================================================ */
-
-/* --- Layout & density --------------------------------------- */
-
 html {
-  /* Keep scrollbar space stable so content doesn't jump. */
   scrollbar-gutter: stable;
-  /* Focused elements clear sticky headers / safe areas. */
   scroll-padding-block-start: 4rem;
   scroll-padding-block-end: max(1rem, env(safe-area-inset-bottom, 0px));
-  /* Theme browser-drawn surfaces (scrollbars, form widgets, caret). */
   color-scheme: light dark;
 }
 
 body {
-  /* Long words / URLs never force horizontal page scroll. */
   overflow-wrap: break-word;
 }
 
-main.container {
-  padding-inline: max(1rem, env(safe-area-inset-left, 0px))
-    max(1rem, env(safe-area-inset-right, 0px));
-}
-
-/* Nothing escapes its box; data tables scroll inside their own region. */
 img,
 video {
   max-inline-size: 100%;
   block-size: auto;
 }
 
-/* Constrain prose measure; tables and compact UI can run denser. */
 main :where(p, li, dd) {
   max-inline-size: 75ch;
 }
 
-/* Tight groups, generous separation; more space above a heading. */
 main h2:not(:first-child) {
   margin-block-start: calc(var(--pico-spacing) * 3);
 }
@@ -673,29 +510,6 @@ li {
   color: var(--pico-muted-color);
 }
 
-/* --- Hierarchy: page header + section nav ------------------- */
-
-.page-title {
-  align-items: baseline;
-  padding-block-end: var(--pico-spacing);
-  margin-block-end: var(--pico-spacing);
-  border-block-end: 1px solid var(--pico-muted-border-color);
-}
-
-.page-title h1 {
-  margin: 0;
-}
-
-.page-title > :not(h1) {
-  flex-shrink: 0;
-}
-
-.section-nav {
-  margin-bottom: var(--pico-spacing);
-}
-
-/* --- Focus & selection (browser surfaces) ------------------- */
-
 :where(
   a,
   button,
@@ -711,7 +525,6 @@ li {
   border-radius: var(--pico-border-radius, 0.25rem);
 }
 
-/* Pico uses box-shadow rings on controls; keep a visible outline too. */
 :is(input, select, textarea):focus-visible {
   outline-offset: 1px;
 }
@@ -721,44 +534,14 @@ li {
   color: var(--pico-primary-inverse, #fff);
 }
 
-:root {
-  caret-color: var(--pico-primary, currentColor);
-  accent-color: var(--pico-primary, auto);
-}
-
-/* Keep focus rings visible under transparent scrollers. */
 details.dropdown > summary:focus-visible {
   outline-offset: -2px;
 }
 
-/* --- State feedback: notice / error ------------------------- */
-
-.notice,
-.error {
-  margin-block: var(--pico-spacing);
-  border: 1px solid transparent;
-  font-weight: 500;
-}
-
-/* Not color-only: a leading marker + text carries the state. */
-.notice::before {
-  content: '✓ ' / '';
-  font-weight: 700;
-}
-
-.error::before {
-  content: '⚠ ' / '';
-  font-weight: 700;
-}
-
-/* --- Forms -------------------------------------------------- */
-
-/* Single-column scanning by default; no visual reorder vs DOM. */
 form label {
   font-weight: var(--pico-form-label-font-weight, var(--pico-font-weight, 400));
 }
 
-/* Controls scale with container but never below 1rem (iOS zoom). */
 :is(input, select, textarea, button) {
   font-size: max(1rem, 1em);
 }
@@ -773,7 +556,6 @@ form label {
   min-block-size: var(--target-size);
 }
 
-/* Validation feedback only after interaction; never raw :invalid. */
 :is(input, select, textarea):user-invalid {
   --pico-form-element-border-color: var(
     --pico-form-element-invalid-border-color
@@ -793,7 +575,6 @@ form label {
   border-color: var(--pico-form-element-invalid-border-color);
 }
 
-/* Help / error text linked via aria-describedby. */
 .field > small,
 label > small {
   display: block;
@@ -808,7 +589,6 @@ label > small[role='alert'],
   color: var(--pico-del-color);
 }
 
-/* Compact checkbox / radio rows; size the control to hit 24px. */
 label:has(> input[type='checkbox'], > input[type='radio']) {
   display: flex;
   align-items: center;
@@ -821,11 +601,8 @@ label:has(> input[type='checkbox'], > input[type='radio']) {
   flex-shrink: 0;
 }
 
-/* --- Tables ------------------------------------------------- */
-
 .table-wrapper {
   overflow-x: auto;
-  /* Reserve scrollbar space; don't chain scroll. */
   scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
   max-inline-size: 100%;
@@ -834,29 +611,21 @@ label:has(> input[type='checkbox'], > input[type='radio']) {
 
 table {
   margin-block-end: 0;
-  /* tabular numerals align columns. */
   font-variant-numeric: tabular-nums;
 }
 
-/* Cells don't shrink below legibility; wrap long strings. */
 td,
 th {
   overflow-wrap: anywhere;
   vertical-align: middle;
+  padding-block: calc(var(--pico-spacing) * 0.5);
+  padding-inline: calc(var(--pico-spacing) * 0.75);
 }
 
 th {
   white-space: nowrap;
 }
 
-/* Dense rows for a utility tool; reduce Pico's generous padding. */
-td,
-th {
-  padding-block: calc(var(--pico-spacing) * 0.5);
-  padding-inline: calc(var(--pico-spacing) * 0.75);
-}
-
-/* Sticky header inside scrollable regions. */
 .table-wrapper thead th,
 .log-table thead th {
   position: sticky;
@@ -865,55 +634,34 @@ th {
   background: var(--pico-background-color);
 }
 
-/* Action column: compact, right-aligned. */
 td:last-child:has([type='submit'], [role='button']) {
   width: 1%;
   white-space: nowrap;
   text-align: end;
 }
 
-/* --- Target size & coarse pointers -------------------------- */
-
 @media (pointer: coarse) {
   :root {
     --target-size: 44px;
   }
-
   :is(input[type='checkbox'], input[type='radio']) {
     min-inline-size: 24px;
     min-block-size: 24px;
   }
 }
 
-/* --- Responsive --------------------------------------------- */
-
 @media (max-width: 40rem) {
-  main.container {
-    padding-inline: max(0.75rem, env(safe-area-inset-left, 0px))
-      max(0.75rem, env(safe-area-inset-right, 0px));
-  }
-
-  /* Inline forms stack instead of overflowing. */
   .inline-edit {
     flex-wrap: wrap;
   }
-
   .inline-edit input,
   .inline-edit button {
     min-inline-size: 0;
   }
-
-  .page-title {
-    flex-wrap: wrap;
-  }
-
-  /* Actions wrap full-width on narrow screens. */
   .actions > :is(button, [type='submit'], a) {
     flex: 1 1 auto;
   }
 }
-
-/* --- Motion ------------------------------------------------- */
 
 @media (prefers-reduced-motion: no-preference) {
   :is(button, [role='button'], a, input, select, textarea) {
@@ -934,21 +682,200 @@ td:last-child:has([type='submit'], [role='button']) {
   }
 }
 
-/* --- Skip link ---------------------------------------------- */
+.app-header,
+.section-header {
+  background: var(--pico-background-color);
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  flex-shrink: 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.5rem;
+}
+
+.brand {
+  color: var(--pico-color);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primary-nav,
+.section-nav {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  min-width: 0;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.primary-nav:not(:has(a)) {
+  display: none;
+}
+
+.primary-nav {
+  flex: 1;
+  padding-block: 0.25rem;
+}
+
+.primary-nav a,
+.section-nav a {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--pico-muted-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primary-nav a {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--pico-border-radius);
+}
+
+.primary-nav a:hover {
+  color: var(--pico-color);
+  background: var(--pico-card-sectioning-background-color);
+}
+
+.primary-nav a[aria-current] {
+  color: var(--pico-secondary-inverse);
+  background: var(--pico-secondary-background);
+}
+
+.section-nav {
+  gap: 1.25rem;
+}
+
+.section-nav a {
+  padding: 0.65rem 0.25rem;
+  border-bottom: 2px solid transparent;
+}
+
+.section-nav a:hover,
+.section-nav a[aria-current] {
+  color: var(--pico-primary);
+}
+
+.section-nav a[aria-current] {
+  border-bottom-color: var(--pico-primary);
+}
+
+.primary-nav a:focus-visible,
+.section-nav a:focus-visible {
+  outline-offset: -2px;
+}
+
+.account {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.account form,
+.account button {
+  margin: 0;
+}
+
+.account button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+main.container {
+  padding-block: 1.5rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-actions > * {
+  margin: 0;
+}
+
+.notice,
+.error {
+  display: block;
+  margin-block: var(--pico-spacing);
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-inline-start: 3px solid currentColor;
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+}
+
+.notice {
+  border-inline-start-color: var(--pico-ins-color);
+}
+
+.error {
+  border-inline-start-color: var(--pico-del-color);
+}
+
+.notice::before {
+  content: '✓ ' / '';
+  font-weight: 700;
+}
+
+.error::before {
+  content: '⚠ ' / '';
+  font-weight: 700;
+}
 
 .skip-link {
   position: absolute;
-  inset-inline-start: -9999px;
-  inset-block-start: 0;
+  inset-inline-start: 1rem;
+  inset-block-start: 0.5rem;
   z-index: 1000;
   padding: 0.5rem 0.75rem;
   background: var(--pico-background-color);
   color: var(--pico-color);
-  border: 1px solid var(--pico-muted-border-color);
+  transform: translateY(calc(-100% - 1rem));
 }
 
-.skip-link:focus,
-.skip-link:focus-visible {
-  inset-inline-start: 0.5rem;
-  inset-block-start: 0.5rem;
+.skip-link:focus {
+  transform: none;
+}
+
+@media (max-width: 48rem) {
+  .header-content {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-block: 0.65rem;
+  }
+
+  .primary-nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  main.container {
+    padding-block: 1rem;
+  }
 }
