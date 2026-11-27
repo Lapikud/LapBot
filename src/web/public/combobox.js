@@ -53,6 +53,7 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
     );
     active = -1;
     list.size = Math.max(2, Math.min(members.length, 8));
+    list.selectedIndex = -1;
     list.hidden = members.length === 0;
     input.setAttribute('aria-expanded', String(members.length > 0));
     say(
