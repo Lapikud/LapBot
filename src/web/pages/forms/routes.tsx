@@ -19,14 +19,21 @@ import { ResponsesPage } from './responses';
 export function questionsOf(form: Submitted) {
   const rows = Array.from(
     { length: Number(field(form, 'rows') ?? 0) },
-    (_, i) => ({
-      label: field(form, `label-${i}`) ?? '',
-      kind:
-        fieldKinds.find((kind) => kind === field(form, `kind-${i}`)) ?? 'short',
-      required: checked(form, `required-${i}`),
-      options: (field(form, `options-${i}`) ?? '').split('\n'),
-      placeholder: field(form, `placeholder-${i}`) ?? null,
-    }),
+    (_, i) => {
+      const kind =
+        fieldKinds.find((k) => k === field(form, `kind-${i}`)) ?? 'short';
+
+      return {
+        label: field(form, `label-${i}`) ?? '',
+        kind,
+        required: checked(form, `required-${i}`),
+        options:
+          kind === 'grant'
+            ? form.getAll(`grants-${i}`).map(String)
+            : (field(form, `options-${i}`) ?? '').split('\n'),
+        placeholder: field(form, `placeholder-${i}`) ?? null,
+      };
+    },
   );
   const [direction, at] = (field(form, 'move') ?? '').split(':');
   const from = Number(at);
