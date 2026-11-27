@@ -50,6 +50,17 @@ export function roleRoutes({ services }: WebDeps) {
         />,
       );
     })
+    .post('/delete', async (c) => {
+      const channelId = field(await c.req.formData(), 'channelId') ?? '';
+
+      await services.roles.remove(c.var.actor, channelId);
+
+      return back(
+        c,
+        `/settings/roles?channel=${encodeURIComponent(channelId)}`,
+        { notice: 'Reaction panel deleted.' },
+      );
+    })
     .post('/', async (c) => {
       const form = await c.req.formData();
       const channelId = field(form, 'channelId');

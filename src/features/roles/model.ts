@@ -33,4 +33,5 @@ export interface RolePanelRepository {
   create: (panel: NewPanel) => Promise<number>;
   setMessage: (id: number, messageId: string | null) => Promise<void>;
   replaceRoles: (id: number, roles: readonly PanelRole[]) => Promise<void>;
+  remove: (id: number) => Promise<void>;
 }

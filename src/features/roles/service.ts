@@ -259,7 +259,28 @@ export function createRoleService(deps: Deps) {
     }
   };
 
-  return { syncPanels, reacted, list, save };
+  const remove = async (actor: Actor, channelId: string) => {
+    requireAdmin(actor);
+
+    const stored = await panels.list(actor.guildId);
+    const panel = stored.find((p) => p.channelId === channelId);
+
+    if (panel === undefined) {
+      throw new UserError('There is no panel in that channel.');
+    }
+
+    if (panel.messageId !== null) {
+      await messenger.remove(channelId, panel.messageId);
+    }
+
+    await panels.remove(panel.id);
+    log.info(
+      { guildId: actor.guildId, channelId, actorId: actor.userId },
+      'Role selection deleted',
+    );
+  };
+
+  return { syncPanels, reacted, list, save, remove };
 }
 
 export type RoleService = ReturnType<typeof createRoleService>;
