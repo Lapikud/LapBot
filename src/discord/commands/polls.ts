@@ -159,6 +159,7 @@ export function pollCommands(
       {
         id: 'poll:manage',
         description: 'Close and cancel any poll, see voters',
+        advanced: true,
       },
     ],
     components: [vote, clear],
