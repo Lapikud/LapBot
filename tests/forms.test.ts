@@ -151,6 +151,7 @@ describe('built forms', () => {
       await service.update(admin, form.id, {
         title: 'Sign-up',
         description: null,
+        confirmation: null,
         fields: [question()],
         responseChannelId: 'answers',
         mentions: {},
@@ -184,6 +185,7 @@ describe('built forms', () => {
       await service.update(admin, form.id, {
         title: 'Oops',
         description: null,
+        confirmation: null,
         fields: [question()],
         responseChannelId: null,
         mentions: {},
@@ -219,6 +221,7 @@ describe('built forms', () => {
       const settings = (options: string[]) => ({
         title: 'Roles',
         description: null,
+        confirmation: null,
         fields: [question({ kind: 'grant', required: false, options })],
         responseChannelId: null,
         mentions: {},
@@ -254,7 +257,7 @@ describe('built forms', () => {
 });
 
 describe('filling in forms on Discord', () => {
-  it('collects answers across pages before submitting', async () => {
+  it("collects answers across pages, then shows the form's own message", async () => {
     const fields = Array.from({ length: 6 }, (_, index): FormField => ({
       label: `Q${index}`,
       kind: 'short',
@@ -264,7 +267,13 @@ describe('filling in forms on Discord', () => {
     }));
     const submit = vi.fn(async () => undefined);
     const feature = formCommands({
-      open: async () => ({ id: 1, title: 'Long', status: 'open', fields }),
+      open: async () => ({
+        id: 1,
+        title: 'Long',
+        status: 'open',
+        confirmation: 'Welcome to the club!',
+        fields,
+      }),
       submit,
     } as unknown as FormService);
     const save = feature.components?.find((c) => c.prefix === 'forms:page');
@@ -274,6 +283,7 @@ describe('filling in forms on Discord', () => {
       roles: { cache: new Map(), highest: { position: 0 } },
       permissions: { has: () => false },
     };
+    const reply = vi.fn(async (_message: unknown) => undefined);
     const page = (number: number) =>
       ({
         isModalSubmit: () => true,
@@ -281,7 +291,7 @@ describe('filling in forms on Discord', () => {
         member,
         replied: false,
         deferred: false,
-        reply: vi.fn(async () => undefined),
+        reply,
         fields: {
           getTextInputValue: (id: string) => `${number}-${id}`,
         },
@@ -298,6 +308,9 @@ describe('filling in forms on Discord', () => {
       '0-q4',
       '1-q0',
     ]);
+    expect(reply).toHaveBeenLastCalledWith(
+      expect.objectContaining({ content: 'Welcome to the club!' }),
+    );
   });
 });
 
