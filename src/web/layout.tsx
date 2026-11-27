@@ -46,7 +46,7 @@ export function Layout({
         <script src="/confirm.js" defer />
       </head>
       <body>
-        <a class="skip-link" href="#content">
+        <a class="skip-link" href="#main">
           Skip to content
         </a>
 
@@ -101,7 +101,7 @@ export function Layout({
           </div>
         )}
 
-        <main class="container" id="content">
+        <main class="container" id="main">
           <div class="page-title">
             <h1>{title}</h1>
             {actions === undefined ? null : (
