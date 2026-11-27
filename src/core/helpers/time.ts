@@ -1,6 +1,6 @@
 import { en, ParsingComponents } from 'chrono-node';
 import { TZDate, tz, tzOffset } from '@date-fns/tz';
-import { addDays, addMonths, addWeeks, isValid, parse, set } from 'date-fns';
+import { addDays, addMonths, addWeeks, isValid, set } from 'date-fns';
 import { UserError } from '~/core/errors';
 
 const steps = { daily: addDays, weekly: addWeeks, monthly: addMonths };
@@ -133,44 +133,9 @@ export function calendarDay(date: Date, zone: string): CalendarDay {
   };
 }
 
-export function sameCalendarDay(a: Date, b: Date, zone: string): boolean {
-  return (
-    formatCalendarDay(calendarDay(a, zone)) ===
-    formatCalendarDay(calendarDay(b, zone))
-  );
-}
-
-export function zonedTime(day: CalendarDay, hour: number, zone: string): Date {
-  return new Date(
-    new TZDate(day.year, day.month - 1, day.day, hour, 0, 0, zone),
-  );
-}
-
 export function discordTime(
   date: Date,
   style: 'F' | 'R' | 'f' | 'D' | 't' = 'F',
 ): string {
   return `<t:${Math.floor(date.getTime() / 1000)}:${style}>`;
-}
-
-export function addCalendarDays(day: CalendarDay, days: number): CalendarDay {
-  const date = new Date(Date.UTC(day.year, day.month - 1, day.day + days));
-
-  return {
-    year: date.getUTCFullYear(),
-    month: date.getUTCMonth() + 1,
-    day: date.getUTCDate(),
-  };
-}
-
-export function formatCalendarDay(day: CalendarDay): string {
-  return [day.year, day.month, day.day]
-    .map((part) => String(part).padStart(2, '0'))
-    .join('-');
-}
-
-export function parseCalendarDay(value: string): CalendarDay | undefined {
-  const date = parse(value, 'yyyy-MM-dd', new Date(0), { in: tz('UTC') });
-
-  return isValid(date) ? calendarDay(date, 'UTC') : undefined;
 }

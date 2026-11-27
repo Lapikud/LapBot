@@ -1,19 +1,15 @@
 import { eventCalendarEntry } from './calendar';
 import { eventView, reminderText, type DayEntry } from './message';
 import { z } from 'zod';
+import { tz } from '@date-fns/tz';
+import { addDays, startOfDay } from 'date-fns';
 import {
   maxContentLength,
   mentionLine,
   withMentions,
   type Mentions,
 } from '~/core/message';
-import {
-  addCalendarDays,
-  calendarDay,
-  parseFutureWhen,
-  parseWhen,
-  zonedTime,
-} from '~/core/helpers/time';
+import { parseFutureWhen, parseWhen } from '~/core/helpers/time';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
@@ -424,9 +420,9 @@ export function createEventService(deps: Deps) {
     sameDay: async (actor: Actor, start: string) => {
       const { timezone } = deps;
       const startsAt = parseFutureWhen(start, timezone);
-      const day = calendarDay(startsAt, timezone);
-      const from = zonedTime(day, 0, timezone);
-      const to = zonedTime(addCalendarDays(day, 1), 0, timezone);
+      const day = startOfDay(startsAt, { in: tz(timezone) });
+      const from = new Date(day);
+      const to = new Date(addDays(day, 1));
       const local = await visibleRecords(
         directory,
         actor,
