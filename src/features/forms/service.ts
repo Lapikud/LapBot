@@ -2,6 +2,7 @@ import type { Actor } from '~/core/actor';
 import { UserError } from '~/core/errors';
 import { guard } from '~/core/helpers/authorization';
 import { requirePostable } from '~/core/helpers/posting';
+import { selfAssignProblem } from '~/core/helpers/roles';
 import {
   controlId,
   userMention,
@@ -85,6 +86,42 @@ export function createFormService(deps: Deps) {
     return form;
   };
 
+  const assignable = async (guildId: string, roleId: string) => {
+    const role = await directory.role(guildId, roleId);
+
+    return role ? selfAssignProblem(role) : 'does not exist';
+  };
+
+  const grant = async (actor: Actor, form: Form, values: readonly string[]) => {
+    const member = { guildId: actor.guildId, userId: actor.userId };
+    const fields = form.fields
+      .map((field, index) => ({ field, value: values[index] ?? '' }))
+      .filter(({ field }) => field.kind === 'grant');
+    const chosen = new Set(fields.flatMap(({ value }) => value.split(' ')));
+    const offered = fields.flatMap(({ field }) => field.options);
+    const problems = await Promise.all(
+      offered.map((roleId) => assignable(actor.guildId, roleId)),
+    );
+    const usable = offered.filter((roleId, i) => {
+      if (problems[i] !== undefined) {
+        log.warn({ roleId, problem: problems[i] }, 'Skipping form role change');
+      }
+
+      return problems[i] === undefined;
+    });
+    const added = usable.filter((roleId) => chosen.has(roleId));
+    const removed = usable.filter((roleId) => !chosen.has(roleId));
+    const reason = `Form: ${form.title}`;
+
+    if (added.length > 0) {
+      await directory.addRoles(member, added, reason);
+    }
+
+    if (removed.length > 0) {
+      await directory.removeRoles(member, removed, reason);
+    }
+  };
+
   const refresh = async (form: Form) => {
     if (form.channelId !== null && form.messageId !== null) {
       await messenger.edit(form.channelId, form.messageId, formMessage(form));
@@ -106,7 +143,7 @@ export function createFormService(deps: Deps) {
       authz,
       manage,
       async (actor, id: number, settings: FormSettings) => {
-        await requireForm(id);
+        const current = await requireForm(id);
 
         if (settings.title.trim() === '' || settings.title.length > 100) {
           throw new UserError('Give the form a title of 1-100 characters.');
@@ -121,10 +158,32 @@ export function createFormService(deps: Deps) {
           );
         }
 
+        const fields = validateFields(settings.fields);
+
+        if (
+          [...current.fields, ...fields].some((f) => f.kind === 'grant') &&
+          !actor.administrator
+        ) {
+          throw new UserError(
+            'Only server administrators can edit forms that give roles.',
+          );
+        }
+
+        const problems = await Promise.all(
+          fields
+            .flatMap((f) => (f.kind === 'grant' ? f.options : []))
+            .map((roleId) => assignable(actor.guildId, roleId)),
+        );
+        const problem = problems.find((found) => found !== undefined);
+
+        if (problem !== undefined) {
+          throw new UserError(`A chosen role ${problem}.`);
+        }
+
         const updated = await forms.update(id, {
           title: settings.title.trim(),
           description: settings.description,
-          fields: validateFields(settings.fields),
+          fields,
           responseChannelId: settings.responseChannelId,
           mentions:
             settings.responseChannelId === null ? {} : settings.mentions,
@@ -183,6 +242,15 @@ export function createFormService(deps: Deps) {
           .catch((error: unknown) => {
             log.error({ error, formId: form.id }, 'Could not post response');
           });
+      }
+
+      try {
+        await grant(actor, form, values);
+      } catch (error) {
+        log.error({ error, formId: form.id }, 'Could not update form roles');
+        throw new UserError(
+          'Your response is saved, but I could not update your roles.',
+        );
       }
 
       return response;
