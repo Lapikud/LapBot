@@ -101,6 +101,9 @@ def update_code():
     print(f"code: at {git('log', '-1', '--format=%h %s')}")
 
 
+one_cpu = ("nice", "-n", "10", "taskset", "-c", str(min(os.sched_getaffinity(0))))
+
+
 def build(release):
     release.mkdir(parents=True)
     logs_dir.mkdir(exist_ok=True)
@@ -110,8 +113,8 @@ def build(release):
     run("tar", "-x", "-C", str(release), stdin=archive)
     (release / ".env").symlink_to(env_file)
     (release / "logs").symlink_to(logs_dir)
-    run("pnpm", "install", "--frozen-lockfile", cwd=release)
-    run("pnpm", "build", cwd=release)
+    run(*one_cpu, "pnpm", "install", "--frozen-lockfile", cwd=release)
+    run(*one_cpu, "pnpm", "build", cwd=release)
     print(f"build: {release}")
 
 
