@@ -22,6 +22,11 @@ export const holdsAny = (
   needs: Permission | readonly Permission[],
 ) => [needs].flat().some((permission) => can.has(permission));
 
+export const formBuilders: readonly [Permission, ...Permission[]] = [
+  'form:create',
+  'form:manage',
+];
+
 export const managePermissions: Permission = 'permissions:manage';
 
 export const webAccess: Permission = 'web:access';
