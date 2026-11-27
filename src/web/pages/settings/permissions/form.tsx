@@ -1,4 +1,7 @@
-import type { PermissionDefinition } from '~/core/permission';
+import {
+  managePermissions,
+  type PermissionDefinition,
+} from '~/core/permission';
 import type { GrantSubject } from '~/features/permissions/model';
 import { groupsOf } from './groups';
 
@@ -62,7 +65,9 @@ export function GrantForm({
           {groupsOf(shown).map(([group, permissions]) => (
             <tbody key={group}>
               <tr>
-                <th colspan={delegation ? 3 : 2}>{group}</th>
+                <th colspan={delegation ? 3 : 2} scope="rowgroup">
+                  {group}
+                </th>
               </tr>
               {permissions.toSorted(bundleFirst).map((permission) => (
                 <tr key={permission.id}>
@@ -70,6 +75,9 @@ export function GrantForm({
                     class={permission.partOf === undefined ? undefined : 'part'}
                   >
                     {permission.description} <small>{permission.id}</small>
+                    {permission.id === managePermissions ? (
+                      <small> · full control over everyone's access</small>
+                    ) : null}
                     {permission.partOf !== undefined &&
                     granted.has(permission.partOf) ? (
                       <small> · included</small>
@@ -78,7 +86,7 @@ export function GrantForm({
                   <td>
                     <Toggle
                       value={permission.id}
-                      label={`${subject.name} has ${permission.id}`}
+                      label={`${subject.name}: ${permission.description}`}
                       checked={granted.has(permission.id)}
                     />
                   </td>
@@ -86,7 +94,7 @@ export function GrantForm({
                     <td>
                       <Toggle
                         value={`delegate:${permission.id}`}
-                        label={`${subject.name} can hand out ${permission.id}`}
+                        label={`${subject.name} can hand out: ${permission.description}`}
                         checked={granted.has(`delegate:${permission.id}`)}
                       />
                     </td>
