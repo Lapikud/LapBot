@@ -34,7 +34,7 @@ export function RolePage({
   flash,
 }: Readonly<Props>) {
   return (
-    <Layout title="Roles" path="/settings/roles" can={can} flash={flash}>
+    <Layout title="Role panels" path="/settings/roles" can={can} flash={flash}>
       <p>
         Members react in Discord to get a role. Removing their reaction removes
         the role.

@@ -930,7 +930,7 @@ describe('dashboard access', () => {
         saved.headers.get('location') ?? '',
         'http://localhost',
       ).searchParams.get('notice');
-      const id = /PSA #(\d+)/.exec(notice ?? '')?.[1];
+      const id = /Announcement #(\d+)/.exec(notice ?? '')?.[1];
       const form = await (await get(`/announcements/${id}`)).text();
 
       expect(form).toContain('First');

@@ -30,13 +30,13 @@ const features: readonly Feature[] = [
     href: '/events',
   },
   {
-    name: 'Event ideas',
-    text: 'Suggest something to do. The board reviews ideas in the inbox.',
+    name: 'Suggest an event',
+    text: 'Suggest something to do. The board reviews suggestions.',
     command: '/event suggest',
   },
   {
-    name: 'Event inbox',
-    text: 'Review, mark and dismiss event ideas from members.',
+    name: 'Event suggestions',
+    text: 'Review, mark and dismiss event suggestions from members.',
     href: '/events/suggestions',
     needs: 'event:suggestions:manage',
   },
@@ -123,7 +123,7 @@ export function HelpPage({ can, now }: Readonly<Props>) {
             {holdsAny(allowed, announcementParts) ? (
               <li>
                 <a href="/announcements">
-                  {now.pending} drafts and scheduled PSAs
+                  {now.pending} drafts and scheduled announcements
                 </a>
               </li>
             ) : null}

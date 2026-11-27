@@ -58,7 +58,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       await announcements.publish(actor, saved.id);
 
       return back(c, '/announcements', {
-        notice: `PSA #${saved.id} published.`,
+        notice: `Announcement #${saved.id} published.`,
       });
     }
 
@@ -70,12 +70,12 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       );
 
       return back(c, '/announcements', {
-        notice: `PSA #${saved.id} scheduled for ${date(scheduled.scheduledAt)}.`,
+        notice: `Announcement #${saved.id} scheduled for ${date(scheduled.scheduledAt)}.`,
       });
     }
 
     return back(c, '/announcements', {
-      notice: `PSA #${saved.id} saved.`,
+      notice: `Announcement #${saved.id} saved.`,
     });
   };
 
@@ -103,7 +103,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
     .get('/new', async (c) =>
       c.html(
         <ComposerPage
-          title="New PSA"
+          title="New announcement"
           action="/announcements"
           server={await c.var.server()}
           can={c.var.can}
@@ -112,8 +112,10 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       ),
     )
     .post('/', (c) =>
-      submit(c, { title: 'New PSA', action: '/announcements' }, (draft) =>
-        announcements.draft(c.var.actor, draft),
+      submit(
+        c,
+        { title: 'New announcement', action: '/announcements' },
+        (draft) => announcements.draft(c.var.actor, draft),
       ),
     )
     .get(String.raw`/:id{\d+}`, async (c) => {
@@ -124,7 +126,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
 
       return c.html(
         <ComposerPage
-          title={`Edit PSA #${post.id}`}
+          title={`Edit Announcement #${post.id}`}
           action={`/announcements/${post.id}`}
           published={post.status === 'published'}
           server={await c.var.server()}
@@ -142,7 +144,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       return submit(
         c,
         {
-          title: `Edit PSA #${id}`,
+          title: `Edit Announcement #${id}`,
           action: `/announcements/${id}`,
           published,
         },
@@ -163,7 +165,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       await announcements.publish(c.var.actor, id);
 
       return back(c, '/announcements', {
-        notice: `PSA #${id} published.`,
+        notice: `Announcement #${id} published.`,
       });
     })
     .post(String.raw`/:id{\d+}/cancel`, async (c) => {
@@ -172,7 +174,7 @@ export function announcementRoutes({ services, timezone }: WebDeps) {
       await announcements.cancel(c.var.actor, id);
 
       return back(c, '/announcements', {
-        notice: `PSA #${id} cancelled.`,
+        notice: `Announcement #${id} cancelled.`,
       });
     });
 }

@@ -27,7 +27,7 @@ export function AnnouncementPage({
       title={title}
       path="/announcements"
       flash={flash}
-      actions={<a href="/announcements/new">New PSA</a>}
+      actions={<a href="/announcements/new">New announcement</a>}
     >
       <Recent list={list} server={server} date={date} can={can} />
     </Layout>

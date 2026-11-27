@@ -50,7 +50,11 @@ export const sections: readonly Section[] = [
     href: '/settings',
     label: 'Settings',
     pages: [
-      { href: '/settings/roles', label: 'Roles', permission: applicationAdmin },
+      {
+        href: '/settings/roles',
+        label: 'Role panels',
+        permission: applicationAdmin,
+      },
       {
         href: '/settings/permissions',
         label: 'Permissions',
