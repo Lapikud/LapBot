@@ -3,12 +3,7 @@ import { eventView, reminderText, type DayEntry } from './message';
 import { z } from 'zod';
 import { tz } from '@date-fns/tz';
 import { addDays, startOfDay } from 'date-fns';
-import {
-  maxContentLength,
-  mentionLine,
-  withMentions,
-  type Mentions,
-} from '~/core/message';
+import { maxContentLength, withMentions, type Mentions } from '~/core/message';
 import { parseFutureWhen, parseWhen } from '~/core/helpers/time';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { UserError } from '~/core/errors';
@@ -120,10 +115,9 @@ function requirePublishable(input: NewEvent, mention = false) {
     },
     { going: 2_147_483_647, maybe: 2_147_483_647, not_going: 0 },
   );
-  const line = mention ? mentionLine(input.mentions) : '';
-  const prefix = line === '' ? '' : `${line}\n`;
+  const { content = '' } = mention ? withMentions(view, input.mentions) : view;
 
-  if (prefix.length + (view.content?.length ?? 0) > maxContentLength) {
+  if (content.length > maxContentLength) {
     throw new UserError(
       `Keep the complete event message under ${maxContentLength} characters. Shorten the title, description or location.`,
     );

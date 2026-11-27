@@ -73,7 +73,7 @@ export const channelMention = (id: string) => `<#${id}>`;
 
 export const hereMention = () => '@here';
 
-export function mentionLine(mentions: Mentions = {}): string {
+function mentionLine(mentions: Mentions = {}): string {
   return [
     ...(mentions.everyone === true ? ['@everyone'] : []),
     ...(mentions.here === true ? [hereMention()] : []),
