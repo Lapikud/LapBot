@@ -79,7 +79,7 @@ export function createFormService(deps: Deps) {
   const requireForm = async (id: number) => {
     const form = await forms.find(id);
 
-    if (!form) {
+    if (!form || form.status === 'deleted') {
       throw new UserError(`Form #${id} does not exist.`);
     }
 
@@ -220,6 +220,25 @@ export function createFormService(deps: Deps) {
         return updated;
       },
     ),
+    remove: guard(authz, manage, async (actor, id: number) => {
+      const form = await requireForm(id);
+
+      if (form.fields.some((f) => f.kind === 'grant') && !actor.administrator) {
+        throw new UserError(
+          'Only server administrators can edit forms that give roles.',
+        );
+      }
+
+      if (form.channelId !== null && form.messageId !== null) {
+        await messenger.remove(form.channelId, form.messageId);
+      }
+
+      await forms.update(id, {
+        status: 'deleted',
+        channelId: null,
+        messageId: null,
+      });
+    }),
     submit: async (actor: Actor, id: number, values: readonly string[]) => {
       const form = await requireForm(id);
 

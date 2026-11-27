@@ -159,6 +159,11 @@ export function formRoutes({
         notice: status === 'closed' ? 'Form closed.' : 'Form reopened.',
       });
     })
+    .post(String.raw`/:id{\d+}/delete`, async (c) => {
+      await forms.remove(c.var.actor, Number(c.req.param('id')));
+
+      return back(c, '/forms', { notice: 'Form deleted.' });
+    })
     .get(String.raw`/:id{\d+}/responses`, async (c) => {
       const { form, responses } = await forms.responses(
         c.var.actor,

@@ -12,7 +12,7 @@ export const fieldKinds = [
 
 export type FieldKind = (typeof fieldKinds)[number];
 
-export type FormStatus = 'open' | 'closed';
+export type FormStatus = 'open' | 'closed' | 'deleted';
 
 export interface FormField {
   label: string;

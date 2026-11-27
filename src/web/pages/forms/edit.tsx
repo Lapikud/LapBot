@@ -2,7 +2,7 @@ import { selfAssignProblem } from '~/core/helpers/roles';
 import type { Permission } from '~/core/permission';
 import type { RoleInfo } from '~/core/ports/directory';
 import { fieldKinds, type Form, type FormField } from '~/features/forms/model';
-import { FormActions } from '~/web/components/actions';
+import { ActionButton, FormActions } from '~/web/components/actions';
 import { Checkbox } from '~/web/components/choices';
 import { Input, Select, Textarea } from '~/web/components/controls';
 import { MentionPicker } from '~/web/components/mentions';
@@ -249,6 +249,12 @@ export function FormEditPage({
           {form.status === 'open' ? 'Close form' : 'Reopen form'}
         </button>
       </form>
+      <ActionButton
+        action={`/forms/${form.id}/delete`}
+        label="Delete"
+        subject={form.title}
+        confirm="Delete this form and its Discord message? Responses are kept, and roles members already got stay."
+      />
     </Layout>
   );
 }
