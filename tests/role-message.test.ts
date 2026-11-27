@@ -70,6 +70,18 @@ describe('role service', () => {
       expect(directory.removeRoles).toHaveBeenCalledOnce();
     });
 
+    it('deletes the panel and its message', async () => {
+      const { service, messenger, sent, admin, channelId, guildId } =
+        await setup();
+
+      await expect(
+        service.remove(actor({ guildId }), channelId),
+      ).rejects.toThrow();
+      await service.remove(admin, channelId);
+      expect(messenger.remove).toHaveBeenCalledWith(channelId, sent[0]);
+      await expect(service.list(admin)).resolves.toEqual([]);
+    });
+
     it('skips roles that are no longer assignable', async () => {
       const { service, sent, directory, guildId, channelId } = await setup();
 
@@ -99,6 +111,7 @@ describe('role message configuration', () => {
       replaceRoles: vi.fn(async () => undefined),
       setMessage: vi.fn(async () => undefined),
       reactionRole: vi.fn(async () => 'r'),
+      remove: vi.fn(async () => undefined),
     } satisfies RolePanelRepository;
     const { messenger } = fakeMessenger();
     const directory = fakeDirectory([role()]);

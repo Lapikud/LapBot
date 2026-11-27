@@ -170,6 +170,39 @@ describe('built forms', () => {
       ]);
     });
 
+    it('deletes a form and its message but keeps responses', async () => {
+      const { messenger } = fakeMessenger();
+      const repository = createFormRepository(testDb());
+      const service = createFormService({
+        ...serviceFakes(),
+        messenger,
+        forms: repository,
+      });
+      const admin = actor({ administrator: true });
+      const form = await service.create(admin, 'Oops');
+
+      await service.update(admin, form.id, {
+        title: 'Oops',
+        description: null,
+        fields: [question()],
+        responseChannelId: null,
+        mentions: {},
+      });
+      const posted = await service.post(admin, form.id, 'c');
+
+      await service.submit(actor(), form.id, ['x']);
+      await service.remove(admin, form.id);
+
+      expect(messenger.remove).toHaveBeenCalledWith('c', posted.messageId);
+      expect((await service.list(admin)).map(({ id }) => id)).not.toContain(
+        form.id,
+      );
+      await expect(service.submit(actor(), form.id, ['x'])).rejects.toThrow(
+        'does not exist',
+      );
+      await expect(repository.responses(form.id)).resolves.toHaveLength(1);
+    });
+
     it('gives picked roles, removes the rest and skips unsafe ones', async () => {
       const directory = fakeDirectory([
         role({ id: 'a' }),
