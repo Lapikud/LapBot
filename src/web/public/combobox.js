@@ -45,7 +45,7 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
   const show = (members) => {
     list.replaceChildren(
       ...members.map((member, index) => {
-        const item = document.createElement('li');
+        const item = document.createElement('option');
         const username = document.createElement('small');
 
         item.id = `${list.id}-${index}`;
