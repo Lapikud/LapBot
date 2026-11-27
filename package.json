@@ -26,15 +26,15 @@
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
     "@googleapis/calendar": "^20.2.0",
-    "@hono/node-server": "^2.1.8",
+    "@hono/node-server": "^2.1.11",
     "@hono/oauth-providers": "^0.9.1",
     "better-sqlite3": "^13.2.0",
     "chrono-node": "^2.10.3",
     "date-fns": "^4.4.0",
     "discord.js": "^14.28.1",
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.18",
-    "pg-boss": "^12.38.2",
+    "hono": "^4.13.21",
+    "pg-boss": "^12.39.0",
     "pino": "^10.4.0",
     "postgres": "^3.4.9",
     "tmdb-ts": "^2.3.0",
@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@stylistic/eslint-plugin": "^6.0.0",
+    "@stylistic/eslint-plugin": "^6.0.1",
     "@total-typescript/ts-reset": "^0.6.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.19.2",
@@ -61,7 +61,7 @@
     "tsdown": "^0.23.7",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.2",
-    "vitest": "^5.1.0"
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.1"
   }
 }
