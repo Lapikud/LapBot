@@ -1,14 +1,28 @@
 for (const input of document.querySelectorAll('input[role="combobox"]')) {
   const list = document.getElementById(input.getAttribute('aria-controls'));
+  const status = document.getElementById(
+    input.getAttribute('aria-describedby'),
+  );
   let timer;
   let request;
   let active = -1;
+
+  const say = (text) => {
+    if (status) {
+      status.textContent = text;
+    }
+  };
 
   const close = () => {
     list.hidden = true;
     active = -1;
     input.setAttribute('aria-expanded', 'false');
     input.removeAttribute('aria-activedescendant');
+  };
+
+  const failed = () => {
+    close();
+    say('Could not load members. Press Open to search instead.');
   };
 
   const highlight = (index) => {
@@ -47,6 +61,11 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
     active = -1;
     list.hidden = members.length === 0;
     input.setAttribute('aria-expanded', String(members.length > 0));
+    say(
+      members.length === 0
+        ? 'No matching members.'
+        : `Members found: ${members.length}.`,
+    );
   };
 
   input.addEventListener('input', () => {
@@ -57,6 +76,7 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
 
     if (query === '') {
       close();
+      say('');
 
       return;
     }
@@ -72,10 +92,12 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
 
         if (response.ok) {
           show(await response.json());
+        } else {
+          failed();
         }
       } catch (error) {
         if (error.name !== 'AbortError') {
-          close();
+          failed();
         }
       }
     }, 200);

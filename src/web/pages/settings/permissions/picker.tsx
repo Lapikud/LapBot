@@ -64,6 +64,7 @@ export function MemberPicker({
               aria-autocomplete="list"
               aria-expanded="false"
               aria-controls={`${name}-options`}
+              aria-describedby={`${name}-status`}
               data-source="/settings/permissions/members"
               required
             />
@@ -78,6 +79,7 @@ export function MemberPicker({
             aria-label={`${label} suggestions`}
             hidden
           />
+          <small id={`${name}-status`} role="status" />
         </div>
         {matches === undefined ? null : (
           <MemberMatches
