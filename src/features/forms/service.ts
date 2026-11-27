@@ -28,6 +28,7 @@ const manage = 'form:manage';
 export interface FormSettings {
   title: string;
   description: string | null;
+  confirmation: string | null;
   fields: readonly FormField[];
   responseChannelId: string | null;
   mentions: Mentions;
@@ -176,6 +177,12 @@ export function createFormService(deps: Deps) {
           );
         }
 
+        if ((settings.confirmation?.length ?? 0) > 2000) {
+          throw new UserError(
+            'Keep the message after submitting under 2000 characters.',
+          );
+        }
+
         const fields = validateFields(settings.fields);
 
         requireRoleAdmin(actor, [...current.fields, ...fields]);
@@ -190,6 +197,7 @@ export function createFormService(deps: Deps) {
         const updated = await forms.update(id, {
           title: settings.title.trim(),
           description: settings.description,
+          confirmation: settings.confirmation,
           fields,
           responseChannelId: settings.responseChannelId,
           mentions:

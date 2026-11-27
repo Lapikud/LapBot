@@ -183,7 +183,10 @@ export function formCommands(forms: FormService): Feature {
 
       pending.delete(key);
       await forms.submit(toActor(interaction.member), form.id, values);
-      await respond(interaction, 'Thanks, your response is saved.');
+      await respond(
+        interaction,
+        form.confirmation ?? 'Thanks, your response is saved.',
+      );
     },
   };
 

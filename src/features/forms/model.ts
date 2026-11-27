@@ -26,6 +26,7 @@ export interface Form {
   id: number;
   title: string;
   description: string | null;
+  confirmation: string | null;
   fields: FormField[];
   channelId: string | null;
   messageId: string | null;
@@ -54,6 +55,7 @@ export type FormChanges = Partial<
     Form,
     | 'title'
     | 'description'
+    | 'confirmation'
     | 'fields'
     | 'channelId'
     | 'messageId'
