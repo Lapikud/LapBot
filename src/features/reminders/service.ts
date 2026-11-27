@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { channelMention, userMention } from '~/core/message';
+import { withMentions, type Mentions } from '~/core/message';
+import { requirePostable } from '~/core/helpers/posting';
 import {
   nextFutureOccurrence,
   parseFutureWhen,
@@ -22,6 +23,7 @@ export interface ReminderRequest {
   message: string;
   channelId?: string;
   repeat?: string;
+  mentions?: Mentions;
 }
 
 interface Deps {
@@ -45,10 +47,18 @@ export function createReminderService(deps: Deps) {
       return;
     }
 
-    await messenger.send(reminder.channelId, {
-      content: `${userMention(reminder.userId)} ${text}`,
-      mentions: { users: [reminder.userId] },
-    });
+    const { mentions } = reminder;
+
+    await messenger.send(
+      reminder.channelId,
+      withMentions(
+        { content: text },
+        {
+          ...mentions,
+          users: [...new Set([reminder.userId, ...(mentions.users ?? [])])],
+        },
+      ),
+    );
   };
 
   const deliverJob = defineJob({
@@ -128,11 +138,12 @@ export function createReminderService(deps: Deps) {
       if (request.channelId !== undefined) {
         await authz.require(actor, 'reminder:channel');
 
-        if (!(await directory.canPost(actor, request.channelId))) {
-          throw new UserError(
-            `You cannot post in ${channelMention(request.channelId)} yourself.`,
-          );
-        }
+        await requirePostable(
+          directory,
+          actor,
+          request.channelId,
+          request.mentions,
+        );
       }
 
       const recurrence: Recurrence | null =
@@ -143,6 +154,8 @@ export function createReminderService(deps: Deps) {
         userId: actor.userId,
         channelId: request.channelId ?? null,
         message: request.message,
+        mentions:
+          request.channelId === undefined ? {} : (request.mentions ?? {}),
         runAt: parseFutureWhen(request.when ?? '1d', timezone),
         recurrence,
         timezone,

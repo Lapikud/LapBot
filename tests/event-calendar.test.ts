@@ -25,10 +25,11 @@ function fixture(authz = allowAll) {
     channelId: 'c',
     messageId: 'm',
     capacity: null,
-    mentionRoleId: null,
+    mentions: {},
     reminderMinutes: [],
     icons: true,
     calendarEventId: null,
+    pollId: null,
     status: 'scheduled',
     createdAt: new Date(),
   };

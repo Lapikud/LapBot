@@ -18,11 +18,14 @@ import type { Announcement } from '~/features/announcements/model';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createAnnouncementService } from '~/features/announcements/service';
 import { PermanentError, UserError } from '~/core/errors';
-import type { Permission } from '~/core/permission';
+import type { Permission, PermissionDefinition } from '~/core/permission';
 import { createGrantRepository } from '~/integrations/db/permissions/repository';
 import { createAuthorizer } from '~/features/permissions/service';
 import { createBirthdayService } from '~/features/birthdays/service';
 import { calendarDay } from '~/core/helpers/time';
+import type { Mentions } from '~/core/message';
+import { requireMentions } from '~/core/helpers/posting';
+import { allowedMentions } from '~/discord/render';
 import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
 import { createReminderRepository } from '~/integrations/db/reminders/repository';
 import { createReminderService } from '~/features/reminders/service';
@@ -72,7 +75,7 @@ describe('announcement publication', () => {
     channelId: 'c',
     title: 'Hello',
     content: 'World',
-    mentionRoleIds: [],
+    mentions: {},
     status: 'draft',
     scheduledAt: null,
     publishedAt: null,
@@ -86,13 +89,43 @@ describe('announcement publication', () => {
     it('only pings the chosen roles, never text in the body', () => {
       expect(
         announcementView(sample({ content: '@everyone hi' }))[0]?.mentions,
-      ).toEqual({ roles: [] });
+      ).toEqual({});
       expect(
-        announcementView(sample({ mentionRoleIds: ['r1', 'r2'] }))[0],
+        announcementView(sample({ mentions: { roles: ['r1', 'r2'] } }))[0],
       ).toMatchObject({
-        content: '<@&r1> <@&r2>\n# Hello\nWorld',
+        content: '<@&r1> <@&r2>\n# Hello\nWorld\n-# toimetaja: <@a>',
         mentions: { roles: ['r1', 'r2'] },
       });
+    });
+  });
+
+  describe('mentions', () => {
+    it('allows an explicit everyone ping when here is false', () => {
+      expect(allowedMentions({ here: false, everyone: true }).parse).toEqual([
+        'everyone',
+      ]);
+    });
+
+    it("follows Discord's Mention Everyone rule", async () => {
+      const directory = fakeDirectory([
+        role({ id: 'open', mentionable: true }),
+        role({ id: 'closed', mentionable: false }),
+      ]);
+      const check = (mentions: Mentions) =>
+        requireMentions(directory, actor(), 'c', mentions);
+
+      await expect(
+        check({ users: ['u'], roles: ['open'] }),
+      ).resolves.toBeUndefined();
+      await expect(check({ roles: ['closed'] })).rejects.toThrow(
+        'Mention Everyone',
+      );
+      await expect(check({ here: true })).rejects.toThrow('Mention Everyone');
+      await expect(check({ roles: ['gone'] })).rejects.toThrow('no longer');
+      directory.canMentionEveryone.mockResolvedValue(true);
+      await expect(
+        check({ roles: ['closed'], everyone: true }),
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -144,15 +177,19 @@ describe('announcement publication', () => {
   });
 });
 
+const announcementCatalogue = new Map<Permission, PermissionDefinition>(
+  (
+    [
+      'announcement:create',
+      'announcement:publish',
+      'announcement:schedule',
+    ] as const
+  ).map((id) => [id, { id, description: id, partOf: 'announcement:post' }]),
+);
+
 describe('announcement lifecycle', () => {
   describe.skipIf(noDatabase)('managed post API', () => {
-    const setup = async (
-      permissions: Permission[] = [
-        'announcement:create',
-        'announcement:publish',
-        'announcement:schedule',
-      ],
-    ) => {
+    const setup = async (permissions: Permission[] = ['announcement:post']) => {
       const author = actor({ guildId: snowflake(), roleIds: ['staff'] });
       const grants = createGrantRepository(testDb());
 
@@ -165,7 +202,7 @@ describe('announcement lifecycle', () => {
         });
       }
 
-      const authz = createAuthorizer(grants);
+      const authz = createAuthorizer(grants, () => announcementCatalogue);
       const posts = createAnnouncementRepository(testDb());
       const directory = fakeDirectory([
         role({ id: 'team' }),
@@ -188,7 +225,7 @@ describe('announcement lifecycle', () => {
         service.draft(author, {
           channelId: 'c',
           content: 'Hello',
-          mentionRoleIds: ['team'],
+          mentions: { roles: ['team'] },
         });
 
       return {
@@ -205,7 +242,7 @@ describe('announcement lifecycle', () => {
       };
     };
 
-    it('rejects edits after create permission is revoked', async () => {
+    it('rejects edits after the permission is revoked', async () => {
       const { service, author, draft } = await setup();
       const post = await draft();
       const grants = createGrantRepository(testDb());
@@ -213,14 +250,14 @@ describe('announcement lifecycle', () => {
       await grants.revoke({
         guildId: author.guildId,
         roleId: 'staff',
-        permission: 'announcement:create',
+        permission: 'announcement:post',
       });
       await expect(
         service.edit(author, post.id, { content: 'Changed' }),
       ).rejects.toThrow('announcement:create');
     });
 
-    it('does not publish after scheduling permission is revoked', async () => {
+    it('does not publish after the scheduler loses the permission', async () => {
       const { service, author, posts, messenger, draft, advance } =
         await setup();
       const post = await draft();
@@ -230,7 +267,7 @@ describe('announcement lifecycle', () => {
       await createGrantRepository(testDb()).revoke({
         guildId: author.guildId,
         roleId: 'staff',
-        permission: 'announcement:schedule',
+        permission: 'announcement:post',
       });
       await service.jobs[0]?.run({ announcementId: post.id });
       expect(messenger.send).not.toHaveBeenCalled();
@@ -282,7 +319,7 @@ describe('announcement lifecycle', () => {
       const created = await service.draft(author, {
         channelId: 'c',
         content: `${'a '.repeat(1200)}\n${'b '.repeat(700)}`,
-        mentionRoleIds: ['team'],
+        mentions: { roles: ['team'] },
       });
       const published = await service.publish(author, created.id);
       const sent = messenger.send.mock.calls.map(([, message]) => message);
@@ -367,7 +404,7 @@ describe('announcement lifecycle', () => {
         channelId: 'c',
         title: null,
         content: 'Hidden',
-        mentionRoleIds: [],
+        mentions: {},
       });
 
       await expect(service.get(author, post.id)).rejects.toThrow(
@@ -387,16 +424,48 @@ describe('announcement lifecycle', () => {
       await expect(draft()).rejects.toThrow();
     });
 
-    it('requires publication and scheduling permissions even for the author', async () => {
+    it('lets a writer draft but not publish or schedule', async () => {
       const { service, author, draft } = await setup(['announcement:create']);
       const post = await draft();
 
-      await expect(service.publish(author, post.id)).rejects.toThrow();
-      await expect(service.schedule(author, post.id, '1h')).rejects.toThrow();
-      await service.cancel(author, post.id);
+      await expect(service.publish(author, post.id)).rejects.toThrow(
+        'announcement:publish',
+      );
+      await expect(service.schedule(author, post.id, '1h')).rejects.toThrow(
+        'announcement:schedule',
+      );
+      await service.edit(author, post.id, { content: 'Still mine' });
+    });
+
+    it("lets any poster manage another member's announcement", async () => {
+      const { service, author, draft } = await setup();
+      const post = await draft();
+      const colleague = { ...author, userId: 'colleague' };
+
+      await service.edit(colleague, post.id, { content: 'Fixed' });
+      await service.cancel(colleague, post.id);
       await expect(service.cancel(author, post.id)).rejects.toThrow(
         'already cancelled',
       );
+    });
+
+    it('moves a draft to another channel, but not a published post', async () => {
+      const { service, author, messenger, draft } = await setup();
+      const post = await draft();
+
+      await service.edit(author, post.id, {
+        content: 'Hello',
+        channelId: 'other',
+        mentions: {},
+      });
+      await service.publish(author, post.id);
+      expect(messenger.send).toHaveBeenCalledWith('other', {
+        content: `Hello\n-# toimetaja: <@${author.userId}>`,
+        mentions: {},
+      });
+      await expect(
+        service.edit(author, post.id, { content: 'Hi', channelId: 'c' }),
+      ).rejects.toThrow('stays in its channel');
     });
 
     it('rechecks channel access and mention permissions before publication', async () => {
@@ -406,9 +475,9 @@ describe('announcement lifecycle', () => {
         service.draft(author, {
           channelId: 'c',
           content: 'x',
-          mentionRoleIds: ['secret'],
+          mentions: { roles: ['secret'] },
         }),
-      ).rejects.toThrow('may not mention');
+      ).rejects.toThrow('Mention Everyone');
       const post = await draft();
 
       directory.canPost.mockResolvedValue(false);
@@ -682,6 +751,22 @@ describe('reminders', () => {
       await service.cancel(member, reminder.id);
       await deliver?.run({ reminderId: reminder.id });
       expect(messenger.direct).not.toHaveBeenCalled();
+    });
+
+    it('pings the owner and chosen mentions in channel reminders', async () => {
+      const { service, messenger, deliver, member } = setup();
+      const reminder = await service.create(member, {
+        when: '10m',
+        message: 'stand-up',
+        channelId: 'c',
+        mentions: { users: ['friend', member.userId] },
+      });
+
+      await deliver?.run({ reminderId: reminder.id });
+      expect(messenger.send).toHaveBeenCalledWith('c', {
+        content: `<@${member.userId}> <@friend>\n⏰ **Reminder:** stand-up`,
+        mentions: { users: [member.userId, 'friend'] },
+      });
     });
 
     it('requires permission for channel reminders', async () => {

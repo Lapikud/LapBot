@@ -103,7 +103,7 @@ const data = new SlashCommandBuilder()
     sub
       .setName('night')
       .setDescription(
-        'Schedule a movie night (defaults to the last poll winner)',
+        'Schedule a movie night (without a movie, people vote on one)',
       )
       .addStringOption((o) =>
         o
@@ -240,7 +240,9 @@ export function movieCommands(movies: MovieService): Feature {
 
             await respond(
               interaction,
-              `Movie night for ${movieLabel(movie)} is event #${event.id}.`,
+              movie === undefined
+                ? `Movie night is event #${event.id}, with a vote on the movie.`
+                : `Movie night for ${movieLabel(movie)} is event #${event.id}.`,
             );
           }),
           watched: async (interaction) => {

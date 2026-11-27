@@ -6,7 +6,7 @@ import type { Actor } from '~/core/actor';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
 import type { MovieCatalog, MovieDetails } from '~/core/ports/movie-catalog';
-import type { MovieRepository } from './model';
+import type { MovieRepository, MovieSuggestion } from './model';
 import type { EventService } from '~/features/events/service';
 import type { PollService } from '~/features/polls/service';
 
@@ -18,6 +18,8 @@ export interface MovieNight {
   location?: string;
   capacity?: number;
   channelId: string;
+  closes?: string;
+  count?: number;
 }
 
 export interface MovieSuggestionRequest {
@@ -55,40 +57,75 @@ export function createMovieService(deps: Deps) {
     return movie;
   };
 
-  const pick = async (actor: Actor, movieId: number | undefined) => {
-    if (movieId !== undefined) {
-      return { movie: await movies.find(actor.guildId, movieId), pollId: null };
-    }
+  const nightDetails = (movie: MovieSuggestion) => ({
+    title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
+    description:
+      [
+        movie.note,
+        movie.overview?.slice(0, 900),
+        movieLinks(movie)
+          .map(({ label, url }) => `[${label}](${url})`)
+          .join(' · '),
+      ]
+        .filter(Boolean)
+        .join('\n\n') || null,
+  });
 
-    const poll = await polls.latestBySource(actor.guildId, pollSource);
+  const moviePoll = async (
+    actor: Actor,
+    channelId: string,
+    count: number | undefined,
+    closesAt: Date,
+  ) => {
+    const candidates = await movies.unwatched(actor.guildId, count ?? 10);
 
-    if (poll?.status !== 'closed') {
-      throw new UserError('Pick a movie, or close a "/movie vote" poll first.');
-    }
-
-    const { winners, tie } = await polls.results(poll);
-    const [winner] = winners;
-
-    if (winner === undefined) {
-      throw new UserError('The last movie poll had no votes. Pick a movie.');
-    }
-
-    if (tie) {
-      const tied = winners.map((w) => `#${w.ref ?? '?'} ${w.label}`).join(', ');
-
+    if (candidates.length < 2) {
       throw new UserError(
-        `The last poll is a tie between ${tied}. Pick one with the "movie" option.`,
+        'At least two unwatched suggestions are needed for a vote.',
       );
     }
 
     return {
-      movie: await movies.find(actor.guildId, Number(winner.ref)),
-      pollId: poll.id,
+      guildId: actor.guildId,
+      channelId,
+      creatorId: actor.userId,
+      question: '🎬 What should we watch next?',
+      options: candidates.map((m) => ({
+        label: movieLabel(m).slice(0, maxOptionLength),
+        ref: String(m.id),
+        url: movieLinks(m)[0]?.url ?? null,
+      })),
+      closesAt,
+      source: pollSource,
     };
   };
 
+  polls.onClosed(async (poll, results) => {
+    const event = await events.byPoll(poll.id);
+    const [winner] = results.winners;
+
+    if (
+      poll.source !== pollSource ||
+      event?.status !== 'scheduled' ||
+      winner === undefined ||
+      results.tie
+    ) {
+      return;
+    }
+
+    const movie = await movies.find(poll.guildId, Number(winner.ref));
+
+    await events.decide(event.id, nightDetails(movie));
+    await movies.recordScreening({
+      guildId: poll.guildId,
+      suggestionId: movie.id,
+      eventId: event.id,
+      pollId: poll.id,
+      scheduledFor: event.startsAt,
+    });
+  });
+
   return {
-    pick,
     suggest: async (actor: Actor, request: MovieSuggestionRequest) => {
       const links = validateLinks(request.links ?? []);
       const details = await lookup(request.title, request.year);
@@ -130,51 +167,21 @@ export function createMovieService(deps: Deps) {
       async (
         actor,
         request: { count?: number; closes?: string; channelId: string },
-      ) => {
-        const candidates = await movies.unwatched(
-          actor.guildId,
-          request.count ?? 10,
-        );
-
-        if (candidates.length < 2) {
-          throw new UserError(
-            'At least two unwatched suggestions are needed for a vote.',
-          );
-        }
-
-        const closesAt = parseFutureWhen(request.closes ?? '2d', timezone);
-
-        return polls.publish(actor, {
-          guildId: actor.guildId,
-          channelId: request.channelId,
-          creatorId: actor.userId,
-          question: '🎬 What should we watch next?',
-          options: candidates.map((m) => ({
-            label: movieLabel(m).slice(0, maxOptionLength),
-            ref: String(m.id),
-            url: movieLinks(m)[0]?.url ?? null,
-          })),
-          closesAt,
-          source: pollSource,
-        });
-      },
+      ) =>
+        polls.publish(
+          actor,
+          await moviePoll(
+            actor,
+            request.channelId,
+            request.count,
+            parseFutureWhen(request.closes ?? '2d', timezone),
+          ),
+        ),
     ),
     night: guard(authz, 'movie:manage', async (actor, night: MovieNight) => {
-      const { movie, pollId } = await pick(actor, night.movieId);
       const startsAt = parseFutureWhen(night.start, timezone);
-      const event = await events.publish(actor, {
+      const event = {
         guildId: actor.guildId,
-        title: `🎬 Movie night: ${movieLabel(movie)}`.slice(0, 200),
-        description:
-          [
-            movie.note,
-            movie.overview?.slice(0, 900),
-            movieLinks(movie)
-              .map(({ label, url }) => `[${label}](${url})`)
-              .join(' · '),
-          ]
-            .filter(Boolean)
-            .join('\n\n') || null,
         startsAt,
         endsAt: null,
         timezone,
@@ -182,20 +189,48 @@ export function createMovieService(deps: Deps) {
         organizerId: actor.userId,
         channelId: night.channelId,
         capacity: night.capacity ?? null,
-        mentionRoleId: null,
+        mentions: {},
         reminderMinutes: [60],
         icons: true,
-      });
+      };
 
-      await movies.recordScreening({
-        guildId: actor.guildId,
-        suggestionId: movie.id,
-        eventId: event.id,
-        pollId,
-        scheduledFor: startsAt,
-      });
+      if (night.movieId !== undefined) {
+        const movie = await movies.find(actor.guildId, night.movieId);
+        const posted = await events.publish(actor, {
+          ...event,
+          ...nightDetails(movie),
+        });
 
-      return { movie, event };
+        await movies.recordScreening({
+          guildId: actor.guildId,
+          suggestionId: movie.id,
+          eventId: posted.id,
+          pollId: null,
+          scheduledFor: startsAt,
+        });
+
+        return { movie, event: posted };
+      }
+
+      const poll = await moviePoll(
+        actor,
+        night.channelId,
+        night.count,
+        night.closes === undefined
+          ? startsAt
+          : parseFutureWhen(night.closes, timezone),
+      );
+      const posted = await events.publish(actor, {
+        ...event,
+        title: '🎬 Movie night',
+        description: 'Vote below on what we watch.',
+      });
+      const { id } = await polls.publish(actor, poll);
+
+      return {
+        movie: undefined,
+        event: await events.attachPoll(posted.id, id),
+      };
     }),
     watched: guard(
       authz,

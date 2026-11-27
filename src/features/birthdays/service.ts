@@ -1,3 +1,4 @@
+import { requirePostable } from '~/core/helpers/posting';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { parseBirthdaySubmission } from './form';
@@ -121,9 +122,7 @@ export function createBirthdayService(deps: Deps) {
       throw new UserError('Choose an announcement channel.');
     }
 
-    if (!(await directory.canPost(actor, channelId))) {
-      throw new UserError('You cannot post in that birthday channel yourself.');
-    }
+    await requirePostable(directory, actor, channelId);
 
     const hour = change.hour ?? current?.hour ?? 9;
 
@@ -168,12 +167,7 @@ export function createBirthdayService(deps: Deps) {
       authz,
       'birthday:manage',
       async (actor, channelId: string) => {
-        if (!(await directory.canPost(actor, channelId))) {
-          throw new UserError(
-            `You cannot post in ${channelMention(channelId)} yourself.`,
-          );
-        }
-
+        await requirePostable(directory, actor, channelId);
         await messenger.send(channelId, birthdaySignup);
       },
     ),

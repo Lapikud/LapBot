@@ -1,7 +1,12 @@
 import type { Child } from 'hono/jsx';
-import { type Permission } from '~/core/permission';
+import type { Permission } from '~/core/permission';
 import type { Flash } from './context';
-import { containsPath, sections, visibleLinks } from './navigation';
+import {
+  containsPage,
+  containsPath,
+  sections,
+  visibleLinks,
+} from './navigation';
 
 const pico =
   'https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css';
@@ -10,23 +15,25 @@ export function Layout({
   title,
   path,
   can,
+  signedIn = true,
   flash = {},
   actions,
   children,
 }: Readonly<{
   title: string;
   path: string;
-  can?: ReadonlySet<Permission>;
+  can?: ReadonlySet<Permission> | undefined;
+  signedIn?: boolean;
   flash?: Flash;
   actions?: Child;
   children?: Child;
 }>) {
   const visible = visibleLinks(sections, can);
-  const section = visible.find(({ href }) => containsPath(href, path));
+  const section = visible.find((item) => containsPage(item, path));
   const pages = visibleLinks(section?.pages ?? [], can);
-  const heading = pages.map(({ label }) => label).includes(title)
-    ? section?.label
-    : title;
+  const current = pages
+    .filter(({ href }) => containsPath(href, path))
+    .toSorted((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <html lang="en">
@@ -38,71 +45,79 @@ export function Layout({
         <link rel="stylesheet" href="/app.css" />
       </head>
       <body>
-        <header class="container">
-          <nav aria-label="Primary">
-            <ul>
-              <li>
-                <strong>LAPbot</strong>
-              </li>
-            </ul>
-            <ul>
+        <a class="skip-link" href="#main">
+          Skip to content
+        </a>
+
+        <header class="app-header">
+          <div class="container header-content">
+            <a href="/" class="brand">
+              LAPbot
+            </a>
+
+            <nav class="primary-nav" aria-label="Primary">
               {visible.map(({ href, label, pages: destinations }) => (
-                <li key={href}>
-                  <a
-                    href={
-                      visibleLinks(destinations ?? [], can)[0]?.href ?? href
-                    }
-                    aria-current={section?.href === href ? 'page' : undefined}
-                  >
-                    {label}
-                  </a>
-                </li>
+                <a
+                  key={href}
+                  href={visibleLinks(destinations ?? [], can)[0]?.href ?? href}
+                  aria-current={section?.href === href ? 'true' : undefined}
+                >
+                  {label}
+                </a>
               ))}
-            </ul>
-            <ul>
-              <li>
+            </nav>
+
+            <div class="account">
+              {signedIn ? (
                 <form method="post" action="/logout">
                   <button type="submit" class="secondary outline">
                     Sign out
                   </button>
                 </form>
-              </li>
-            </ul>
-          </nav>
-        </header>
-        <main class="container">
-          {pages.length === 0 ? null : (
-            <nav class="section-nav" aria-label={`${section?.label} pages`}>
-              <ul>
-                {pages.map(({ href, label }) => (
-                  <li key={href}>
-                    <a
-                      href={href}
-                      aria-current={
-                        containsPath(href, path) ? 'page' : undefined
-                      }
-                    >
-                      {label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
-          <div class="page-title">
-            <h1>{heading}</h1>
-            {actions}
+              ) : (
+                <a href="/login">Sign in</a>
+              )}
+            </div>
           </div>
-          {flash.notice === undefined ? null : (
-            <p class="notice" role="status">
-              {flash.notice}
-            </p>
+        </header>
+
+        {pages.length > 0 && (
+          <div class="section-header">
+            <nav
+              class="container section-nav"
+              aria-label={`${section?.label} pages`}
+            >
+              {pages.map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  aria-current={href === current ? 'page' : undefined}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+          </div>
+        )}
+
+        <main class="container" id="main">
+          <div class="page-title">
+            <h1>{title}</h1>
+            {actions === undefined ? null : (
+              <div class="page-actions">{actions}</div>
+            )}
+          </div>
+
+          {flash.notice !== undefined && (
+            <output class="notice">{flash.notice}</output>
           )}
-          {flash.error === undefined ? null : (
+
+          {flash.error !== undefined && (
             <p class="error" role="alert">
               {flash.error}
             </p>
           )}
+
           {children}
         </main>
       </body>

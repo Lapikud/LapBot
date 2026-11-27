@@ -18,15 +18,20 @@ Migrations and command registration run on start.
 ### Discord permissions
 
 View Channels, Send Messages, Embed Links, Read Message History, Add Reactions,
-Manage Messages and Manage Roles. The bot's role must be
+Manage Messages, Manage Roles and Mention Everyone. The bot's role must be
 above every role it hands out.
+
+Turn on the Server Members intent (developer portal → Bot → Privileged Gateway
+Intents) so the dashboard can suggest members when mentioning.
+
+Mentions follow Discord's rules: members need Mention Everyone in the channel to
+ping @everyone, @here or a role that isn't mentionable.
 
 ### Configuration
 
 Settings are documented in `.env.example`.
 
 - Application administrators: set `JUHATUS_ROLE_ID` to the Juhatus Discord role ID.
-- Role selection: `ROLE_SELECTION_CHANNEL_ID` and the role IDs.
 - Movie details: `TMDB_ACCESS_TOKEN`.
 - Google Calendar: `GOOGLE_CALENDAR_ID=lapikud@gmail.com` and
   `GOOGLE_SERVICE_ACCOUNT_KEY`.
@@ -38,21 +43,33 @@ Settings are documented in `.env.example`.
 | Command                                                             | Who                                                    |
 | ------------------------------------------------------------------- | ------------------------------------------------------ |
 | `/remindme`, `/reminders list/edit/cancel`                          | everyone; channel reminders need `reminder:channel`    |
-| `/announce create/edit`                                             | `announcement:create`, `:publish`, `:schedule`         |
+| `/announce create/edit`                                             | `announcement:post` or its parts                       |
 | `/event create/edit/cancel/list/view/attendees`                     | `event:create`; the organizer or `event:manage` edits  |
 | `/birthday set/remove/view/upcoming/post/settings`                  | everyone; `post` and `settings` need `birthday:manage` |
 | `/poll create/list/results/close/cancel`                            | `poll:create`; the creator or `poll:manage` manages    |
 | `/movie suggest/suggestions/link/remove/vote/night/watched/history` | `vote`, `night` and `watched` need `movie:manage`      |
+| Forms on the dashboard, filled in on Discord                        | `form:manage` builds them; everyone can fill them in   |
 | `/permissions grant/revoke/list`                                    | `permissions:manage`                                   |
 | Web dashboard                                                       | `web:access`                                           |
+
+Permissions granted to Everyone apply to every member. The migration grants
+`web:access`, `event:create`, `poll:create` and `reminder:channel` when Everyone
+has no existing grants; otherwise it keeps the existing grants. Change them on
+the dashboard's Permissions page.
 
 Discord administrators and members of `JUHATUS_ROLE_ID` hold every bot permission.
 Roles and Logs are admin-only. Losing Juhatus removes its admin access.
 
-Grant permissions to a role or member with `/permissions grant/revoke`, using
-`role:` or `user:`. Personal and role grants combine. Non-admins can only grant
-permissions they hold, to roles or members below their own. Only admins can
-delegate `permissions:manage`.
+Grant permissions to a role or member on the dashboard, or with
+`/permissions grant/revoke` using `role:` or `user:`. Personal and role grants
+combine. Non-admins can only grant permissions they hold, to roles or members
+below their own. Only admins can delegate `permissions:manage`.
+
+Some permissions are bundles: `announcement:post` includes
+`announcement:create`, `:publish` and `:schedule`. The dashboard's advanced view
+grants the parts separately, grants to members, shows where a member's access
+comes from, and lets admins choose who can hand out a permission they don't
+hold.
 
 ### Events
 

@@ -1,9 +1,9 @@
 import {
+  ChannelSelectMenuBuilder,
   ChannelType,
   InteractionContextType,
   LabelBuilder,
   ModalBuilder,
-  RoleSelectMenuBuilder,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -22,16 +22,48 @@ import {
 } from '~/core/message';
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
-import type { Actor } from '~/core/actor';
 import { toActor } from '~/discord/interactions/actor';
+import { mentionInputs, mentionsOf } from '~/discord/interactions/mentions';
 import { bySubcommand } from './handlers';
 import type {
   AppContext,
   ComponentHandler,
   Feature,
 } from '~/discord/contracts';
+import type { Actor } from '~/core/actor';
+import type { Permission } from '~/core/permission';
 import { render } from '~/discord/render';
 import { respond, respondView } from '~/discord/interactions/responses';
+
+const postChannels = [
+  ChannelType.GuildText,
+  ChannelType.GuildAnnouncement,
+] as const;
+
+function editModal(announcement: Announcement): ModalBuilder {
+  const published = announcement.status === 'published';
+  const modal = contentModal(
+    controlId(
+      'announcements:edit',
+      announcement.id,
+      published ? 'text' : 'all',
+    ),
+    `Edit announcement #${announcement.id}`,
+    announcement,
+  );
+
+  return published
+    ? modal
+    : modal.addLabelComponents(
+        new LabelBuilder().setLabel('Channel').setChannelSelectMenuComponent(
+          new ChannelSelectMenuBuilder()
+            .setCustomId('channel')
+            .setChannelTypes(...postChannels)
+            .setDefaultChannels(announcement.channelId),
+        ),
+        ...mentionInputs(announcement.mentions),
+      );
+}
 
 function contentModal(
   id: string,
@@ -80,16 +112,13 @@ const data = new SlashCommandBuilder()
           .setName('channel')
           .setDescription('Where to post it')
           .setRequired(true)
-          .addChannelTypes(
-            ChannelType.GuildText,
-            ChannelType.GuildAnnouncement,
-          ),
+          .addChannelTypes(...postChannels),
       ),
   )
   .addSubcommand((sub) =>
     sub
       .setName('edit')
-      .setDescription('Fix the text of an announcement')
+      .setDescription('Edit an announcement')
       .addIntegerOption((o) =>
         o
           .setName('id')
@@ -99,14 +128,16 @@ const data = new SlashCommandBuilder()
       ),
   );
 
+const granted = (ctx: AppContext, actor: Actor) =>
+  ctx.authz.granted(actor, ['announcement:publish', 'announcement:schedule']);
+
 export function announcementCommands(
   announcements: AnnouncementService,
 ): Feature {
-  const draftView = async (
+  const draftView = (
     announcement: Announcement,
-    actor: Actor,
-    ctx: AppContext,
-  ): Promise<Message> => {
+    can: ReadonlySet<Permission>,
+  ): Message => {
     const [first, ...rest] = announcements.view(announcement);
     const heading = `-# Preview for ${channelMention(announcement.channelId)}`;
     const plural = rest.length === 1 ? '' : 's';
@@ -120,17 +151,13 @@ export function announcementCommands(
     );
     const action = (name: string) =>
       controlId('announcements:act', announcement.id, name);
-    const [canPublish, canSchedule] = await Promise.all([
-      ctx.authz.can(actor, 'announcement:publish'),
-      ctx.authz.can(actor, 'announcement:schedule'),
-    ]);
 
     return {
       ...first,
       content: `${heading}\n${body}${more}`,
       controls: [
         [
-          ...(canPublish
+          ...(can.has('announcement:publish')
             ? [
                 {
                   kind: 'button' as const,
@@ -140,7 +167,7 @@ export function announcementCommands(
                 },
               ]
             : []),
-          ...(canSchedule
+          ...(can.has('announcement:schedule')
             ? [
                 {
                   kind: 'button' as const,
@@ -177,15 +204,17 @@ export function announcementCommands(
       }
 
       const actor = toActor(interaction.member);
-      const roles = interaction.fields.getSelectedRoles('mentions');
       const announcement = await announcements.draft(actor, {
         channelId,
         title: interaction.fields.getTextInputValue('title'),
         content: interaction.fields.getTextInputValue('content'),
-        mentionRoleIds: roles ? [...roles.keys()] : [],
+        mentions: mentionsOf(interaction.fields),
       });
 
-      await respondView(interaction, await draftView(announcement, actor, ctx));
+      await respondView(
+        interaction,
+        draftView(announcement, await granted(ctx, actor)),
+      );
     },
   };
 
@@ -224,11 +253,7 @@ export function announcementCommands(
         );
       } else if (name === 'edit') {
         await interaction.showModal(
-          contentModal(
-            controlId('announcements:edit', id),
-            'Edit announcement',
-            await announcements.get(actor, id),
-          ),
+          editModal(await announcements.get(actor, id)),
         );
       } else if (name === 'discard') {
         await announcements.cancel(actor, id);
@@ -262,20 +287,29 @@ export function announcementCommands(
 
   const edit: ComponentHandler = {
     prefix: 'announcements:edit',
-    execute: async (interaction, [id], ctx) => {
+    execute: async (interaction, [id, scope], ctx) => {
       if (!interaction.isModalSubmit()) {
         return;
       }
 
       const actor = toActor(interaction.member);
+      const { fields } = interaction;
+      const channelId =
+        scope === 'all'
+          ? fields.getSelectedChannels('channel', true).firstKey()
+          : undefined;
       const updated = await announcements.edit(actor, Number(id), {
-        title: interaction.fields.getTextInputValue('title'),
-        content: interaction.fields.getTextInputValue('content'),
+        title: fields.getTextInputValue('title'),
+        content: fields.getTextInputValue('content'),
+        ...(channelId !== undefined && {
+          channelId,
+          mentions: mentionsOf(fields),
+        }),
       });
 
       if (interaction.isFromMessage() && updated.status === 'draft') {
         const { content, components } = render(
-          await draftView(updated, actor, ctx),
+          draftView(updated, await granted(ctx, actor)),
         );
 
         await interaction.update({ content, components });
@@ -290,18 +324,34 @@ export function announcementCommands(
   return {
     name: 'announcements',
     permissions: [
-      { id: 'announcement:create', description: 'Write announcements' },
+      {
+        id: 'announcement:post',
+        description: 'Write, publish, schedule and edit announcements',
+      },
+      {
+        id: 'announcement:create',
+        description: 'Write and edit announcements',
+        partOf: 'announcement:post',
+      },
       {
         id: 'announcement:publish',
-        description: 'Publish and edit any announcement',
+        description: 'Publish announcements',
+        partOf: 'announcement:post',
       },
-      { id: 'announcement:schedule', description: 'Schedule announcements' },
+      {
+        id: 'announcement:schedule',
+        description: 'Schedule announcements',
+        partOf: 'announcement:post',
+      },
     ],
     components: [create, act, when, edit],
     commands: [
       {
         data: data.toJSON(),
-        permissions: { create: 'announcement:create' },
+        permissions: {
+          create: 'announcement:create',
+          edit: 'announcement:create',
+        },
         execute: bySubcommand({
           create: async (interaction) => {
             const channel = interaction.options.getChannel('channel', true);
@@ -310,16 +360,7 @@ export function announcementCommands(
               contentModal(
                 controlId('announcements:create', channel.id),
                 'New announcement',
-              ).addLabelComponents(
-                new LabelBuilder()
-                  .setLabel('Mention roles')
-                  .setRoleSelectMenuComponent(
-                    new RoleSelectMenuBuilder()
-                      .setCustomId('mentions')
-                      .setRequired(false)
-                      .setMaxValues(25),
-                  ),
-              ),
+              ).addLabelComponents(...mentionInputs()),
             );
           },
           edit: async (interaction) => {
@@ -328,13 +369,7 @@ export function announcementCommands(
               interaction.options.getInteger('id', true),
             );
 
-            await interaction.showModal(
-              contentModal(
-                controlId('announcements:edit', announcement.id),
-                `Edit announcement #${announcement.id}`,
-                announcement,
-              ),
-            );
+            await interaction.showModal(editModal(announcement));
           },
         }),
         autocomplete: async (interaction) => {

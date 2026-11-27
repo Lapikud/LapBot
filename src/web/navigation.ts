@@ -1,5 +1,7 @@
 import {
+  announcementParts,
   applicationAdmin,
+  holdsAny,
   managePermissions,
   type Permission,
 } from '~/core/permission';
@@ -7,7 +9,7 @@ import {
 interface PageLink {
   href: string;
   label: string;
-  permission?: Permission;
+  permission?: Permission | readonly Permission[];
 }
 
 export interface Section extends PageLink {
@@ -15,39 +17,44 @@ export interface Section extends PageLink {
 }
 
 export const sections: readonly Section[] = [
-  { href: '/', label: 'Overview' },
+  { href: '/', label: 'Help' },
   {
-    href: '/post',
-    label: 'Post',
+    href: '/announcements',
+    label: 'Community',
     pages: [
       {
-        href: '/post/announcements',
+        href: '/announcements',
         label: 'Announcements',
-        permission: 'announcement:create',
+        permission: announcementParts,
       },
-      { href: '/post/events', label: 'Events' },
+      { href: '/events', label: 'Events' },
+      { href: '/events/movies', label: 'Movies' },
+      { href: '/polls', label: 'Polls' },
       {
-        href: '/post/event-suggestions',
-        label: 'Event suggestions',
+        href: '/events/suggestions',
+        label: 'Suggestions',
         permission: 'event:suggestions:manage',
       },
-      { href: '/post/polls', label: 'Polls' },
     ],
   },
+  { href: '/forms', label: 'Forms', permission: 'form:manage' },
   {
-    href: '/forms',
-    label: 'Forms',
+    href: '/birthdays',
+    label: 'Personal',
     pages: [
-      { href: '/forms/birthdays', label: 'Birthdays' },
-      { href: '/forms/movies', label: 'Movies' },
+      { href: '/birthdays', label: 'Birthdays' },
+      { href: '/reminders', label: 'Reminders' },
     ],
   },
-  { href: '/roles', label: 'Roles', permission: applicationAdmin },
   {
     href: '/settings',
     label: 'Settings',
-    permission: managePermissions,
     pages: [
+      {
+        href: '/settings/roles',
+        label: 'Role panels',
+        permission: applicationAdmin,
+      },
       {
         href: '/settings/permissions',
         label: 'Permissions',
@@ -58,17 +65,26 @@ export const sections: readonly Section[] = [
   },
 ];
 
-export function visibleLinks<T extends PageLink>(
+export function visibleLinks<T extends Section>(
   links: readonly T[],
   can: ReadonlySet<Permission> | undefined,
 ): readonly T[] {
   return can === undefined
     ? []
     : links.filter(
-        ({ permission }) => permission === undefined || can.has(permission),
+        ({ permission, pages }) =>
+          (permission === undefined || holdsAny(can, permission)) &&
+          (pages === undefined || visibleLinks(pages, can).length > 0),
       );
 }
 
 export function containsPath(href: string, path: string): boolean {
   return path === href || (href !== '/' && path.startsWith(`${href}/`));
+}
+
+export function containsPage(section: Section, path: string): boolean {
+  return (
+    containsPath(section.href, path) ||
+    (section.pages?.some(({ href }) => containsPath(href, path)) ?? false)
+  );
 }

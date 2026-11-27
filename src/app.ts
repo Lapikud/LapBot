@@ -18,6 +18,8 @@ import { registerCommands } from '~/discord/registration';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { createDiscordMessenger } from '~/integrations/discord/messenger';
 import { reminderCommands } from '~/discord/commands/reminders';
+import { formCommands } from '~/discord/commands/forms';
+import { createFormService } from '~/features/forms/service';
 import { roleEvents } from '~/discord/events/roles';
 import { permissionCommands } from '~/discord/commands/permissions';
 import { createAnnouncementService } from '~/features/announcements/service';
@@ -30,7 +32,7 @@ import { createEventService } from '~/features/events/service';
 import { createMovieService } from '~/features/movies/service';
 import { createPollService } from '~/features/polls/service';
 import { createReminderService } from '~/features/reminders/service';
-import { createRoleService, type LegacyPanel } from '~/features/roles/service';
+import { createRoleService } from '~/features/roles/service';
 import type { AppContext, Feature } from '~/discord/contracts';
 import type { Logger } from 'pino';
 import type { LogStore } from '~/integrations/logging/store';
@@ -43,24 +45,6 @@ import { createWebApp } from '~/web/app';
 import { startWebServer } from '~/web/server';
 import type { WebServices } from '~/web/context';
 import { createTmdbCatalog } from '~/integrations/tmdb/catalog';
-
-function legacyPanel(config: Config): LegacyPanel | undefined {
-  const channelId = config.ROLE_SELECTION_CHANNEL_ID;
-
-  if (channelId === undefined) {
-    return undefined;
-  }
-
-  const roles = [
-    { emoji: '1️⃣', roleId: config.TARKVARA_ROLE_ID, label: 'Tarkvara' },
-    { emoji: '2️⃣', roleId: config.HELPDESK_ROLE_ID, label: 'Helpdesk' },
-    { emoji: '3️⃣', roleId: config.KULTUUR_ROLE_ID, label: 'Kultuur' },
-  ].flatMap(({ roleId, ...rest }) =>
-    roleId === undefined ? [] : [{ roleId, ...rest }],
-  );
-
-  return { channelId, roles };
-}
 
 export function compose(
   config: Config,
@@ -76,16 +60,14 @@ export function compose(
   );
   const client = createClient();
   const grants = infrastructure.repositories.grants;
-  const authz = createAuthorizer(grants);
+  const authz = createAuthorizer(grants, () => registry.permissions);
   const directory = createDiscordDirectory(client);
   const messenger = createDiscordMessenger(client);
-  const legacy = legacyPanel(config);
   const roles = createRoleService({
     panels: infrastructure.repositories.roles,
     directory,
     messenger,
     log: log.child({ service: 'roles' }),
-    ...(legacy && { legacy }),
   });
   const timezone = config.DEFAULT_TIMEZONE;
   const scheduler = infrastructure.scheduler;
@@ -113,6 +95,15 @@ export function compose(
     directory,
     messenger,
   });
+  const polls = createPollService({
+    polls: infrastructure.repositories.polls,
+    scheduler,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'polls' }),
+    timezone,
+  });
   const events = createEventService({
     events: infrastructure.repositories.events,
     scheduler,
@@ -128,15 +119,7 @@ export function compose(
     authz,
     log: log.child({ service: 'events' }),
     timezone,
-  });
-  const polls = createPollService({
-    polls: infrastructure.repositories.polls,
-    scheduler,
-    messenger,
-    directory,
-    authz,
-    log: log.child({ service: 'polls' }),
-    timezone,
+    polls,
   });
   const movies = createMovieService({
     catalog:
@@ -172,8 +155,16 @@ export function compose(
     log: log.child({ service: 'permissions' }),
     known: () => registry.permissions,
   });
+  const forms = createFormService({
+    forms: infrastructure.repositories.forms,
+    messenger,
+    directory,
+    authz,
+    log: log.child({ service: 'forms' }),
+  });
   const features: Feature[] = [
-    roleEvents(roles),
+    formCommands(forms),
+    roleEvents(roles, config.DISCORD_GUILD_ID),
     permissionCommands(permissions),
     reminderCommands(reminders),
     announcementCommands(announcements),
@@ -215,6 +206,8 @@ export function compose(
       birthdays,
       movies,
       roles,
+      reminders,
+      forms,
     },
   };
 }
@@ -289,6 +282,12 @@ export async function startApp(
     await infrastructure.migrate();
     await infrastructure.start();
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
+
+    if (config.DISCORD_GUILD_ID !== undefined) {
+      const guild = await client.guilds.fetch(config.DISCORD_GUILD_ID);
+
+      await guild.members.fetch();
+    }
 
     await infrastructure.startJobs(jobs.values(), jobLog);
 

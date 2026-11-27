@@ -4,7 +4,12 @@ import { tz } from '@date-fns/tz';
 import { format } from 'date-fns';
 import type { Context } from 'hono';
 import type { Authorizer } from '~/core/ports/authorization';
-import type { ChannelInfo, Directory, RoleInfo } from '~/core/ports/directory';
+import type {
+  ChannelInfo,
+  Directory,
+  MemberInfo,
+  RoleInfo,
+} from '~/core/ports/directory';
 import type { Logger } from '~/core/ports/logger';
 import type { AnnouncementService } from '~/features/announcements/service';
 import type { BirthdayService } from '~/features/birthdays/service';
@@ -12,8 +17,11 @@ import type { MovieService } from '~/features/movies/service';
 import type { EventService } from '~/features/events/service';
 import type { PermissionService } from '~/features/permissions/service';
 import type { PollService } from '~/features/polls/service';
+import type { ReminderService } from '~/features/reminders/service';
+import type { FormService } from '~/features/forms/service';
 import type { RoleService } from '~/features/roles/service';
 import type { Actor } from '~/core/actor';
+import type { Mentions } from '~/core/message';
 import type { Permission } from '~/core/permission';
 import type { SignIn } from './auth';
 
@@ -26,6 +34,8 @@ export interface WebServices {
   permissions: PermissionService;
   birthdays: BirthdayService;
   movies: MovieService;
+  reminders: ReminderService;
+  forms: FormService;
 }
 
 export interface WebDeps {
@@ -42,11 +52,16 @@ export interface WebDeps {
 export interface Server {
   channels: ChannelInfo[];
   roles: RoleInfo[];
+  members: MemberInfo[];
   roleName: (id: string) => string;
   channelName: (id: string) => string;
 }
 
-export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
+export function serverOf(
+  channels: ChannelInfo[],
+  roles: RoleInfo[],
+  members: MemberInfo[],
+): Server {
   const roleNames = new Map<string, string>(
     roles.map((role) => [role.id, role.name]),
   );
@@ -57,6 +72,7 @@ export function serverOf(channels: ChannelInfo[], roles: RoleInfo[]): Server {
   return {
     channels,
     roles,
+    members,
     roleName: (id: string): string => roleNames.get(id) ?? 'unknown role',
     channelName: (id: string): string => `#${channelNames.get(id) ?? id}`,
   };
@@ -94,6 +110,21 @@ export const field = (form: Form, name: string) => {
 };
 
 export const checked = (form: Form, name: string) => form.get(name) === '1';
+
+export function mentionsFrom(form: Form): Mentions {
+  const picked = form.getAll('mention').map(String);
+  const ids = (kind: string) =>
+    picked
+      .filter((value) => value.startsWith(`${kind}:`))
+      .map((value) => value.slice(kind.length + 1));
+
+  return {
+    users: ids('user'),
+    roles: ids('role'),
+    here: picked.includes('here'),
+    everyone: picked.includes('everyone'),
+  };
+}
 
 export const flashOf = (c: Context<Env>): Flash => {
   const notice = c.req.query('notice');

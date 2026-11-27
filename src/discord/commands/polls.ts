@@ -10,6 +10,7 @@ import { describeOutcome } from '~/features/polls/message';
 import type { PollService } from '~/features/polls/service';
 import { channelMention, userMention } from '~/core/message';
 import { UserError } from '~/core/errors';
+import { mentionOption, typedMentions } from '~/discord/interactions/mentions';
 import { toActor } from '~/discord/interactions/actor';
 import { bySubcommand, deferred } from './handlers';
 import type { ComponentHandler, Feature } from '~/discord/contracts';
@@ -67,7 +68,8 @@ const data = new SlashCommandBuilder()
           .setName('channel')
           .setDescription('Where to post (default: here)')
           .addChannelTypes(ChannelType.GuildText),
-      ),
+      )
+      .addStringOption(mentionOption),
   )
   .addSubcommand((sub) => sub.setName('list').setDescription('Open polls'))
   .addSubcommand((sub) =>
@@ -182,6 +184,7 @@ export function pollCommands(
                   ? 'closed'
                   : 'live',
               ...(closes !== null && { closes }),
+              ...typedMentions(interaction),
             });
 
             await respond(

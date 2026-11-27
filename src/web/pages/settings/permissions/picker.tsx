@@ -1,23 +1,23 @@
-import type { RoleInfo } from '~/core/ports/directory';
-import { FormActions } from '~/web/components/actions';
+import type { MemberInfo, RoleInfo } from '~/core/ports/directory';
 import { roleName } from './groups';
 
 export function RolePicker({
   roles,
   selected,
   counts,
+  advanced,
 }: Readonly<{
   roles: RoleInfo[];
   selected: string | undefined;
   counts: ReadonlyMap<string, number>;
+  advanced: boolean;
 }>) {
   return (
     <form method="get" action="/settings/permissions">
-      <FormActions>
-        <select name="role" aria-label="Role" required>
-          <option value="" disabled selected={selected === undefined}>
-            Pick a role
-          </option>
+      {advanced ? <input type="hidden" name="advanced" value="1" /> : null}
+      <label htmlFor="role">Role</label>
+      <fieldset role="group">
+        <select id="role" name="role" required>
           {roles.map((role) => (
             <option
               key={role.id}
@@ -31,7 +31,106 @@ export function RolePicker({
         <button type="submit" class="secondary">
           Open
         </button>
-      </FormActions>
+      </fieldset>
     </form>
   );
+}
+
+export function MemberPicker({
+  name,
+  label,
+  query,
+  matches,
+}: Readonly<{
+  name: string;
+  label: string;
+  query: string | undefined;
+  matches: MemberInfo[] | undefined;
+}>) {
+  return (
+    <>
+      <form method="get" action="/settings/permissions">
+        <input type="hidden" name="advanced" value="1" />
+        <label htmlFor={name}>{label}</label>
+        <div class="combobox">
+          <fieldset role="group">
+            <input
+              id={name}
+              name={name}
+              value={query}
+              placeholder="Name, username or member ID"
+              autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls={`${name}-options`}
+              aria-describedby={`${name}-status`}
+              data-source="/settings/permissions/members"
+              required
+            />
+            <button type="submit" class="secondary">
+              Open
+            </button>
+          </fieldset>
+          <ul
+            id={`${name}-options`}
+            role="listbox"
+            class="suggestions"
+            aria-label={`${label} suggestions`}
+            hidden
+          />
+          <small id={`${name}-status`} role="status" />
+        </div>
+        {matches === undefined ? null : (
+          <MemberMatches
+            name={name}
+            label={label}
+            query={query}
+            matches={matches}
+          />
+        )}
+      </form>
+    </>
+  );
+}
+
+function MemberMatches({
+  name,
+  label,
+  query,
+  matches,
+}: Readonly<{
+  name: string;
+  label: string;
+  query: string | undefined;
+  matches: MemberInfo[];
+}>) {
+  if (matches.length === 0) {
+    return <p class="hint">No members match “{query}”.</p>;
+  }
+
+  return (
+    <ul class="suggestions" aria-label={`${label} results`}>
+      {matches.map((member) => (
+        <li key={member.id}>
+          <a href={`?advanced=1&${name}=${member.id}`}>
+            {member.name} <small>{member.username}</small>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function findMembers(
+  members: MemberInfo[],
+  query: string | undefined,
+): MemberInfo[] | undefined {
+  const text = query?.trim().toLowerCase();
+
+  return text === undefined || text === ''
+    ? undefined
+    : members.filter(({ name, username }) =>
+        [name, username].some((value) => value.toLowerCase().includes(text)),
+      );
 }

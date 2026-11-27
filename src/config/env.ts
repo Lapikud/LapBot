@@ -23,6 +23,7 @@ const serviceAccount = z
   .pipe(z.object({ client_email: z.email(), private_key: z.string().min(1) }));
 
 const envSchema = z.object({
+  NODE_ENV: optional(z.string()),
   DISCORD_TOKEN: z.string().min(1),
   DISCORD_APPLICATION_ID: optional(snowflake),
   DISCORD_GUILD_ID: optional(snowflake),
@@ -39,11 +40,6 @@ const envSchema = z.object({
     .refine((zone) => isZone(zone), 'must be an IANA timezone'),
 
   JUHATUS_ROLE_ID: optional(snowflake),
-
-  ROLE_SELECTION_CHANNEL_ID: optional(snowflake),
-  TARKVARA_ROLE_ID: optional(snowflake),
-  HELPDESK_ROLE_ID: optional(snowflake),
-  KULTUUR_ROLE_ID: optional(snowflake),
 
   TMDB_ACCESS_TOKEN: optional(z.string().min(1)),
 
@@ -67,6 +63,17 @@ const checkedSchema = envSchema
     {
       message: 'DISCORD_GUILD_ID is required when WEB_PORT is set',
       path: ['DISCORD_GUILD_ID'],
+    },
+  )
+  .refine(
+    (env) =>
+      env.NODE_ENV !== 'production' ||
+      env.WEB_PORT === undefined ||
+      env.SESSION_SECRET !== undefined,
+    {
+      message:
+        'SESSION_SECRET is required in production when WEB_PORT is set; generate one with openssl rand -hex 32',
+      path: ['SESSION_SECRET'],
     },
   )
   .refine(

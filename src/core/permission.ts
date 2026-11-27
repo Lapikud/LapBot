@@ -4,7 +4,22 @@ export interface PermissionDefinition {
   id: Permission;
   description: string;
   group?: string;
+  partOf?: Permission;
 }
+
+export const delegation = (permission: Permission): Permission =>
+  `delegate:${permission}`;
+
+export const announcementParts: readonly Permission[] = [
+  'announcement:create',
+  'announcement:publish',
+  'announcement:schedule',
+];
+
+export const holdsAny = (
+  can: ReadonlySet<Permission>,
+  needs: Permission | readonly Permission[],
+) => [needs].flat().some((permission) => can.has(permission));
 
 export const managePermissions: Permission = 'permissions:manage';
 

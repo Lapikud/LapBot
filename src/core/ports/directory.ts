@@ -6,15 +6,23 @@ export interface ChannelInfo {
   kind: 'text' | 'announcement';
 }
 
+export interface MemberInfo {
+  id: string;
+  name: string;
+  username: string;
+}
+
 export interface Directory {
   guildOf: (channelId: string) => Promise<string | undefined>;
   channels: (guildId: string) => Promise<ChannelInfo[]>;
   roles: (guildId: string) => Promise<RoleInfo[]>;
   role: (guildId: string, roleId: string) => Promise<RoleInfo | undefined>;
+  members: (guildId: string) => Promise<MemberInfo[]>;
   member: (guildId: string, userId: string) => Promise<Actor | undefined>;
   displayName: (guildId: string, userId: string) => Promise<string | undefined>;
   canView: (actor: Actor, channelId: string) => Promise<boolean>;
   canPost: (actor: Actor, channelId: string) => Promise<boolean>;
+  canMentionEveryone: (actor: Actor, channelId: string) => Promise<boolean>;
   isPublic: (guildId: string, channelId: string) => Promise<boolean>;
   addRoles: (
     member: { guildId: string; userId: string },

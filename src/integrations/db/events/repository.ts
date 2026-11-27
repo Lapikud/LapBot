@@ -24,6 +24,14 @@ export function createEventRepository(db: Db): EventRepository {
 
       return row;
     },
+    byPoll: async (pollId) => {
+      const [row] = await db
+        .select()
+        .from(events)
+        .where(eq(events.pollId, pollId));
+
+      return row;
+    },
     upcoming: async (guildId, limit = 25) => {
       return await db
         .select()

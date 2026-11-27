@@ -17,4 +17,4 @@ export function groupsOf(catalogue: readonly PermissionDefinition[]) {
 }
 
 export const roleName = (role: RoleInfo) =>
-  role.everyone ? 'Everyone' : `@${role.name}`;
+  role.everyone ? 'Everyone (all members)' : `@${role.name}`;

@@ -11,6 +11,8 @@ import type { Directory } from '~/core/ports/directory';
 import { reminderChoices, type EventService } from '~/features/events/service';
 import { dayChoice, dayOverview, rsvpLabels } from '~/features/events/message';
 import { channelMention, userMention } from '~/core/message';
+import { mentionOption, typedMentions } from '~/discord/interactions/mentions';
+
 import { discordTime } from '~/core/helpers/time';
 import { UserError } from '~/core/errors';
 import { toActor } from '~/discord/interactions/actor';
@@ -98,8 +100,11 @@ const data = new SlashCommandBuilder()
           .setMinValue(1)
           .setMaxValue(10_000),
       )
-      .addRoleOption((o) =>
-        o.setName('mention').setDescription('Role to notify'),
+      .addStringOption(mentionOption)
+      .addStringOption((o) =>
+        o
+          .setName('vote')
+          .setDescription('Let people vote on what to do: option | option'),
       )
       .addStringOption((o) =>
         o
@@ -255,7 +260,6 @@ export function eventCommands(
           create: deferred(async (interaction) => {
             const capacity = interaction.options.getInteger('capacity');
             const icons = interaction.options.getBoolean('icons');
-            const mention = interaction.options.getRole('mention');
             const fields = [
               'description',
               'end',
@@ -271,6 +275,7 @@ export function eventCommands(
             );
             const actor = toActor(interaction.member);
             const start = interaction.options.getString('start', true);
+            const vote = interaction.options.getString('vote');
             const day = await events.sameDay(actor, start).catch(() => null);
             const event = await events.create(actor, {
               ...extras,
@@ -282,7 +287,12 @@ export function eventCommands(
               calendar: interaction.options.getBoolean('calendar') ?? false,
               ...(capacity !== null && { capacity }),
               ...(icons !== null && { icons }),
-              ...(mention && { mentionRoleId: mention.id }),
+              ...typedMentions(interaction),
+              ...(vote !== null && {
+                vote: {
+                  options: vote.split('|').filter((o) => o.trim() !== ''),
+                },
+              }),
             });
 
             await respond(

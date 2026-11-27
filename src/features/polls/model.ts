@@ -1,3 +1,4 @@
+import type { Mentions } from '~/core/message';
 import type { Tally } from './rules';
 
 export type PollStatus = 'open' | 'closed' | 'cancelled';
@@ -15,6 +16,7 @@ export interface Poll {
   closesAt: Date | null;
   status: PollStatus;
   source: string | null;
+  mentions: Mentions;
   createdAt: Date;
 }
 
@@ -39,7 +41,12 @@ export interface NewPoll
     Partial<
       Pick<
         Poll,
-        'multiple' | 'anonymous' | 'showResults' | 'closesAt' | 'source'
+        | 'multiple'
+        | 'anonymous'
+        | 'showResults'
+        | 'closesAt'
+        | 'source'
+        | 'mentions'
       >
     > {
   options: ReadonlyArray<{

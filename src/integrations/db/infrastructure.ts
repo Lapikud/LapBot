@@ -5,6 +5,7 @@ import { connectDatabase, runMigrations } from '~/integrations/db/client';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
 import { createEventRepository } from '~/integrations/db/events/repository';
 import { createBirthdayRepository } from '~/integrations/db/birthdays/repository';
+import { createFormRepository } from '~/integrations/db/forms/repository';
 import { createGrantRepository } from '~/integrations/db/permissions/repository';
 import { createMovieRepository } from '~/integrations/db/movies/repository';
 import { createPollRepository } from '~/integrations/db/polls/repository';
@@ -27,6 +28,7 @@ export function createPostgresInfrastructure(
       events: createEventRepository(database.db),
       eventSuggestions: createEventSuggestionRepository(database.db),
       birthdays: createBirthdayRepository(database.db),
+      forms: createFormRepository(database.db),
       grants: createGrantRepository(database.db),
       movies: createMovieRepository(database.db),
       polls: createPollRepository(database.db),

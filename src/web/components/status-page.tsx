@@ -12,7 +12,7 @@ export function StatusPage({ title, text, can }: Readonly<Props>) {
     <Layout title={title} path="" {...(can && { can })}>
       <p>{text}</p>
       <p>
-        <a href="/">Back to the overview</a>
+        <a href="/">Back to help</a>
       </p>
     </Layout>
   );

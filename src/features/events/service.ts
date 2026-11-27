@@ -1,18 +1,14 @@
 import { eventCalendarEntry } from './calendar';
 import { eventView, reminderText, type DayEntry } from './message';
 import { z } from 'zod';
-import { channelMention, maxContentLength, roleMention } from '~/core/message';
-import {
-  addCalendarDays,
-  calendarDay,
-  parseFutureWhen,
-  parseWhen,
-  zonedTime,
-} from '~/core/helpers/time';
+import { tz } from '@date-fns/tz';
+import { addDays, startOfDay } from 'date-fns';
+import { maxContentLength, withMentions, type Mentions } from '~/core/message';
+import { parseFutureWhen, parseWhen } from '~/core/helpers/time';
 import { visibleRecords } from '~/core/helpers/visibility';
 import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { requireMentionable } from '~/core/helpers/roles';
+import { requirePostable } from '~/core/helpers/posting';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Calendar } from '~/core/ports/calendar';
 import type { Directory } from '~/core/ports/directory';
@@ -20,9 +16,19 @@ import type { Logger } from '~/core/ports/logger';
 import type { Messenger } from '~/core/ports/messenger';
 import { type Scheduler } from '~/core/ports/scheduler';
 import { defineJob } from '~/core/helpers/jobs';
-import type { Event, NewEvent, RsvpStatus, EventRepository } from './model';
+import type { PollService } from '~/features/polls/service';
+import { validatePollOptions } from '~/features/polls/rules';
+import type {
+  Event,
+  NewEvent,
+  RsvpCounts,
+  RsvpStatus,
+  EventRepository,
+} from './model';
 
 const maxReminders = 3;
+const liveView = (event: Event, counts: RsvpCounts) =>
+  withMentions(eventView(event, counts), event.mentions);
 const reminderKey = (id: number, minutes: number) =>
   `event:${id}:remind:${minutes}`;
 
@@ -34,10 +40,11 @@ export interface EventRequest {
   location?: string;
   channelId: string;
   capacity?: number;
-  mentionRoleId?: string;
+  mentions?: Mentions;
   reminders?: string;
   calendar?: boolean;
   icons?: boolean;
+  vote?: { options: readonly string[]; closes?: string };
 }
 
 export interface EventChanges extends Partial<
@@ -74,6 +81,27 @@ function requireCapacity(capacity?: number | null) {
   }
 }
 
+function voteDeadline(
+  vote: EventRequest['vote'],
+  startsAt: Date,
+  timezone: string,
+  available: boolean,
+): Date {
+  if (vote === undefined) {
+    return startsAt;
+  }
+
+  if (!available) {
+    throw new UserError('Votes are not available.');
+  }
+
+  validatePollOptions(vote.options);
+
+  return vote.closes === undefined
+    ? startsAt
+    : parseFutureWhen(vote.closes, timezone);
+}
+
 function requirePublishable(input: NewEvent, mention = false) {
   const view = eventView(
     {
@@ -81,17 +109,15 @@ function requirePublishable(input: NewEvent, mention = false) {
       id: 2_147_483_647,
       messageId: null,
       calendarEventId: null,
+      pollId: null,
       status: 'cancelled',
       createdAt: new Date(),
     },
     { going: 2_147_483_647, maybe: 2_147_483_647, not_going: 0 },
   );
-  const prefix =
-    mention && input.mentionRoleId !== null
-      ? `${roleMention(input.mentionRoleId)}\n`
-      : '';
+  const { content = '' } = mention ? withMentions(view, input.mentions) : view;
 
-  if (prefix.length + (view.content?.length ?? 0) > maxContentLength) {
+  if (content.length > maxContentLength) {
     throw new UserError(
       `Keep the complete event message under ${maxContentLength} characters. Shorten the title, description or location.`,
     );
@@ -138,11 +164,20 @@ interface Deps {
   authz: Authorizer;
   log: Logger;
   timezone: string;
+  polls?: Pick<PollService, 'publish' | 'onClosed'>;
 }
 
 export function createEventService(deps: Deps) {
-  const { events, scheduler, messenger, calendar, directory, authz, log } =
-    deps;
+  const {
+    events,
+    scheduler,
+    messenger,
+    calendar,
+    directory,
+    authz,
+    log,
+    polls,
+  } = deps;
 
   const remindJob = defineJob({
     type: 'events.remind',
@@ -178,7 +213,7 @@ export function createEventService(deps: Deps) {
     const edited = await messenger.edit(
       event.channelId,
       event.messageId,
-      eventView(event, await events.counts(event.id)),
+      liveView(event, await events.counts(event.id)),
     );
 
     if (!edited) {
@@ -247,6 +282,47 @@ export function createEventService(deps: Deps) {
     }
   };
 
+  const attachPoll = (id: number, pollId: number) =>
+    events.update(id, { pollId });
+
+  const decide = async (
+    id: number,
+    changes: { title?: string; description?: string | null },
+  ) => {
+    let updated = await events.update(id, changes);
+
+    await refresh(updated);
+
+    if (updated.calendarEventId !== null) {
+      updated = await events.update(id, {
+        calendarEventId: await syncCalendar(updated),
+      });
+    }
+
+    return updated;
+  };
+
+  polls?.onClosed(async (poll, results) => {
+    const event = await events.byPoll(poll.id);
+    const [winner] = results.winners;
+
+    if (
+      poll.source !== null ||
+      event?.status !== 'scheduled' ||
+      winner === undefined ||
+      results.tie
+    ) {
+      return;
+    }
+
+    await decide(event.id, {
+      description: [`**Chosen:** ${winner.label}`, event.description]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(0, maxDescriptionLength),
+    });
+  });
+
   const requireCalendarChannel = async (actor: Actor, channelId: string) => {
     if (calendar === undefined) {
       throw new UserError('The club Google Calendar is not set up.');
@@ -266,13 +342,7 @@ export function createEventService(deps: Deps) {
     const view = eventView(event, { going: 0, maybe: 0, not_going: 0 });
     const sent = await messenger.send(
       event.channelId,
-      event.mentionRoleId === null
-        ? view
-        : {
-            ...view,
-            content: `${roleMention(event.mentionRoleId)}\n${view.content ?? ''}`,
-            mentions: { roles: [event.mentionRoleId] },
-          },
+      withMentions(view, event.mentions),
     );
 
     event = await events.update(event.id, { messageId: sent.messageId });
@@ -309,14 +379,6 @@ export function createEventService(deps: Deps) {
     return event;
   };
 
-  const requirePostable = async (actor: Actor, channelId: string) => {
-    if (!(await directory.canPost(actor, channelId))) {
-      throw new UserError(
-        `You cannot post in ${channelMention(channelId)} yourself.`,
-      );
-    }
-  };
-
   return {
     jobs: [remindJob],
     calendarEnabled: calendar !== undefined,
@@ -338,18 +400,23 @@ export function createEventService(deps: Deps) {
       return events.update(id, { calendarEventId });
     },
     get: requireEvent,
+    byPoll: (pollId: number) => events.byPoll(pollId),
+    attachPoll,
+    decide,
+    refresh: async (actor: Actor, id: number) =>
+      refresh(await requireEvent(actor, id)),
     view: async (actor: Actor, id: number) => {
       const event = await requireEvent(actor, id);
 
-      return eventView(event, await events.counts(event.id));
+      return liveView(event, await events.counts(event.id));
     },
     upcoming: (guildId: string) => events.upcoming(guildId),
     sameDay: async (actor: Actor, start: string) => {
       const { timezone } = deps;
       const startsAt = parseFutureWhen(start, timezone);
-      const day = calendarDay(startsAt, timezone);
-      const from = zonedTime(day, 0, timezone);
-      const to = zonedTime(addCalendarDays(day, 1), 0, timezone);
+      const day = startOfDay(startsAt, { in: tz(timezone) });
+      const from = new Date(day);
+      const to = new Date(addDays(day, 1));
       const local = await visibleRecords(
         directory,
         actor,
@@ -386,31 +453,34 @@ export function createEventService(deps: Deps) {
       return { event, attendees: await events.attendees(event.id) };
     },
     publish: async (actor: Actor, input: NewEvent) => {
-      await requirePostable(actor, input.channelId);
+      await requirePostable(directory, actor, input.channelId);
 
       return publish(input);
     },
     create: async (actor: Actor, request: EventRequest) => {
       await authz.require(actor, 'event:create');
-      await requirePostable(actor, request.channelId);
+      await requirePostable(
+        directory,
+        actor,
+        request.channelId,
+        request.mentions,
+      );
 
       if (request.calendar === true) {
         await authz.require(actor, 'event:calendar:publish');
         await requireCalendarChannel(actor, request.channelId);
       }
 
-      if (request.mentionRoleId !== undefined) {
-        const role = await directory.role(actor.guildId, request.mentionRoleId);
-
-        if (!role) {
-          throw new UserError('That role no longer exists.');
-        }
-
-        requireMentionable(role);
-      }
-
       const { timezone } = deps;
       const startsAt = parseFutureWhen(request.start, timezone);
+
+      const voteClosesAt = voteDeadline(
+        request.vote,
+        startsAt,
+        timezone,
+        polls !== undefined,
+      );
+
       const endsAt =
         request.end === undefined
           ? null
@@ -435,7 +505,7 @@ export function createEventService(deps: Deps) {
           organizerId: actor.userId,
           channelId: request.channelId,
           capacity: request.capacity ?? null,
-          mentionRoleId: request.mentionRoleId ?? null,
+          mentions: request.mentions ?? {},
           reminderMinutes: parseReminderMinutes(request.reminders),
           icons: request.icons ?? true,
         },
@@ -444,7 +514,24 @@ export function createEventService(deps: Deps) {
 
       log.info({ eventId: event.id, actorId: actor.userId }, 'Event created');
 
-      return event;
+      if (request.vote === undefined) {
+        return event;
+      }
+
+      if (polls === undefined) {
+        throw new UserError('Votes are not available.');
+      }
+
+      const poll = await polls.publish(actor, {
+        guildId: actor.guildId,
+        channelId: event.channelId,
+        creatorId: actor.userId,
+        question: `What should we do at ${event.title}?`.slice(0, 256),
+        options: request.vote.options.map((label) => ({ label })),
+        closesAt: voteClosesAt,
+      });
+
+      return attachPoll(event.id, poll.id);
     },
     edit: async (actor: Actor, id: number, changes: EventChanges) => {
       const event = await requireManageable(actor, id);
@@ -534,7 +621,7 @@ export function createEventService(deps: Deps) {
 
       await events.setRsvp(event.id, actor.userId, status);
 
-      return eventView(event, await events.counts(event.id));
+      return liveView(event, await events.counts(event.id));
     },
   };
 }

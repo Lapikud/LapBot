@@ -1,10 +1,10 @@
 import { announcementView } from './message';
 import { z } from 'zod';
-import { channelMention } from '~/core/message';
+import { type Mentions } from '~/core/message';
 import { parseFutureWhen } from '~/core/helpers/time';
 import { ignore, PermanentError, UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
-import { requireMentionable } from '~/core/helpers/roles';
+import { requirePostable } from '~/core/helpers/posting';
 import type { AnnouncementRepository, AnnouncementStatus } from './model';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
@@ -20,6 +20,10 @@ import { visibleRecords } from '~/core/helpers/visibility';
 const jobKey = (id: number) => `announcement:${id}`;
 const maxLatenessMs = 60 * 60 * 1000;
 const open: AnnouncementStatus[] = ['draft', 'scheduled'];
+const write = 'announcement:create';
+const publishPart = 'announcement:publish';
+const schedulePart = 'announcement:schedule';
+const allParts = [write, publishPart, schedulePart] as const;
 
 export const maxAnnouncementLength = 4000;
 
@@ -27,7 +31,14 @@ export interface AnnouncementDraft {
   channelId: string;
   title?: string;
   content: string;
-  mentionRoleIds?: readonly string[];
+  mentions?: Mentions;
+}
+
+export interface AnnouncementEdit {
+  title?: string;
+  content: string;
+  channelId?: string;
+  mentions?: Mentions;
 }
 
 export interface AnnouncementDeps {
@@ -44,15 +55,19 @@ export interface AnnouncementDeps {
 export function createAnnouncementService(deps: AnnouncementDeps) {
   const { posts, scheduler, messenger, directory, authz, log, clock } = deps;
 
+  const involved = async (actor: Actor) => {
+    const { size } = await authz.granted(actor, allParts);
+
+    return size > 0;
+  };
+
   const requireReadable = async (actor: Actor, id: number) => {
     const post = await posts.find(id);
 
     if (
       post?.guildId !== actor.guildId ||
       !(await directory.canView(actor, post.channelId)) ||
-      (post.status !== 'published' &&
-        post.authorId !== actor.userId &&
-        !(await authz.can(actor, 'announcement:publish')))
+      (post.status !== 'published' && !(await involved(actor)))
     ) {
       throw new UserError(`Announcement #${id} does not exist.`);
     }
@@ -61,38 +76,16 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
   };
 
   const requireEditable = async (actor: Actor, id: number) => {
-    const post = await requireReadable(actor, id);
+    await authz.require(actor, write);
 
-    if (post.authorId !== actor.userId) {
-      await authz.require(actor, 'announcement:publish');
-    }
-
-    return post;
+    return requireReadable(actor, id);
   };
 
   const checkTargets = async (
     actor: Actor,
-    draft: Pick<AnnouncementDraft, 'channelId' | 'mentionRoleIds'>,
+    draft: Pick<AnnouncementDraft, 'channelId' | 'mentions'>,
   ) => {
-    if (!(await directory.canPost(actor, draft.channelId))) {
-      throw new UserError(
-        `You cannot post in ${channelMention(draft.channelId)} yourself.`,
-      );
-    }
-
-    const roles = await Promise.all(
-      (draft.mentionRoleIds ?? []).map((id) =>
-        directory.role(actor.guildId, id),
-      ),
-    );
-
-    for (const role of roles) {
-      if (!role) {
-        throw new UserError('One of the mentioned roles no longer exists.');
-      }
-
-      requireMentionable(role);
-    }
+    await requirePostable(directory, actor, draft.channelId, draft.mentions);
   };
 
   const publish = async (id: number, from: readonly AnnouncementStatus[]) => {
@@ -180,29 +173,18 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         return null;
       }
 
-      const author = await directory.member(post.guildId, post.authorId);
+      const publisher = await directory.member(
+        post.guildId,
+        scheduledBy ?? post.authorId,
+      );
 
       try {
-        if (!author) {
-          throw new UserError('The author is no longer a server member.');
-        }
-
-        await authz.require(author, 'announcement:create');
-        const publisher =
-          scheduledBy === undefined || scheduledBy === post.authorId
-            ? author
-            : await directory.member(post.guildId, scheduledBy);
-
         if (!publisher) {
           throw new UserError('The scheduler is no longer a server member.');
         }
 
-        await authz.require(publisher, 'announcement:schedule');
-        await checkTargets(author, post);
-        if (publisher.userId !== post.authorId) {
-          await authz.require(publisher, 'announcement:publish');
-          await checkTargets(publisher, post);
-        }
+        await authz.require(publisher, schedulePart);
+        await checkTargets(publisher, post);
       } catch (error) {
         if (!(error instanceof UserError)) {
           throw error;
@@ -243,57 +225,59 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
     jobs: [publishJob],
     view: announcementView,
     list: async (actor: Actor) => {
-      const [records, publisher] = await Promise.all([
+      const [records, canPost] = await Promise.all([
         posts.list(actor.guildId),
-        authz.can(actor, 'announcement:publish'),
+        involved(actor),
       ]);
       const accessible = records.filter(
-        (record) =>
-          record.status === 'published' ||
-          record.authorId === actor.userId ||
-          publisher,
+        (record) => record.status === 'published' || canPost,
       );
 
       return visibleRecords(directory, actor, accessible);
     },
     get: requireReadable,
-    draft: guard(
-      authz,
-      'announcement:create',
-      async (actor, draft: AnnouncementDraft) => {
-        validate(draft);
-        await checkTargets(actor, draft);
+    draft: guard(authz, write, async (actor, draft: AnnouncementDraft) => {
+      validate(draft);
+      await checkTargets(actor, draft);
 
-        const title = draft.title?.trim() ?? '';
-        const post = {
-          title: title === '' ? null : title,
-          content: draft.content,
-          mentionRoleIds: [...(draft.mentionRoleIds ?? [])],
-        };
+      const title = draft.title?.trim() ?? '';
+      const post = {
+        title: title === '' ? null : title,
+        content: draft.content,
+        mentions: draft.mentions ?? {},
+        authorId: actor.userId,
+      };
 
-        announcementView(post);
+      announcementView(post);
 
-        return await posts.insert({
-          ...post,
-          guildId: actor.guildId,
-          authorId: actor.userId,
-          channelId: draft.channelId,
-        });
-      },
-    ),
-    edit: async (
-      actor: Actor,
-      id: number,
-      changes: { title?: string; content: string },
-    ) => {
-      await authz.require(actor, 'announcement:create');
+      return await posts.insert({
+        ...post,
+        guildId: actor.guildId,
+        channelId: draft.channelId,
+      });
+    }),
+    edit: async (actor: Actor, id: number, changes: AnnouncementEdit) => {
       const post = await requireEditable(actor, id);
+      const published = post.status === 'published';
+      const target = {
+        channelId: changes.channelId ?? post.channelId,
+        mentions: changes.mentions ?? post.mentions,
+      };
 
-      validate({ channelId: post.channelId, content: changes.content });
+      if (published && target.channelId !== post.channelId) {
+        throw new UserError('A published announcement stays in its channel.');
+      }
+
+      validate({ ...target, content: changes.content });
+
+      if (!published) {
+        await checkTargets(actor, target);
+      }
 
       const title = changes.title?.trim() ?? '';
       const updated = {
         ...post,
+        ...(!published && target),
         title: title === '' ? null : title,
         content: changes.content,
       };
@@ -303,10 +287,12 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
         mentions: {},
       }));
 
-      if (post.status !== 'published' || post.messageIds.length === 0) {
+      if (!published || post.messageIds.length === 0) {
         await posts.update(id, {
           title: updated.title,
           content: updated.content,
+          channelId: updated.channelId,
+          mentions: updated.mentions,
         });
 
         return updated;
@@ -339,7 +325,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
 
       return { ...updated, messageIds };
     },
-    publish: guard(authz, 'announcement:publish', async (actor, id: number) => {
+    publish: guard(authz, publishPart, async (actor, id: number) => {
       const post = await requireReadable(actor, id);
 
       await checkTargets(actor, post);
@@ -349,7 +335,7 @@ export function createAnnouncementService(deps: AnnouncementDeps) {
     }),
     schedule: guard(
       authz,
-      'announcement:schedule',
+      schedulePart,
       async (actor, id: number, when: string) => {
         const post = await requireReadable(actor, id);
         const runAt = parseFutureWhen(when, deps.timezone, clock.now());

@@ -10,6 +10,7 @@ import type { Reminder } from '~/features/reminders/model';
 import type { ReminderService } from '~/features/reminders/service';
 import { channelMention } from '~/core/message';
 import { discordTime, recurrences } from '~/core/helpers/time';
+import { mentionOption, typedMentions } from '~/discord/interactions/mentions';
 import { toActor } from '~/discord/interactions/actor';
 import { bySubcommand } from './handlers';
 import type { Feature } from '~/discord/contracts';
@@ -52,7 +53,8 @@ const remindme = new SlashCommandBuilder()
       .setName('repeat')
       .setDescription('Repeat the reminder')
       .addChoices(recurrences.map((r) => ({ name: r, value: r }))),
-  );
+  )
+  .addStringOption(mentionOption);
 
 const idOption = (o: SlashCommandIntegerOption) =>
   o
@@ -128,6 +130,7 @@ export function reminderCommands(reminders: ReminderService): Feature {
             message: interaction.options.getString('message', true),
             ...(channel && { channelId: channel.id }),
             ...(repeat !== null && { repeat }),
+            ...typedMentions(interaction),
           });
           const note = channel
             ? ''

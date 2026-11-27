@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
-import { setSignedCookie } from 'hono/cookie';
-import type { ChannelInfo } from '~/core/ports/directory';
+import { setCookie } from 'hono/cookie';
+import { sign } from 'hono/jwt';
 import { createWebApp } from '~/web/app';
 import type { WebDeps } from '~/web/context';
 import { actor, allowAll, fakeDirectory, role, silentLog } from './fakes';
@@ -55,14 +55,13 @@ function fixture() {
     },
   } as unknown as WebDeps);
   const issuer = new Hono().get('/:user', async (c) => {
-    await setSignedCookie(
+    setCookie(
       c,
       'session',
-      JSON.stringify({
-        userId: c.req.param('user'),
-        expiresAt: Date.now() + 60_000,
-      }),
-      sessionSecret,
+      await sign(
+        { sub: c.req.param('user'), exp: Math.floor(Date.now() / 1000) + 60 },
+        sessionSecret,
+      ),
     );
 
     return c.text('');
@@ -92,18 +91,31 @@ function fixture() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('dashboard Discord requests', () => {
+  it('redirects old dashboard addresses', async () => {
+    const { request } = fixture();
+
+    expect(
+      (await request('/post/events/new?x=1')).headers.get('location'),
+    ).toBe('/events/new?x=1');
+    expect((await request('/roles')).headers.get('location')).toBe(
+      '/settings/roles',
+    );
+  });
+
   it('skips metadata on overview, logs, section redirects and event submissions', async () => {
     const { directory, authz, request } = fixture();
 
     expect((await request('/')).status).toBe(200);
     expect((await request('/settings/logs')).status).toBe(200);
-    const section = await request('/post?notice=hello');
+    const section = await request('/settings?notice=hello');
 
     expect(section.status).toBe(303);
-    expect(section.headers.get('location')).toBe('/post/events?notice=hello');
+    expect(section.headers.get('location')).toBe(
+      '/settings/roles?notice=hello',
+    );
     expect(
       (
-        await request('/post/events', 'u', {
+        await request('/events', 'u', {
           method: 'POST',
           body: new URLSearchParams({
             title: 'Event',
@@ -119,91 +131,35 @@ describe('dashboard Discord requests', () => {
     expect(authz.granted).toHaveBeenCalledTimes(4);
   });
 
-  it('shares metadata for 30 seconds while rechecking membership and permissions', async () => {
-    const now = Date.now();
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
-    const { directory, authz, request } = fixture();
-
-    expect((await request('/post/events/new')).status).toBe(200);
-    clock.mockReturnValue(now + 29_999);
-    expect((await request('/post/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
-    expect(directory.member).toHaveBeenCalledTimes(2);
-    expect(authz.granted).toHaveBeenCalledTimes(2);
-    clock.mockReturnValue(now + 30_000);
-    expect((await request('/post/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(2);
-    expect(directory.roles).toHaveBeenCalledTimes(2);
-  });
-
-  it('filters cached channels separately for each user and each request', async () => {
+  it('filters channels separately for each user and each request', async () => {
     const { directory, request } = fixture();
 
     directory.canView.mockImplementation(async (member, id) =>
       member.userId === 'one' ? id === 'public' : id === 'private',
     );
-    const first = await (await request('/post/events/new', 'one')).text();
-    const second = await (await request('/post/events/new', 'two')).text();
+    const first = await (await request('/events/new', 'one')).text();
+    const second = await (await request('/events/new', 'two')).text();
 
     expect(first).toContain('Public channel');
     expect(first).not.toContain('Private channel');
     expect(second).toContain('Private channel');
     expect(second).not.toContain('Public channel');
     directory.canView.mockResolvedValue(false);
-    const revoked = await (await request('/post/events/new', 'one')).text();
+    const revoked = await (await request('/events/new', 'one')).text();
 
     expect(revoked).not.toContain('Public channel');
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
   });
 
-  it('denies revoked access and departed members even with warm metadata', async () => {
+  it('denies revoked access and departed members', async () => {
     const { directory, authz, request } = fixture();
 
-    expect((await request('/post/events/new')).status).toBe(200);
+    expect((await request('/events/new')).status).toBe(200);
     directory.member.mockResolvedValue(actor());
     authz.granted.mockResolvedValue(new Set());
-    expect((await request('/post/events/new')).status).toBe(403);
+    expect((await request('/events/new')).status).toBe(403);
     directory.member.mockResolvedValue(undefined);
-    expect((await request('/post/events/new')).status).toBe(403);
+    expect((await request('/events/new')).status).toBe(403);
     expect(directory.channels).toHaveBeenCalledTimes(1);
     expect(directory.roles).toHaveBeenCalledTimes(1);
-  });
-
-  it('shares an in-flight fetch even if Discord takes longer than the cache lifetime', async () => {
-    const now = Date.now();
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
-    const { directory, authz, request } = fixture();
-    const pending = Promise.withResolvers<ChannelInfo[]>();
-    const started = Promise.withResolvers<undefined>();
-
-    directory.channels.mockImplementationOnce(() => {
-      started.resolve(undefined);
-
-      return pending.promise;
-    });
-    const first = request('/post/events/new');
-
-    await started.promise;
-    clock.mockReturnValue(now + 31_000);
-    const second = request('/post/events/new');
-
-    await vi.waitFor(() => expect(authz.granted).toHaveBeenCalledTimes(2));
-    pending.resolve([]);
-    const responses = await Promise.all([first, second]);
-
-    expect(responses.map((response) => response.status)).toEqual([200, 200]);
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not retain failed metadata fetches', async () => {
-    const { directory, request } = fixture();
-
-    directory.channels.mockRejectedValueOnce(new Error('Discord unavailable'));
-    expect((await request('/post/events/new')).status).toBe(500);
-    expect((await request('/post/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(2);
   });
 });

@@ -162,6 +162,13 @@ export default defineConfig(
   },
 
   {
+    files: ['src/web/public/**/*.js'],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+
+  {
     files: ['**/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',

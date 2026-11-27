@@ -12,22 +12,30 @@ async function page(can: readonly Permission[], path = '/') {
 }
 
 describe('primary navigation', () => {
-  it('links sections directly to their first permitted page', async () => {
-    const html = await page(['permissions:manage']);
+  it('groups permitted destinations without crowding the header', async () => {
+    const html = await page(['permissions:manage', 'form:manage'], '/events');
+    const primary = /<nav[^>]*aria-label="Primary">([\s\S]*?)<\/nav>/.exec(
+      html,
+    )?.[1];
 
-    expect(html).toContain('href="/post/events">Post</a>');
-    expect(html).toContain('href="/forms/birthdays">Forms</a>');
-    expect(html).toContain('href="/settings/permissions">Settings</a>');
-    expect(html).not.toContain('href="/post/announcements"');
+    expect(primary).toMatch(/href="\/events"[^>]*>Community<\/a>/);
+    expect(primary).toContain('href="/forms">Forms</a>');
+    expect(primary).toContain('href="/birthdays">Personal</a>');
+    expect(primary).toContain('href="/settings/permissions">Settings</a>');
+    expect(primary).not.toContain('>Reminders</a>');
+    expect(primary).not.toContain('>Polls</a>');
+    expect(html).toContain('aria-label="Community pages"');
   });
 
-  it('links publishers to announcements while retaining the active parent section', async () => {
-    const html = await page(['announcement:create'], '/post/polls');
-
-    expect(html).toContain(
-      'href="/post/announcements" aria-current="page">Post</a>',
+  it('marks the active group and destination on nested event pages', async () => {
+    const html = await page(
+      ['event:suggestions:manage'],
+      '/events/suggestions',
     );
-    expect(html).toContain('href="/post/polls" aria-current="page">Polls</a>');
-    expect(html).not.toContain('>Settings</a>');
+
+    expect(html).toContain('href="/events" aria-current="true">Community</a>');
+    expect(html).toContain(
+      'href="/events/suggestions" aria-current="page">Suggestions</a>',
+    );
   });
 });

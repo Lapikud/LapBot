@@ -30,13 +30,12 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     channels: async (guildId) => {
       const found = await guild(guildId);
-      const all = await found.channels.fetch();
 
-      return all
+      return found.channels.cache
         .filter(
           (channel) =>
-            channel?.type === ChannelType.GuildText ||
-            channel?.type === ChannelType.GuildAnnouncement,
+            channel.type === ChannelType.GuildText ||
+            channel.type === ChannelType.GuildAnnouncement,
         )
         .map((channel) => ({
           id: channel.id,
@@ -49,11 +48,21 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     roles: async (guildId) => {
       const found = await guild(guildId);
-      const roles = await found.roles.fetch();
 
-      return roles
+      return found.roles.cache
         .sort((a, b) => b.position - a.position)
         .map((role) => toRoleInfo(role));
+    },
+    members: async (guildId) => {
+      const found = await guild(guildId);
+
+      return found.members.cache
+        .filter((member) => !member.user.bot)
+        .map((member) => ({
+          id: member.id,
+          name: member.displayName,
+          username: member.user.username,
+        }));
     },
     role: async (guildId, roleId) => {
       const found = await guild(guildId);
@@ -63,9 +72,7 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     member: async (guildId, userId) => {
       const found = await guild(guildId);
-      const member = await found.members
-        .fetch({ user: userId, force: true })
-        .catch(absentOrThrow);
+      const member = await found.members.fetch(userId).catch(absentOrThrow);
 
       return member ? toActor(member) : undefined;
     },
@@ -105,6 +112,19 @@ export function createDiscordDirectory(client: Client): Directory {
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
         ]);
+    },
+    canMentionEveryone: async (actor, channelId) => {
+      const found = await guild(actor.guildId);
+      const [channel, member] = await Promise.all([
+        found.channels.fetch(channelId).catch(absentOrThrow),
+        found.members.fetch(actor.userId).catch(absentOrThrow),
+      ]);
+
+      return (
+        !!channel &&
+        !!member &&
+        channel.permissionsFor(member).has(PermissionFlagsBits.MentionEveryone)
+      );
     },
     isPublic: async (guildId, channelId) => {
       const found = await guild(guildId);

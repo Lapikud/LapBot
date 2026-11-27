@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createRoleService, legacyMessage } from '~/features/roles/service';
+import { createRoleService } from '~/features/roles/service';
 import { createRolePanelRepository } from '~/integrations/db/roles/repository';
 import { noDatabase, snowflake, testDb } from './db';
 import { actor, fakeDirectory, fakeMessenger, role, silentLog } from './fakes';
@@ -9,7 +9,7 @@ import { createDiscordMessenger } from '~/integrations/discord/messenger';
 
 describe('role service', () => {
   describe.skipIf(noDatabase)('role service', () => {
-    const setup = (
+    const setup = async (
       roles = [role({ id: 'tarkvara' }), role({ id: 'helpdesk' })],
     ) => {
       const guildId = snowflake();
@@ -21,41 +21,38 @@ describe('role service', () => {
         directory,
         messenger,
         log: silentLog,
-        legacy: {
-          channelId,
-          roles: [
-            { emoji: '1️⃣', roleId: 'tarkvara', label: 'Tarkvara' },
-            { emoji: '2️⃣', roleId: 'helpdesk', label: 'Helpdesk' },
-          ],
-        },
       });
+      const admin = actor({ guildId, administrator: true });
 
-      return { guildId, channelId, messenger, directory, service, sent };
+      await service.save(admin, channelId, [
+        { roleId: 'tarkvara', emoji: '1️⃣' },
+        { roleId: 'helpdesk', emoji: '2️⃣' },
+      ]);
+
+      return { guildId, channelId, messenger, directory, service, sent, admin };
     };
 
-    it('posts the legacy message once and reuses it after restarts', async () => {
-      const { service, messenger } = setup();
+    it('keeps the panel message across restarts and reposts it when deleted', async () => {
+      const { service, messenger, guildId } = await setup();
 
-      await service.syncLegacyPanel();
-      await service.syncLegacyPanel();
-
+      messenger.exists.mockResolvedValue(true);
+      messenger.ownReactions.mockResolvedValue(['1️⃣', '2️⃣']);
+      await service.syncPanels(guildId);
       expect(messenger.send).toHaveBeenCalledOnce();
-      expect(messenger.send).toHaveBeenCalledWith(expect.any(String), {
-        content: legacyMessage,
-      });
+
+      messenger.exists.mockResolvedValue(false);
+      messenger.ownReactions.mockResolvedValue([]);
+      await service.syncPanels(guildId);
+      expect(messenger.send).toHaveBeenCalledTimes(2);
       expect(messenger.react).toHaveBeenCalledTimes(4);
     });
 
     it('assigns and removes mapped roles, ignoring other messages and emoji', async () => {
-      const { service, sent, directory, guildId, channelId } = setup();
-
-      await service.syncLegacyPanel();
-
-      const messageId = sent[0] ?? '';
+      const { service, sent, directory, guildId, channelId } = await setup();
       const reaction = {
         guildId,
         channelId,
-        messageId,
+        messageId: sent[0] ?? '',
         emoji: '1️⃣',
         userId: 'member',
       };
@@ -73,54 +70,20 @@ describe('role service', () => {
       expect(directory.removeRoles).toHaveBeenCalledOnce();
     });
 
-    it('persists web choices and keeps them after legacy startup sync', async () => {
-      const { service, guildId, channelId, sent, directory } = setup();
-      const admin = actor({ guildId, administrator: true });
+    it('skips roles that are no longer assignable', async () => {
+      const { service, sent, directory, guildId, channelId } = await setup();
 
-      await service.syncLegacyPanel();
-      await service.save(admin, channelId, [
-        { roleId: 'helpdesk', emoji: '🎉' },
-      ]);
-      await service.syncLegacyPanel();
-
-      const panels = await service.list(admin);
-
-      expect(panels[0]?.roles).toEqual([
-        { roleId: 'helpdesk', label: 'Role', emoji: '🎉' },
-      ]);
-      expect(sent).toHaveLength(1);
+      directory.role.mockResolvedValue(
+        role({ id: 'tarkvara', moderator: true }),
+      );
       await service.reacted(
         {
           guildId,
           channelId,
           messageId: sent[0] ?? '',
-          emoji: '🎉',
-          userId: 'member',
+          emoji: '1️⃣',
+          userId: 'u',
         },
-        true,
-      );
-      expect(directory.addRoles).toHaveBeenCalledWith(
-        { guildId, userId: 'member' },
-        ['helpdesk'],
-        expect.any(String),
-      );
-    });
-
-    it('skips roles that are gone or no longer assignable', async () => {
-      const { service, sent, directory, guildId, channelId } = setup([
-        role({ id: 'tarkvara', moderator: true }),
-      ]);
-
-      await service.syncLegacyPanel();
-
-      const messageId = sent[0] ?? '';
-
-      await service.reacted(
-        { guildId, channelId, messageId, emoji: '1️⃣', userId: 'u' },
-        true,
-      );
-      await service.reacted(
-        { guildId, channelId, messageId, emoji: '2️⃣', userId: 'u' },
         true,
       );
       expect(directory.addRoles).not.toHaveBeenCalled();
@@ -132,9 +95,6 @@ describe('role message configuration', () => {
   function setup() {
     const panels = {
       list: vi.fn<RolePanelRepository['list']>(async () => []),
-      reactionPanel: vi.fn<RolePanelRepository['reactionPanel']>(
-        async () => undefined,
-      ),
       create: vi.fn(async () => 1),
       replaceRoles: vi.fn(async () => undefined),
       setMessage: vi.fn(async () => undefined),
@@ -265,33 +225,29 @@ describe('role message configuration', () => {
     ).toBeLessThan(panels.replaceRoles.mock.invocationCallOrder[0] ?? 0);
   });
 
-  it('imports the original role message without replacing its reactions', async () => {
-    const { panels, messenger, directory } = setup();
-    const roles = [
-      { emoji: '1️⃣', roleId: 'tarkvara', label: 'Tarkvara' },
-      { emoji: '2️⃣', roleId: 'helpdesk', label: 'Helpdesk' },
-      { emoji: '3️⃣', roleId: 'kultuur', label: 'Kultuur' },
-    ];
+  it('adds only missing reactions to a stored panel on startup', async () => {
+    const { service, panels, messenger } = setup();
 
-    messenger.findOwn.mockResolvedValue('original-message');
-    messenger.ownReactions.mockResolvedValue(roles.map(({ emoji }) => emoji));
-    const service = createRoleService({
-      panels,
-      messenger,
-      directory,
-      log: silentLog,
-      legacy: { channelId: 'c', roles },
-    });
-
-    await service.syncLegacyPanel();
-
-    expect(messenger.findOwn).toHaveBeenCalledWith('c', legacyMessage);
-    expect(panels.setMessage).toHaveBeenCalledWith(1, 'original-message');
-    expect(panels.replaceRoles).toHaveBeenCalledWith(1, roles);
+    panels.list.mockResolvedValue([
+      {
+        id: 1,
+        guildId: 'g',
+        channelId: 'c',
+        messageId: 'm',
+        kind: 'reaction',
+        title: 'Roles',
+        createdBy: 'u',
+        roles: [
+          { roleId: 'r', label: 'Role', emoji: '1️⃣' },
+          { roleId: 'x', label: 'Other', emoji: '2️⃣' },
+        ],
+      },
+    ]);
+    messenger.exists.mockResolvedValue(true);
+    messenger.ownReactions.mockResolvedValue(['1️⃣']);
+    await service.syncPanels('g');
     expect(messenger.send).not.toHaveBeenCalled();
-    expect(messenger.edit).not.toHaveBeenCalled();
-    expect(messenger.react).not.toHaveBeenCalled();
-    expect(messenger.clearReactionsExcept).not.toHaveBeenCalled();
+    expect(messenger.react).toHaveBeenCalledExactlyOnceWith('c', 'm', '2️⃣');
   });
 });
 

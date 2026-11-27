@@ -5,9 +5,9 @@ import {
   type Message,
 } from '~/core/message';
 import { tz } from '@date-fns/tz';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import type { CalendarEntry } from '~/core/ports/calendar';
-import { discordTime, sameCalendarDay } from '~/core/helpers/time';
+import { discordTime } from '~/core/helpers/time';
 import {
   rsvpStatuses,
   type Event,
@@ -26,7 +26,7 @@ export function eventView(event: Event, counts: RsvpCounts): Message {
   const icon = (emoji: string) => (event.icons ? `${emoji} ` : '');
   const endStyle =
     event.endsAt !== null &&
-    sameCalendarDay(event.startsAt, event.endsAt, event.timezone)
+    isSameDay(event.startsAt, event.endsAt, { in: tz(event.timezone) })
       ? 't'
       : 'f';
   const end =

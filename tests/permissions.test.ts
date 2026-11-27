@@ -22,7 +22,7 @@ import {
   listGrants,
   revoke,
 } from '~/integrations/db/permissions/repository';
-import type { GrantRepository } from '~/features/permissions/model';
+import type { Grant, GrantRepository } from '~/features/permissions/model';
 import type { Permission, PermissionDefinition } from '~/core/permission';
 import {
   actor,
@@ -48,7 +48,7 @@ import { buildRegistry } from '~/discord/registry';
 import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { Hono } from 'hono';
-import { setSignedCookie } from 'hono/cookie';
+import { sign } from 'hono/jwt';
 import { signedInUser, type SignIn } from '~/web/auth';
 import { type Env, type WebDeps, serverOf } from '~/web/context';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
@@ -73,8 +73,12 @@ import { createLogger } from '~/integrations/logging/logger';
 import { eventCommands } from '~/discord/commands/events';
 import { pollCommands } from '~/discord/commands/polls';
 import { visibleRecords } from '~/core/helpers/visibility';
-import { eventRoutes } from '~/web/pages/post/events/routes';
-import { pollRoutes } from '~/web/pages/post/polls/routes';
+import { createReminderService } from '~/features/reminders/service';
+import { createFormService } from '~/features/forms/service';
+import { createFormRepository } from '~/integrations/db/forms/repository';
+import { createReminderRepository } from '~/integrations/db/reminders/repository';
+import { eventRoutes } from '~/web/pages/events/routes';
+import { pollRoutes } from '~/web/pages/polls/routes';
 
 describe('permission delegation', () => {
   const manager = (overrides: Partial<Actor> = {}): Actor => ({
@@ -174,6 +178,51 @@ describe('permission grants', () => {
       ).toBe(true);
       expect(
         await authz.can(member(guildId, [organizers]), 'poll:create'),
+      ).toBe(false);
+    });
+
+    it('lets a bundle grant its parts, but not the reverse', async () => {
+      const db = testDb();
+      const bundleRole = snowflake();
+      const partRole = snowflake();
+
+      await grant(db, {
+        guildId,
+        roleId: bundleRole,
+        permission: 'announcement:post',
+        grantedBy: 'x',
+      });
+      await grant(db, {
+        guildId,
+        roleId: partRole,
+        permission: 'announcement:publish',
+        grantedBy: 'x',
+      });
+      const authz = createAuthorizer(
+        createGrantRepository(db),
+        () =>
+          new Map<Permission, PermissionDefinition>([
+            [
+              'announcement:publish',
+              {
+                id: 'announcement:publish',
+                description: 'Publish',
+                partOf: 'announcement:post',
+              },
+            ],
+          ]),
+      );
+
+      expect(
+        await authz.can(member(guildId, [bundleRole]), 'announcement:publish'),
+      ).toBe(true);
+      expect(
+        await authz.granted(member(guildId, [bundleRole]), [
+          'announcement:publish',
+        ]),
+      ).toEqual(new Set(['announcement:publish']));
+      expect(
+        await authz.can(member(guildId, [partRole]), 'announcement:post'),
       ).toBe(false);
     });
 
@@ -288,6 +337,123 @@ describe('permission grants', () => {
 });
 
 describe('permission changes', () => {
+  const catalogue = new Map<Permission, PermissionDefinition>([
+    ['event:create', { id: 'event:create', description: 'Create events' }],
+    ['poll:create', { id: 'poll:create', description: 'Create polls' }],
+    [
+      'announcement:publish',
+      {
+        id: 'announcement:publish',
+        description: 'Publish',
+        partOf: 'announcement:post',
+      },
+    ],
+  ]);
+  const serviceWith = (
+    held: Grant[],
+    can: (permission: Permission) => boolean,
+    directory = fakeDirectory([role()]),
+  ) => {
+    const grants = {
+      holds: async () => false,
+      held: async () => [],
+      list: vi.fn<GrantRepository['list']>(async () => held),
+      grant: vi.fn(async () => true),
+      revoke: vi.fn(async () => true),
+      apply: vi.fn<GrantRepository['apply']>(async () => undefined),
+    } satisfies GrantRepository;
+
+    return {
+      grants,
+      service: createPermissionService({
+        grants,
+        directory,
+        log: silentLog,
+        known: () => catalogue,
+        authz: {
+          require: async () => undefined,
+          can: async (_actor, permission) => can(permission),
+          granted: async () => new Set(),
+        },
+      }),
+    };
+  };
+
+  it('only changes the permissions that were shown', async () => {
+    const { service, grants } = serviceWith(
+      [
+        { roleId: 'r', permission: 'event:create' },
+        { roleId: 'r', permission: 'announcement:publish' },
+      ],
+      () => true,
+    );
+
+    await service.setGrants(
+      actor(),
+      { type: 'role', id: 'r' },
+      [],
+      ['event:create'],
+    );
+    expect(grants.apply).toHaveBeenCalledWith(
+      expect.objectContaining({ grant: [], revoke: ['event:create'] }),
+    );
+  });
+
+  it('lets delegation hand out a permission the manager lacks', async () => {
+    const { service, grants } = serviceWith(
+      [],
+      (permission) => permission === 'delegate:poll:create',
+    );
+
+    await service.setGrants(
+      actor(),
+      { type: 'role', id: 'r' },
+      ['poll:create'],
+      ['poll:create'],
+    );
+    expect(grants.apply).toHaveBeenCalledOnce();
+    await expect(
+      service.setGrants(
+        actor(),
+        { type: 'role', id: 'r' },
+        ['delegate:poll:create'],
+        ['delegate:poll:create'],
+      ),
+    ).rejects.toThrow('Only administrators');
+  });
+
+  it('explains where each permission comes from', async () => {
+    const directory = fakeDirectory([
+      role({ id: 'r', name: 'Board' }),
+      role({ id: 'g', name: '@everyone', everyone: true }),
+    ]);
+
+    directory.member.mockResolvedValue(
+      actor({ userId: 'm', roleIds: ['r', 'g'] }),
+    );
+    const { service } = serviceWith(
+      [
+        { roleId: 'r', permission: 'announcement:post' },
+        { roleId: 'g', permission: 'event:create' },
+        { roleId: 'm', subjectType: 'user', permission: 'event:create' },
+      ],
+      () => true,
+      directory,
+    );
+    const rows = new Map(
+      (await service.explain(actor(), 'm')).map(({ permission, sources }) => [
+        permission.id,
+        sources,
+      ]),
+    );
+
+    expect(rows.get('event:create')).toEqual(['Everyone', 'Personal']);
+    expect(rows.get('announcement:publish')).toEqual([
+      '@Board (announcement:post)',
+    ]);
+    expect(rows.get('poll:create')).toEqual([]);
+  });
+
   it('validates every permission change before writing any', async () => {
     const grants: GrantRepository = {
       holds: async () => false,
@@ -308,13 +474,18 @@ describe('permission changes', () => {
       known: () => known,
       authz: {
         require: async () => undefined,
-        can: async (_actor, p) => p !== 'poll:create',
+        can: async (_actor, p) => p === 'event:create',
         granted: async () => new Set(),
       },
     });
 
     await expect(
-      service.setRole(actor(), 'r', ['event:create', 'poll:create']),
+      service.setGrants(
+        actor(),
+        { type: 'role', id: 'r' },
+        ['event:create', 'poll:create'],
+        ['event:create', 'poll:create'],
+      ),
     ).rejects.toThrow();
     expect(grants.grant).not.toHaveBeenCalled();
     expect(grants.revoke).not.toHaveBeenCalled();
@@ -474,7 +645,7 @@ describe('member refresh', () => {
       roleIds: ['current-role'],
       administrator: false,
     });
-    expect(fetchMember).toHaveBeenCalledWith({ user: 'u', force: true });
+    expect(fetchMember).toHaveBeenCalledWith('u');
     fetchMember.mockRejectedValueOnce(
       new DiscordAPIError(
         { code: RESTJSONErrorCodes.UnknownMember, message: 'Unknown Member' },
@@ -492,40 +663,22 @@ describe('member refresh', () => {
 describe('dashboard sessions', () => {
   const signIn = { sessionSecret: 'test-secret' } as SignIn;
 
-  it('rejects expired and malformed sessions while accepting a fresh session', async () => {
-    const app = new Hono<Env>();
-
-    app.get('/cookie', async (c) => {
-      await setSignedCookie(
-        c,
-        'session',
-        c.req.query('value') ?? '',
-        signIn.sessionSecret,
-      );
-
-      return c.text('');
-    });
-    app.get('/', async (c) =>
+  it('rejects expired and forged sessions while accepting a fresh session', async () => {
+    const app = new Hono<Env>().get('/', async (c) =>
       c.text((await signedInUser(c, signIn)) ?? 'anonymous'),
     );
+    const now = Math.floor(Date.now() / 1000);
 
-    for (const [value, expected] of [
+    for (const [token, expected] of [
+      [await sign({ sub: '123', exp: now + 60 }, signIn.sessionSecret), '123'],
       [
-        JSON.stringify({ userId: '123', expiresAt: Date.now() + 60_000 }),
-        '123',
-      ],
-      [
-        JSON.stringify({ userId: '123', expiresAt: Date.now() - 1 }),
+        await sign({ sub: '123', exp: now - 1 }, signIn.sessionSecret),
         'anonymous',
       ],
-      [JSON.stringify({ userId: '123' }), 'anonymous'],
-      ['123', 'anonymous'],
+      [await sign({ sub: '123', exp: now + 60 }, 'other-secret'), 'anonymous'],
       ['broken', 'anonymous'],
     ]) {
-      const issued = await app.request(
-        `/cookie?value=${encodeURIComponent(value ?? '')}`,
-      );
-      const cookie = issued.headers.get('set-cookie')?.split(';')[0] ?? '';
+      const cookie = `session=${token}`;
 
       expect(
         await (await app.request('/', { headers: { cookie } })).text(),
@@ -540,8 +693,13 @@ describe('dashboard access', () => {
   describe.skipIf(noDatabase)('web UI', () => {
     const guildId = snowflake();
     const { messenger } = fakeMessenger();
-    const directory = fakeDirectory([role({ id: teamId, name: 'Team' })]);
+    const directory = fakeDirectory([
+      role({ id: teamId, name: 'Team' }),
+      role({ id: guildId, name: '@everyone', everyone: true, position: 0 }),
+    ]);
     let app: WebApp;
+    let polls: PollService;
+    let events: EventService;
 
     let cookie = '';
 
@@ -581,13 +739,14 @@ describe('dashboard access', () => {
       const authz = createAuthorizer(createGrantRepository(db));
       const shared = { ...serviceFakes(), messenger, directory, authz };
 
-      const events = createEventService({
-        ...shared,
-        events: createEventRepository(db),
-      });
-      const polls = createPollService({
+      polls = createPollService({
         ...shared,
         polls: createPollRepository(db),
+      });
+      events = createEventService({
+        ...shared,
+        events: createEventRepository(db),
+        polls,
       });
 
       app = createWebApp({
@@ -604,6 +763,14 @@ describe('dashboard access', () => {
         log: silentLog,
         logs: createLogStore(':memory:'),
         services: {
+          forms: createFormService({
+            ...shared,
+            forms: createFormRepository(db),
+          }),
+          reminders: createReminderService({
+            ...shared,
+            reminders: createReminderRepository(db),
+          }),
           eventSuggestions: createEventSuggestionService({
             suggestions: createEventSuggestionRepository(db),
             authz,
@@ -658,13 +825,22 @@ describe('dashboard access', () => {
                   { id: 'web:access', description: 'Open the dashboard' },
                 ],
                 [
-                  'announcement:create',
-                  { id: 'announcement:create', description: 'Write PSAs' },
+                  'announcement:post',
+                  { id: 'announcement:post', description: 'Post PSAs' },
                 ],
-                [
-                  'announcement:publish',
-                  { id: 'announcement:publish', description: 'Publish PSAs' },
-                ],
+                ...(
+                  [
+                    'announcement:create',
+                    'announcement:publish',
+                    'announcement:schedule',
+                  ] as const
+                ).map(
+                  (id) =>
+                    [
+                      id,
+                      { id, description: id, partOf: 'announcement:post' },
+                    ] as const,
+                ),
               ]),
           }),
         },
@@ -695,7 +871,8 @@ describe('dashboard access', () => {
     };
 
     it('sends visitors to Discord and signs members in', async () => {
-      expect((await get('/')).headers.get('location')).toBe('/login');
+      expect(await (await get('/')).text()).toContain('Sign in with Discord');
+      expect((await get('/events')).headers.get('location')).toBe('/login');
 
       const start = await get('/login');
       const authorize = new URL(start.headers.get('location') ?? '');
@@ -719,7 +896,7 @@ describe('dashboard access', () => {
 
     it('rejects forms posted from another site', async () => {
       const response = await post(
-        '/post/announcements',
+        '/announcements',
         { channelId: 'general', content: 'x', action: 'publish' },
         'https://evil.example',
       );
@@ -729,11 +906,11 @@ describe('dashboard access', () => {
     });
 
     it('previews without posting, escaping user text', async () => {
-      const response = await post('/post/announcements', {
+      const response = await post('/announcements', {
         channelId: 'general',
         title: '<b>Hi</b>',
         content: `Meeting <@&${teamId}> **now**`,
-        role: teamId,
+        mention: `role:${teamId}`,
         action: 'preview',
       });
       const page = await response.text();
@@ -741,6 +918,137 @@ describe('dashboard access', () => {
       expect(page).toContain('&lt;b&gt;Hi&lt;/b&gt;');
       expect(page).toMatch(/class="mention"\s*>@Team</);
       expect(messenger.send).not.toHaveBeenCalled();
+    });
+
+    it('edits a saved draft from the dashboard', async () => {
+      const saved = await post('/announcements', {
+        channelId: 'general',
+        content: 'First',
+        action: 'draft',
+      });
+      const notice = new URL(
+        saved.headers.get('location') ?? '',
+        'http://localhost',
+      ).searchParams.get('notice');
+      const id = /Announcement #(\d+)/.exec(notice ?? '')?.[1];
+      const form = await (await get(`/announcements/${id}`)).text();
+
+      expect(form).toContain('First');
+      const edited = await post(`/announcements/${id}`, {
+        channelId: 'general',
+        content: 'Second',
+        mention: `role:${teamId}`,
+        action: 'draft',
+      });
+
+      expect(edited.headers.get('location')).toContain('saved');
+      expect(await (await get(`/announcements/${id}`)).text()).toContain(
+        'Second',
+      );
+    });
+
+    it('writes the winning option into an event with a vote', async () => {
+      const created = await post('/events', {
+        title: 'Friday hangout',
+        start: '3d',
+        channelId: 'general',
+        vote: 'Bowling\nKaraoke',
+      });
+      const id = /Event #(\d+)/.exec(
+        new URL(
+          created.headers.get('location') ?? '',
+          'http://localhost',
+        ).searchParams.get('notice') ?? '',
+      )?.[1];
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const event = await events.get(admin, Number(id));
+      const { results } = await polls.summary(admin, event.pollId ?? 0);
+      const karaoke = results.options.find((o) => o.label === 'Karaoke');
+
+      await polls.vote(admin, event.pollId ?? 0, [karaoke?.id ?? 0]);
+      await post(`/polls/${event.pollId}/close`, {});
+      expect((await events.get(admin, Number(id))).description).toBe(
+        '**Chosen:** Karaoke',
+      );
+    });
+
+    it('rejects a bad vote deadline before posting an event', async () => {
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const before = await events.upcoming(guildId);
+
+      await expect(
+        events.create(admin, {
+          title: 'Invalid vote deadline',
+          start: '3d',
+          channelId: 'general',
+          vote: { options: ['Bowling', 'Karaoke'], closes: 'not a date' },
+        }),
+      ).rejects.toThrow();
+
+      expect(await events.upcoming(guildId)).toHaveLength(before.length);
+    });
+
+    it('turns a movie night vote into the chosen movie', async () => {
+      await post('/events/movies', { title: 'Arrival' });
+      await post('/events/movies', { title: 'Heat' });
+      const night = await post('/events/movies/night', {
+        start: '4d',
+        channelId: 'general',
+      });
+      const id = /event #(\d+)/.exec(
+        new URL(
+          night.headers.get('location') ?? '',
+          'http://localhost',
+        ).searchParams.get('notice') ?? '',
+      )?.[1];
+      const admin = actor({ guildId, userId: '42', administrator: true });
+      const event = await events.get(admin, Number(id));
+      const { results } = await polls.summary(admin, event.pollId ?? 0);
+      const heat = results.options.find((o) => o.label === 'Heat');
+
+      await polls.vote(admin, event.pollId ?? 0, [heat?.id ?? 0]);
+      await post(`/polls/${event.pollId}/close`, {});
+      expect((await events.get(admin, Number(id))).title).toBe(
+        '🎬 Movie night: Heat',
+      );
+    });
+
+    it('builds, posts and closes a form', async () => {
+      const created = await post('/forms', { title: 'Hackathon sign-up' });
+      const path = new URL(
+        created.headers.get('location') ?? '',
+        'http://localhost',
+      ).pathname;
+
+      const moved = await post(path, {
+        title: 'Hackathon sign-up',
+        rows: '3',
+        'label-0': 'Team',
+        'kind-0': 'short',
+        'label-1': 'Size',
+        'kind-1': 'choice',
+        'options-1': 'S\nM\nL',
+        'required-1': '1',
+        'label-2': '',
+        move: 'down:0',
+      });
+      const page = await (await get(path)).text();
+
+      expect(moved.headers.get('location')).toMatch(/#question-1$/);
+
+      expect(page.indexOf('value="Size"')).toBeLessThan(
+        page.indexOf('value="Team"'),
+      );
+      await post(`${path}/post`, { channelId: 'general' });
+      expect(messenger.send).toHaveBeenLastCalledWith(
+        'general',
+        expect.objectContaining({ content: '# Hackathon sign-up' }),
+      );
+      await post(`${path}/status`, { status: 'closed' });
+      expect(await (await get(path)).text()).toContain('Reopen form');
+      expect(await (await get(`${path}/responses.csv`)).text()).toBe(
+        '"Submitted","Member"',
+      );
     });
 
     it('keeps members without dashboard access out', async () => {
@@ -837,19 +1145,11 @@ describe('log access', () => {
     expect(anonymous.status).toBe(303);
     expect(anonymous.headers.get('location')).toBe('/login');
 
-    const issuer = new Hono().get('/', async (c) => {
-      await setSignedCookie(
-        c,
-        'session',
-        JSON.stringify({ userId: 'u', expiresAt: Date.now() + 60_000 }),
-        sessionSecret,
-      );
-
-      return c.text('');
-    });
-    const issued = await issuer.request('/');
     const headers = {
-      cookie: issued.headers.get('set-cookie')?.split(';')[0] ?? '',
+      cookie: `session=${await sign(
+        { sub: 'u', exp: Math.floor(Date.now() / 1000) + 60 },
+        sessionSecret,
+      )}`,
     };
 
     directory.member.mockResolvedValue(actor({ administrator: false }));
@@ -1042,7 +1342,11 @@ describe('private records on the dashboard', () => {
   ];
   const member = actor();
   const directory = fakeDirectory();
-  const server = serverOf(channels, []);
+  const server = serverOf(
+    channels.filter(({ id }) => id === 'public'),
+    [],
+    [],
+  );
 
   function appFor(pages: Hono<Env>) {
     const app = new Hono<Env>();
