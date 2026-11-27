@@ -194,8 +194,13 @@ export function formCommands(forms: FormService): Feature {
     name: 'forms',
     permissions: [
       {
+        id: 'form:create',
+        description: 'Build your own forms and read their responses',
+      },
+      {
         id: 'form:manage',
-        description: 'Build forms and read their responses',
+        description: "Edit, delete and read everyone's forms",
+        advanced: true,
       },
     ],
     components: [open, save],

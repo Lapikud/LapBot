@@ -10,6 +10,7 @@ import {
   type Mentions,
   type Message,
 } from '~/core/message';
+import { formBuilders as build } from '~/core/permission';
 import type { Authorizer } from '~/core/ports/authorization';
 import type { Directory } from '~/core/ports/directory';
 import type { Logger } from '~/core/ports/logger';
@@ -87,6 +88,16 @@ export function createFormService(deps: Deps) {
     return form;
   };
 
+  const requireOwn = async (actor: Actor, id: number) => {
+    const form = await requireForm(id);
+
+    if (form.createdBy !== actor.userId) {
+      await authz.require(actor, manage);
+    }
+
+    return form;
+  };
+
   const grantsOf = (fields: readonly FormField[]) =>
     fields.flatMap((field) => (field.kind === 'grant' ? field.options : []));
 
@@ -149,9 +160,15 @@ export function createFormService(deps: Deps) {
 
   return {
     open: requireForm,
-    list: guard(authz, manage, () => forms.list()),
-    get: guard(authz, manage, (_actor, id: number) => requireForm(id)),
-    create: guard(authz, manage, async (actor, title: string) => {
+    list: guard(authz, build, async (actor) => {
+      const all = await forms.list();
+
+      return (await authz.can(actor, manage))
+        ? all
+        : all.filter((form) => form.createdBy === actor.userId);
+    }),
+    get: guard(authz, build, requireOwn),
+    create: guard(authz, build, async (actor, title: string) => {
       if (title.trim() === '' || title.length > 100) {
         throw new UserError('Give the form a title of 1-100 characters.');
       }
@@ -160,9 +177,9 @@ export function createFormService(deps: Deps) {
     }),
     update: guard(
       authz,
-      manage,
+      build,
       async (actor, id: number, settings: FormSettings) => {
-        const current = await requireForm(id);
+        const current = await requireOwn(actor, id);
 
         if (settings.title.trim() === '' || settings.title.length > 100) {
           throw new UserError('Give the form a title of 1-100 characters.');
@@ -209,8 +226,8 @@ export function createFormService(deps: Deps) {
         return updated;
       },
     ),
-    post: guard(authz, manage, async (actor, id: number, channelId: string) => {
-      const form = await requireForm(id);
+    post: guard(authz, build, async (actor, id: number, channelId: string) => {
+      const form = await requireOwn(actor, id);
 
       if (form.fields.length === 0) {
         throw new UserError('Add a question before posting the form.');
@@ -224,9 +241,9 @@ export function createFormService(deps: Deps) {
     }),
     setStatus: guard(
       authz,
-      manage,
-      async (_actor, id: number, status: FormStatus) => {
-        await requireForm(id);
+      build,
+      async (actor, id: number, status: FormStatus) => {
+        await requireOwn(actor, id);
 
         const updated = await forms.update(id, { status });
 
@@ -235,8 +252,8 @@ export function createFormService(deps: Deps) {
         return updated;
       },
     ),
-    remove: guard(authz, manage, async (actor, id: number) => {
-      const form = await requireForm(id);
+    remove: guard(authz, build, async (actor, id: number) => {
+      const form = await requireOwn(actor, id);
 
       requireRoleAdmin(actor, form.fields);
 
@@ -285,8 +302,8 @@ export function createFormService(deps: Deps) {
 
       return response;
     },
-    responses: guard(authz, manage, async (_actor, id: number) => ({
-      form: await requireForm(id),
+    responses: guard(authz, build, async (actor, id: number) => ({
+      form: await requireOwn(actor, id),
       responses: await forms.responses(id),
     })),
   };

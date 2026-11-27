@@ -5,6 +5,7 @@ export interface PermissionDefinition {
   description: string;
   group?: string;
   partOf?: Permission;
+  advanced?: boolean;
 }
 
 export const delegation = (permission: Permission): Permission =>
@@ -20,6 +21,16 @@ export const holdsAny = (
   can: ReadonlySet<Permission>,
   needs: Permission | readonly Permission[],
 ) => [needs].flat().some((permission) => can.has(permission));
+
+export const formBuilders: readonly [Permission, ...Permission[]] = [
+  'form:create',
+  'form:manage',
+];
+
+export const movieRunners: readonly [Permission, ...Permission[]] = [
+  'movie:create',
+  'movie:manage',
+];
 
 export const managePermissions: Permission = 'permissions:manage';
 

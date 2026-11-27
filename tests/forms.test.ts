@@ -12,6 +12,7 @@ import { formCommands } from '~/discord/commands/forms';
 import { questionsOf } from '~/web/pages/forms/routes';
 import type { AppContext, ComponentInteraction } from '~/discord/contracts';
 import { createFormRepository } from '~/integrations/db/forms/repository';
+import { UserError } from '~/core/errors';
 import { noDatabase, testDb } from './db';
 import {
   actor,
@@ -203,6 +204,49 @@ describe('built forms', () => {
         'does not exist',
       );
       await expect(repository.responses(form.id)).resolves.toHaveLength(1);
+    });
+
+    it("lets builders manage only their own forms unless they manage everyone's", async () => {
+      const builders = new Set(['form:create']);
+      const service = createFormService({
+        ...serviceFakes(),
+        forms: createFormRepository(testDb()),
+        authz: {
+          can: async (_actor, permission) => builders.has(permission),
+          require: async (_actor, permission) => {
+            if (!builders.has(permission)) {
+              throw new UserError(`Missing ${permission}.`);
+            }
+          },
+          granted: async (_actor, permissions) =>
+            new Set(permissions.filter((p) => builders.has(p))),
+        },
+      });
+      const mari = actor({ userId: 'mari' });
+      const jaan = actor({ userId: 'jaan' });
+      const own = await service.create(mari, 'Mine');
+      const other = await service.create(jaan, 'Theirs');
+
+      await expect(service.get(mari, own.id)).resolves.toHaveProperty(
+        'title',
+        'Mine',
+      );
+      await expect(service.get(mari, other.id)).rejects.toThrow('form:manage');
+      expect((await service.list(mari)).map(({ id }) => id)).not.toContain(
+        other.id,
+      );
+
+      builders.add('form:manage');
+      await expect(service.get(mari, other.id)).resolves.toHaveProperty(
+        'title',
+        'Theirs',
+      );
+      expect((await service.list(mari)).map(({ id }) => id)).toContain(
+        other.id,
+      );
+
+      builders.clear();
+      await expect(service.create(mari, 'Nope')).rejects.toThrow('form:create');
     });
 
     it('gives picked roles, removes the rest and skips unsafe ones', async () => {

@@ -5,6 +5,7 @@ import { UserError } from '~/core/errors';
 import type { Actor } from '~/core/actor';
 import { type Authorizer } from '~/core/ports/authorization';
 import { guard } from '~/core/helpers/authorization';
+import { movieRunners } from '~/core/permission';
 import type { MovieCatalog, MovieDetails } from '~/core/ports/movie-catalog';
 import type { MovieRepository, MovieSuggestion } from './model';
 import type { EventService } from '~/features/events/service';
@@ -163,7 +164,7 @@ export function createMovieService(deps: Deps) {
     },
     vote: guard(
       authz,
-      'movie:manage',
+      movieRunners,
       async (
         actor,
         request: { count?: number; closes?: string; channelId: string },
@@ -178,7 +179,7 @@ export function createMovieService(deps: Deps) {
           ),
         ),
     ),
-    night: guard(authz, 'movie:manage', async (actor, night: MovieNight) => {
+    night: guard(authz, movieRunners, async (actor, night: MovieNight) => {
       const startsAt = parseFutureWhen(night.start, timezone);
       const event = {
         guildId: actor.guildId,
@@ -234,7 +235,7 @@ export function createMovieService(deps: Deps) {
     }),
     watched: guard(
       authz,
-      'movie:manage',
+      movieRunners,
       async (actor, id: number, date?: string) => {
         const movie = await movies.find(actor.guildId, id);
         const at = date === undefined ? new Date() : parseWhen(date, timezone);

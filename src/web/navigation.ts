@@ -1,6 +1,7 @@
 import {
   announcementParts,
   applicationAdmin,
+  formBuilders,
   holdsAny,
   managePermissions,
   type Permission,
@@ -37,7 +38,7 @@ export const sections: readonly Section[] = [
       },
     ],
   },
-  { href: '/forms', label: 'Forms', permission: 'form:manage' },
+  { href: '/forms', label: 'Forms', permission: formBuilders },
   {
     href: '/birthdays',
     label: 'Personal',

@@ -1,6 +1,7 @@
 import {
   announcementParts,
   applicationAdmin,
+  formBuilders,
   holdsAny,
   managePermissions,
   type Permission,
@@ -62,7 +63,7 @@ const features: readonly Feature[] = [
     name: 'Forms',
     text: 'Build a form, post it in a channel, and read the answers here. Members fill it in on Discord.',
     href: '/forms',
-    needs: 'form:manage',
+    needs: formBuilders,
   },
   {
     name: 'Reminders',

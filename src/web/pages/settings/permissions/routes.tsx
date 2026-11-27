@@ -51,6 +51,14 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
       const advanced = c.req.query('advanced') === '1';
       const member = c.req.query('member');
       const checked = c.req.query('check');
+      const toggle = new URL(c.req.url).searchParams;
+
+      if (advanced) {
+        toggle.delete('advanced');
+      } else {
+        toggle.set('advanced', '1');
+      }
+
       const [grants, server] = await Promise.all([
         services.permissions.list(actor),
         c.var.server(),
@@ -110,6 +118,7 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
           checked={await nameOf(checked)}
           catalogue={services.permissions.catalogue()}
           advanced={advanced}
+          toggle={`/settings/permissions?${toggle.toString()}`}
           delegation={advanced && c.var.can.has(applicationAdmin)}
           can={c.var.can}
           flash={flashOf(c)}

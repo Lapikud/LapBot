@@ -143,8 +143,13 @@ export function movieCommands(movies: MovieService): Feature {
     name: 'movies',
     permissions: [
       {
+        id: 'movie:create',
+        description: 'Run movie votes and movie nights',
+      },
+      {
         id: 'movie:manage',
-        description: 'Run movie votes and movie nights, remove suggestions',
+        description: "Run movie nights and remove anyone's suggestions",
+        advanced: true,
       },
     ],
     commands: [
