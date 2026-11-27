@@ -48,49 +48,46 @@ export function MemberPicker({
   matches: MemberInfo[] | undefined;
 }>) {
   return (
-    <>
-      <form method="get" action="/settings/permissions">
-        <input type="hidden" name="advanced" value="1" />
-        <label htmlFor={name}>{label}</label>
-        <div class="combobox">
-          <fieldset role="group">
-            <input
-              id={name}
-              name={name}
-              value={query}
-              placeholder="Name, username or member ID"
-              autocomplete="off"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded="false"
-              aria-controls={`${name}-options`}
-              aria-describedby={`${name}-status`}
-              data-source="/settings/permissions/members"
-              required
-            />
-            <button type="submit" class="secondary">
-              Open
-            </button>
-          </fieldset>
-          <ul
-            id={`${name}-options`}
-            role="listbox"
-            class="suggestions"
-            aria-label={`${label} suggestions`}
-            hidden
-          />
-          <small id={`${name}-status`} role="status" />
-        </div>
-        {matches === undefined ? null : (
-          <MemberMatches
+    <form method="get" action="/settings/permissions">
+      <input type="hidden" name="advanced" value="1" />
+      <label htmlFor={name}>{label}</label>
+      <div class="combobox">
+        <fieldset role="group">
+          <input
+            id={name}
             name={name}
-            label={label}
-            query={query}
-            matches={matches}
+            value={query}
+            placeholder="Name, username or member ID"
+            autocomplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls={`${name}-options`}
+            aria-describedby={`${name}-status`}
+            data-source="/settings/permissions/members"
+            required
           />
-        )}
-      </form>
-    </>
+          <button type="submit" class="secondary">
+            Open
+          </button>
+        </fieldset>
+        <select
+          id={`${name}-options`}
+          class="suggestions"
+          aria-label={`${label} suggestions`}
+          hidden
+        />
+        <output id={`${name}-status`} />
+      </div>
+      {matches === undefined ? null : (
+        <MemberMatches
+          name={name}
+          label={label}
+          query={query}
+          matches={matches}
+        />
+      )}
+    </form>
   );
 }
 
