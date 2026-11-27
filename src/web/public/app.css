@@ -973,6 +973,10 @@ main:has(.log-view) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
   :is(button, [role='button'], a, input, select, textarea) {
     transition-property: background-color, border-color, color, box-shadow;
     transition-duration: 150ms;
