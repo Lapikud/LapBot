@@ -33,7 +33,7 @@ function Question({
   const added = field.label === '';
 
   return (
-    <fieldset class="question">
+    <fieldset class="question" id={added ? 'add' : `question-${index}`}>
       <legend>{added ? 'Add a question' : `Question ${index + 1}`}</legend>
       <div class="fields">
         <Input
@@ -167,7 +167,7 @@ export function FormEditPage({
             {form.description}
           </Textarea>
         </fieldset>
-        <h2>Questions</h2>
+        <h2 id="questions">Questions</h2>
         <p class="hint">Discord shows five questions per page.</p>
         <input type="hidden" name="rows" value={rows.length} />
         {rows.map((field, index) => (

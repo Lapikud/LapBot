@@ -10,6 +10,7 @@ import {
   type Env,
   type Form as Submitted,
   type WebDeps,
+  withFlash,
 } from '~/web/context';
 import { FormEditPage } from './edit';
 import { FormListPage } from './index';
@@ -40,6 +41,21 @@ export function questionsOf(form: Submitted) {
     (question, i) =>
       String(i) !== field(form, 'remove') && question.label !== '',
   );
+}
+
+function anchorOf(form: Submitted) {
+  const [direction, at] = (field(form, 'move') ?? '').split(':');
+  const rows = Number(field(form, 'rows') ?? 0);
+
+  if (direction !== undefined && at !== undefined) {
+    return `#question-${Number(at) + (direction === 'up' ? -1 : 1)}`;
+  }
+
+  if (field(form, 'remove') !== undefined) {
+    return '#questions';
+  }
+
+  return (field(form, `label-${rows - 1}`) ?? '') === '' ? '' : '#add';
 }
 
 const labelsOf = (responses: readonly FormResponse[]) => [
@@ -108,7 +124,9 @@ export function formRoutes({
         mentions: mentionsFrom(form),
       });
 
-      return back(c, `/forms/${id}`, { notice: 'Form saved.' });
+      const saved = withFlash(`/forms/${id}`, { notice: 'Form saved.' });
+
+      return c.redirect(saved + anchorOf(form), 303);
     })
     .post(String.raw`/:id{\d+}/post`, async (c) => {
       const id = Number(c.req.param('id'));

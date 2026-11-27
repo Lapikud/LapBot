@@ -1020,7 +1020,7 @@ describe('dashboard access', () => {
         'http://localhost',
       ).pathname;
 
-      await post(path, {
+      const moved = await post(path, {
         title: 'Hackathon sign-up',
         rows: '3',
         'label-0': 'Team',
@@ -1033,6 +1033,8 @@ describe('dashboard access', () => {
         move: 'down:0',
       });
       const page = await (await get(path)).text();
+
+      expect(moved.headers.get('location')).toMatch(/#question-1$/);
 
       expect(page.indexOf('value="Size"')).toBeLessThan(
         page.indexOf('value="Team"'),
