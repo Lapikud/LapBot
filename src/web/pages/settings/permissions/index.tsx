@@ -20,6 +20,7 @@ interface Props {
   checked: string | undefined;
   catalogue: PermissionDefinition[];
   advanced: boolean;
+  toggle: string;
   delegation: boolean;
   can: ReadonlySet<Permission>;
   flash: Flash;
@@ -37,6 +38,7 @@ export function PermissionPage({
   checked,
   catalogue,
   advanced,
+  toggle,
   delegation,
   can,
   flash,
@@ -48,9 +50,7 @@ export function PermissionPage({
       path="/settings/permissions"
       flash={flash}
       actions={
-        <a href={advanced ? '/settings/permissions' : '?advanced=1'}>
-          {advanced ? 'Hide advanced' : 'Show advanced'}
-        </a>
+        <a href={toggle}>{advanced ? 'Hide advanced' : 'Show advanced'}</a>
       }
     >
       <p>
