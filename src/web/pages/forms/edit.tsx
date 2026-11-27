@@ -1,6 +1,7 @@
 import type { Permission } from '~/core/permission';
 import { fieldKinds, type Form, type FormField } from '~/features/forms/model';
 import { FormActions } from '~/web/components/actions';
+import { Checkbox } from '~/web/components/choices';
 import { Input, Select, Textarea } from '~/web/components/controls';
 import { MentionPicker } from '~/web/components/mentions';
 import { ChannelOptions, ChannelSelect } from '~/web/components/selectors';
@@ -27,20 +28,14 @@ const blank: FormField = {
 function Question({
   field,
   index,
-}: Readonly<{ field: FormField; index: number }>) {
+  last,
+}: Readonly<{ field: FormField; index: number; last: boolean }>) {
+  const added = field.label === '';
+
   return (
     <fieldset class="question">
-      <legend>
-        {field.label === '' ? 'New question' : `Question ${index + 1}`}
-      </legend>
+      <legend>{added ? 'Add a question' : `Question ${index + 1}`}</legend>
       <div class="fields">
-        <Input
-          label="Order"
-          name={`order-${index}`}
-          type="number"
-          min={1}
-          value={index + 1}
-        />
         <Input
           label="Question"
           name={`label-${index}`}
@@ -55,15 +50,17 @@ function Question({
           ))}
         </Select>
       </div>
-      <div class="fields">
+      <div class="choices">
         <Textarea
           label="Choices"
           name={`options-${index}`}
-          rows={2}
-          help="Only for Choice, one per line."
+          rows={3}
+          help="One per line."
         >
           {field.options.join('\n')}
         </Textarea>
+      </div>
+      <div class="placeholder">
         <Input
           label="Placeholder"
           name={`placeholder-${index}`}
@@ -71,20 +68,52 @@ function Question({
           value={field.placeholder ?? ''}
         />
       </div>
-      <label>
-        <input
-          type="checkbox"
-          name={`required-${index}`}
-          value="1"
-          checked={field.required}
-        />
-        Required
-      </label>
-      {field.label === '' ? null : (
-        <label>
-          <input type="checkbox" name={`remove-${index}`} value="1" />
-          Remove this question
-        </label>
+      <Checkbox
+        name={`required-${index}`}
+        label="Required"
+        checked={field.required}
+      />
+      {added ? (
+        <div class="actions">
+          <button type="submit" class="secondary">
+            Add question
+          </button>
+        </div>
+      ) : (
+        <div class="actions">
+          {index === 0 ? null : (
+            <button
+              type="submit"
+              name="move"
+              value={`up:${index}`}
+              class="secondary outline"
+              formNoValidate
+            >
+              Move up
+            </button>
+          )}
+          {last ? null : (
+            <button
+              type="submit"
+              name="move"
+              value={`down:${index}`}
+              class="secondary outline"
+              formNoValidate
+            >
+              Move down
+            </button>
+          )}
+          <button
+            type="submit"
+            name="remove"
+            value={index}
+            class="secondary outline"
+            aria-label={`Remove ${field.label}`}
+            formNoValidate
+          >
+            Remove
+          </button>
+        </div>
       )}
     </fieldset>
   );
@@ -124,6 +153,7 @@ export function FormEditPage({
           : `, posted in ${server.channelName(form.channelId)}.`}
       </p>
       <form method="post" action={`/forms/${form.id}`}>
+        <button type="submit" hidden />
         <fieldset>
           <legend>Details</legend>
           <Input
@@ -138,16 +168,14 @@ export function FormEditPage({
           </Textarea>
         </fieldset>
         <h2>Questions</h2>
-        <p class="hint">
-          Discord shows five questions per page. Fill in the empty question to
-          add one.
-        </p>
+        <p class="hint">Discord shows five questions per page.</p>
         <input type="hidden" name="rows" value={rows.length} />
         {rows.map((field, index) => (
           <Question
             key={field.label === '' ? 'new' : field.label}
             field={field}
             index={index}
+            last={index === form.fields.length - 1}
           />
         ))}
         <fieldset>

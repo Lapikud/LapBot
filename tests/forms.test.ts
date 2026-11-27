@@ -9,6 +9,7 @@ import {
 } from '~/features/forms/rules';
 import { createFormService, type FormService } from '~/features/forms/service';
 import { formCommands } from '~/discord/commands/forms';
+import { questionsOf } from '~/web/pages/forms/routes';
 import type { AppContext, ComponentInteraction } from '~/discord/contracts';
 import { createFormRepository } from '~/integrations/db/forms/repository';
 import { noDatabase, testDb } from './db';
@@ -198,5 +199,33 @@ describe('filling in forms on Discord', () => {
       '0-q4',
       '1-q0',
     ]);
+  });
+});
+
+describe('form builder submissions', () => {
+  const submitted = (extra: Record<string, string>) => {
+    const form = new FormData();
+
+    for (const [key, value] of Object.entries({
+      rows: '4',
+      'label-0': 'A',
+      'label-1': 'B',
+      'label-2': 'C',
+      'label-3': '',
+      ...extra,
+    })) {
+      form.set(key, value);
+    }
+
+    return questionsOf(form).map(({ label }) => label);
+  };
+
+  it('moves, removes and skips the empty add row', () => {
+    expect(submitted({})).toEqual(['A', 'B', 'C']);
+    expect(submitted({ move: 'up:1' })).toEqual(['B', 'A', 'C']);
+    expect(submitted({ move: 'down:1' })).toEqual(['A', 'C', 'B']);
+    expect(submitted({ move: 'up:0' })).toEqual(['A', 'B', 'C']);
+    expect(submitted({ remove: '1' })).toEqual(['A', 'C']);
+    expect(submitted({ 'label-3': 'D' })).toEqual(['A', 'B', 'C', 'D']);
   });
 });

@@ -510,6 +510,14 @@ td :is(form, .confirm):last-child {
   border-block-start: 1px solid var(--pico-muted-border-color);
 }
 
+.question:not(:has(option[value='choice']:checked)) .choices,
+.question:has(
+    option:is([value='choice'], [value='user'], [value='role']):checked
+  )
+  .placeholder {
+  display: none;
+}
+
 .part {
   padding-inline-start: 2rem;
 }

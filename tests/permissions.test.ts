@@ -1024,14 +1024,13 @@ describe('dashboard access', () => {
         title: 'Hackathon sign-up',
         rows: '3',
         'label-0': 'Team',
-        'order-0': '2',
         'kind-0': 'short',
         'label-1': 'Size',
-        'order-1': '1',
         'kind-1': 'choice',
         'options-1': 'S\nM\nL',
         'required-1': '1',
         'label-2': '',
+        move: 'down:0',
       });
       const page = await (await get(path)).text();
 
