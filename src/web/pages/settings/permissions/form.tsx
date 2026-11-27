@@ -44,7 +44,9 @@ export function GrantForm({
   delegation,
 }: Readonly<Props>) {
   const shown = catalogue.filter(
-    (permission) => advanced || permission.partOf === undefined,
+    (permission) =>
+      advanced ||
+      (permission.partOf === undefined && permission.advanced !== true),
   );
 
   return (

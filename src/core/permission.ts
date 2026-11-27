@@ -5,6 +5,7 @@ export interface PermissionDefinition {
   description: string;
   group?: string;
   partOf?: Permission;
+  advanced?: boolean;
 }
 
 export const delegation = (permission: Permission): Permission =>
