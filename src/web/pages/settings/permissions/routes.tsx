@@ -1,14 +1,35 @@
 import { Hono } from 'hono';
-import { applicationAdmin } from '~/core/permission';
+import { applicationAdmin, managePermissions } from '~/core/permission';
 import { UserError } from '~/core/errors';
+import type { MemberInfo } from '~/core/ports/directory';
 import { back, flashOf, type Env, type WebDeps } from '~/web/context';
 import { roleName } from './groups';
 import { PermissionPage } from './index';
+import { findMembers } from './picker';
 
 const snowflake = /^\d{17,20}$/;
 
+const search = (members: MemberInfo[], query: string | undefined) =>
+  snowflake.test(query ?? '') ? undefined : findMembers(members, query);
+
 export function permissionRoutes({ services, directory, guildId }: WebDeps) {
+  const nameOf = async (query: string | undefined) =>
+    query !== undefined && snowflake.test(query)
+      ? ((await directory.displayName(guildId, query)) ?? query)
+      : query;
+
   return new Hono<Env>()
+    .get('/members', async (c) => {
+      if (!c.var.can.has(managePermissions)) {
+        return c.json([], 403);
+      }
+
+      const server = await c.var.server(true);
+
+      return c.json(
+        (findMembers(server.members, c.req.query('q')) ?? []).slice(0, 10),
+      );
+    })
     .get('/', async (c) => {
       const { actor } = c.var;
       const advanced = c.req.query('advanced') === '1';
@@ -36,7 +57,7 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
       );
       const memberName =
         advanced && member !== undefined && snowflake.test(member)
-          ? ((await directory.displayName(guildId, member)) ?? member)
+          ? await nameOf(member)
           : undefined;
       const subject =
         memberName !== undefined && member !== undefined
@@ -63,12 +84,14 @@ export function permissionRoutes({ services, directory, guildId }: WebDeps) {
       return c.html(
         <PermissionPage
           roles={roles}
-          members={server.members}
+          member={memberName ?? member}
+          memberMatches={search(server.members, member)}
+          checkMatches={search(server.members, checked)}
           counts={counts}
           subject={subject}
           granted={granted}
           access={access}
-          checked={checked}
+          checked={await nameOf(checked)}
           catalogue={services.permissions.catalogue()}
           advanced={advanced}
           delegation={advanced && c.var.can.has(applicationAdmin)}

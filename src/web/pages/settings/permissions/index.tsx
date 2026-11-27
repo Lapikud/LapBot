@@ -8,7 +8,9 @@ import { MemberPicker, RolePicker } from './picker';
 
 interface Props {
   roles: RoleInfo[];
-  members: MemberInfo[];
+  member: string | undefined;
+  memberMatches: MemberInfo[] | undefined;
+  checkMatches: MemberInfo[] | undefined;
   counts: ReadonlyMap<string, number>;
   subject: { type: GrantSubject; id: string; name: string } | undefined;
   granted: ReadonlySet<string>;
@@ -25,7 +27,9 @@ interface Props {
 
 export function PermissionPage({
   roles,
-  members,
+  member,
+  memberMatches,
+  checkMatches,
   counts,
   subject,
   granted,
@@ -60,20 +64,12 @@ export function PermissionPage({
         advanced={advanced}
       />
       {advanced ? (
-        <>
-          <datalist id="permission-members">
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.username})
-              </option>
-            ))}
-          </datalist>
-          <MemberPicker
-            name="member"
-            label="Member grants"
-            selected={subject?.type === 'user' ? subject.id : undefined}
-          />
-        </>
+        <MemberPicker
+          name="member"
+          label="Member grants"
+          query={member}
+          matches={memberMatches}
+        />
       ) : null}
       {subject ? (
         <GrantForm
@@ -90,7 +86,13 @@ export function PermissionPage({
           <p class="hint">
             Everything a member can do, and where each permission comes from.
           </p>
-          <MemberPicker name="check" label="Member" selected={checked} />
+          <MemberPicker
+            name="check"
+            label="Member"
+            query={checked}
+            matches={checkMatches}
+          />
+          <script src="/combobox.js" defer />
           {access ? (
             <div class="table-wrapper" tabIndex={0}>
               <table>

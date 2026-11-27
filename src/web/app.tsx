@@ -90,6 +90,7 @@ export function createWebApp(deps: WebDeps) {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", 'https://cdn.jsdelivr.net'],
         imgSrc: ["'self'", 'https://image.tmdb.org'],
+        connectSrc: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
       },
