@@ -79,6 +79,8 @@ export function ReminderPage({
                     <ActionButton
                       action={`/reminders/${r.id}/cancel`}
                       label="Cancel"
+                      subject={r.message}
+                      confirm="Cancel this reminder?"
                     />
                   </td>
                 </tr>

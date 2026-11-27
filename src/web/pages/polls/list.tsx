@@ -32,10 +32,14 @@ export function PollList({ open, date, canManage }: Readonly<Props>) {
                     <ActionButton
                       action={`/polls/${p.id}/close`}
                       label="Close"
+                      subject={p.question}
+                      confirm="Close this poll and post the results?"
                     />
                     <ActionButton
                       action={`/polls/${p.id}/cancel`}
                       label="Cancel"
+                      subject={p.question}
+                      confirm="Cancel this poll? Voting stops and no results are posted."
                     />
                   </>
                 ) : null}

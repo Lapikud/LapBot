@@ -68,6 +68,7 @@ export function MyBirthday({ mine }: Readonly<{ mine: Birthday | undefined }>) {
               value="remove"
               class="secondary outline"
               formnovalidate
+              data-confirm="Remove your birthday?"
             >
               Remove
             </button>

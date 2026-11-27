@@ -53,6 +53,8 @@ export function MovieCard({
             <ActionButton
               action={`/events/movies/${movie.id}/remove`}
               label="Remove"
+              subject={movie.title}
+              confirm="Remove this movie suggestion?"
             />
           </>
         ) : null}
@@ -60,6 +62,7 @@ export function MovieCard({
           <ActionButton
             action={`/events/movies/${movie.id}/watched`}
             label="Watched"
+            subject={movie.title}
           />
         ) : null}
       </div>

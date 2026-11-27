@@ -41,6 +41,8 @@ export function EventList({
                     <ActionButton
                       action={`/events/${e.id}/cancel`}
                       label="Cancel"
+                      subject={e.title}
+                      confirm="Cancel this event? Members who RSVPed will see it as cancelled."
                     />
                   </>
                 ) : null}

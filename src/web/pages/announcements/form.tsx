@@ -12,7 +12,13 @@ const actions = [
   ['preview', 'Preview', 'secondary outline', 'announcement:create'],
   ['draft', 'Save draft', 'secondary', 'announcement:create'],
   ['schedule', 'Schedule', 'secondary', 'announcement:schedule'],
-  ['publish', 'Publish now', undefined, 'announcement:publish'],
+  [
+    'publish',
+    'Publish now',
+    undefined,
+    'announcement:publish',
+    'Post this announcement to Discord now?',
+  ],
 ] as const;
 
 export function Composer({
@@ -63,13 +69,14 @@ export function Composer({
       <FormActions>
         {(published ? actions.slice(0, 2) : actions)
           .filter(([, , , needs]) => can.has(needs))
-          .map(([value, label, variant]) => (
+          .map(([value, label, variant, , confirm]) => (
             <button
               key={value}
               type="submit"
               name="action"
               value={value}
               class={variant}
+              data-confirm={confirm}
             >
               {published && value === 'draft' ? 'Save' : label}
             </button>

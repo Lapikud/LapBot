@@ -58,11 +58,15 @@ export function Recent({
                       <ActionButton
                         action={`/announcements/${a.id}/publish`}
                         label="Publish"
+                        subject={a.title ?? `#${a.id}`}
+                        confirm="Post this announcement to Discord now?"
                       />
                     ) : null}
                     <ActionButton
                       action={`/announcements/${a.id}/cancel`}
                       label="Cancel"
+                      subject={a.title ?? `#${a.id}`}
+                      confirm="Cancel this announcement? It will not be posted."
                     />
                   </>
                 ) : null}
