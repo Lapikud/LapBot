@@ -609,7 +609,7 @@ fieldset > details.dropdown {
   position: relative;
 }
 
-.combobox select {
+.combobox [role='listbox'] {
   position: absolute;
   inset-inline: 0;
   top: 100%;
@@ -634,7 +634,7 @@ fieldset > details.dropdown {
   list-style: none;
 }
 
-.suggestions :is(option, a) {
+.suggestions :is([role='option'], a) {
   display: block;
   padding: 0.4rem 0.6rem;
   border-radius: var(--pico-border-radius);
@@ -643,8 +643,8 @@ fieldset > details.dropdown {
   cursor: pointer;
 }
 
-.suggestions :is(option, a):hover,
-.suggestions option:checked {
+.suggestions :is([role='option'], a):hover,
+.suggestions [aria-selected='true'] {
   background: var(--pico-dropdown-hover-background-color);
 }
 

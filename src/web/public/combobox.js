@@ -29,12 +29,15 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
     const items = [...list.children];
 
     active = (index + items.length) % items.length;
-    list.selectedIndex = active;
+    for (const [i, item] of items.entries()) {
+      item.setAttribute('aria-selected', String(i === active));
+    }
     input.setAttribute('aria-activedescendant', items[active].id);
+    items[active].scrollIntoView({ block: 'nearest' });
   };
 
   const choose = (item) => {
-    input.value = item.value;
+    input.value = item.dataset.value;
     close();
     input.form.requestSubmit();
   };
@@ -43,17 +46,19 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
     list.replaceChildren(
       ...members.map((member, index) => {
         const item = document.createElement('option');
+        const username = document.createElement('small');
 
         item.id = `${list.id}-${index}`;
-        item.value = member.id;
-        item.textContent = `${member.name} (${member.username})`;
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', 'false');
+        item.dataset.value = member.id;
+        username.textContent = member.username;
+        item.append(member.name, ' ', username);
 
         return item;
       }),
     );
     active = -1;
-    list.size = Math.max(2, Math.min(members.length, 8));
-    list.selectedIndex = -1;
     list.hidden = members.length === 0;
     input.setAttribute('aria-expanded', String(members.length > 0));
     say(
@@ -118,7 +123,7 @@ for (const input of document.querySelectorAll('input[role="combobox"]')) {
 
   list.addEventListener('mousedown', (event) => event.preventDefault());
   list.addEventListener('click', (event) => {
-    const item = event.target.closest('option');
+    const item = event.target.closest('[role="option"]');
 
     if (item) {
       choose(item);

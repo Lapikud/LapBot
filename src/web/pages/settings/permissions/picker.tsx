@@ -75,7 +75,6 @@ export function MemberPicker({
           id={`${name}-options`}
           class="suggestions"
           aria-label={`${label} suggestions`}
-          tabIndex={-1}
           hidden
         />
         <output id={`${name}-status`} />
