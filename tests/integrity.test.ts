@@ -351,7 +351,7 @@ describe('events', () => {
 
 describe('movies', () => {
   describe.skipIf(noDatabase)('movie service', () => {
-    const setup = () => {
+    const setup = (authz = allowAll) => {
       const shared = serviceFakes();
       const { messenger } = shared;
       const pollRepository = createPollRepository(testDb());
@@ -365,7 +365,7 @@ describe('movies', () => {
         movies: createMovieRepository(testDb()),
         polls,
         events,
-        authz: allowAll,
+        authz,
         timezone: shared.timezone,
       });
 
@@ -391,6 +391,32 @@ describe('movies', () => {
       await expect(
         movies.suggest(member, suggestion('Paprika')),
       ).rejects.toThrow('already watched (2026-01-');
+    });
+
+    it('lets movie:create or movie:manage run movie nights', async () => {
+      const held = new Set(['movie:create']);
+      const { movies, member } = setup({
+        can: async (_actor, permission) => held.has(permission),
+        require: async (_actor, permission) => {
+          if (!held.has(permission)) {
+            throw new UserError(`Missing ${permission}.`);
+          }
+        },
+        granted: async (_actor, permissions) =>
+          new Set(permissions.filter((p) => held.has(p))),
+      });
+      const movie = await movies.suggest(member, suggestion('Akira'));
+
+      await movies.watched(member, movie.id, '2026-01-02');
+      held.clear();
+      await expect(movies.watched(member, movie.id)).rejects.toThrow(
+        'movie:create',
+      );
+      held.add('movie:manage');
+      await expect(movies.watched(member, movie.id)).resolves.toHaveProperty(
+        'title',
+        'Akira',
+      );
     });
 
     it('keeps only web links and lets the suggester add more', async () => {

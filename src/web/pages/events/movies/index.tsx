@@ -1,4 +1,4 @@
-import type { Permission } from '~/core/permission';
+import { holdsAny, movieRunners, type Permission } from '~/core/permission';
 import type { MovieSuggestion, WatchedMovie } from '~/features/movies/model';
 import { MovieNightForms, WatchedList } from './manage';
 import type { Flash, Server } from '~/web/context';
@@ -43,10 +43,10 @@ export function MoviePage({
           movie={movie}
           suggestedBy={names[index] ?? ''}
           editable={canManage(movie.suggestedBy)}
-          manager={can.has('movie:manage')}
+          manager={holdsAny(can, movieRunners)}
         />
       ))}
-      {can.has('movie:manage') ? (
+      {holdsAny(can, movieRunners) ? (
         <MovieNightForms list={list} server={server} />
       ) : null}
       <WatchedList history={history} date={date} />

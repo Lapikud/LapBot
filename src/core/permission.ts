@@ -27,6 +27,11 @@ export const formBuilders: readonly [Permission, ...Permission[]] = [
   'form:manage',
 ];
 
+export const movieRunners: readonly [Permission, ...Permission[]] = [
+  'movie:create',
+  'movie:manage',
+];
+
 export const managePermissions: Permission = 'permissions:manage';
 
 export const webAccess: Permission = 'web:access';
