@@ -76,7 +76,7 @@ describe('role service', () => {
 
       await expect(
         service.remove(actor({ guildId }), channelId),
-      ).rejects.toThrow();
+      ).rejects.toThrow('Only server administrators');
       await service.remove(admin, channelId);
       expect(messenger.remove).toHaveBeenCalledWith(channelId, sent[0]);
       await expect(service.list(admin)).resolves.toEqual([]);
@@ -128,13 +128,15 @@ describe('role message configuration', () => {
   it('rejects unauthorized configuration and unsafe roles before writing', async () => {
     const { service, panels, directory } = setup();
 
-    await expect(service.save(actor(), 'c', [])).rejects.toThrow();
+    await expect(service.save(actor(), 'c', [])).rejects.toThrow(
+      'Only server administrators',
+    );
     directory.role.mockResolvedValue(role({ moderator: true }));
     await expect(
       service.save(actor({ administrator: true }), 'c', [
         { roleId: 'r', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('moderator');
     expect(panels.create).not.toHaveBeenCalled();
   });
 
@@ -146,7 +148,7 @@ describe('role message configuration', () => {
         { roleId: 'r', emoji: '🎉' },
         { roleId: 'x', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('different role and emoji');
     expect(panels.create).not.toHaveBeenCalled();
   });
 
@@ -182,7 +184,7 @@ describe('role message configuration', () => {
       service.save(actor({ administrator: true }), 'c', [
         { roleId: 'r', emoji: '🎉' },
       ]),
-    ).rejects.toThrow();
+    ).rejects.toThrow('Choose a server channel');
     expect(panels.create).not.toHaveBeenCalled();
   });
 

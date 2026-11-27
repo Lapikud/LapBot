@@ -1456,25 +1456,20 @@ describe('safe settings', () => {
     }
 
     const shared = serviceFakes();
-    const { directory, messenger, messages } = shared;
     const authz = createAuthorizer(grants);
-    const announcements = createAnnouncementRepository(testDb());
     const birthdays = createBirthdayRepository(testDb());
-    const deps = { ...shared, scheduler, authz, timezone: 'UTC' };
 
     return {
       member,
-      directory,
-      messenger,
-      messages,
-      announcements,
+      directory: shared.directory,
       birthdays,
-      announcementService: createAnnouncementService({
-        ...deps,
-        posts: announcements,
-        clock: { now: () => new Date() },
+      birthdayService: createBirthdayService({
+        ...shared,
+        scheduler,
+        authz,
+        timezone: 'UTC',
+        birthdays,
       }),
-      birthdayService: createBirthdayService({ ...deps, birthdays }),
     };
   }
 
