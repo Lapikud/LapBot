@@ -283,6 +283,12 @@ export async function startApp(
     await infrastructure.start();
     const ready = await waitForReady(client, config.DISCORD_TOKEN);
 
+    if (config.DISCORD_GUILD_ID !== undefined) {
+      const guild = await client.guilds.fetch(config.DISCORD_GUILD_ID);
+
+      await guild.members.fetch();
+    }
+
     await infrastructure.startJobs(jobs.values(), jobLog);
 
     await registerCommands(registry, {

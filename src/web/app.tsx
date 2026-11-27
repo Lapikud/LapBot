@@ -55,33 +55,6 @@ function returnPath(referer: string | undefined, path: string): string {
 export function createWebApp(deps: WebDeps) {
   const { guildId, signIn, directory, authz, services, log } = deps;
   const app = new Hono<Env>();
-  const cached = <T,>(fetch: () => Promise<T>) => {
-    let value: Promise<T> | undefined;
-    let expiresAt = 0;
-
-    return () => {
-      if (value === undefined || Date.now() >= expiresAt) {
-        expiresAt = Number.POSITIVE_INFINITY;
-        value = fetch()
-          .then((result) => {
-            expiresAt = Date.now() + 30_000;
-
-            return result;
-          })
-          .catch((error: unknown) => {
-            value = undefined;
-            throw error;
-          });
-      }
-
-      return value;
-    };
-  };
-
-  const getMetadata = cached(() =>
-    Promise.all([directory.channels(guildId), directory.roles(guildId)]),
-  );
-  const getMembers = cached(() => directory.members(guildId));
 
   app.use(
     secureHeaders({
@@ -168,29 +141,22 @@ export function createWebApp(deps: WebDeps) {
     c.set('actor', actor);
     c.set('can', can);
     let server: Promise<Server> | undefined;
-    let mentionServer: Promise<Server> | undefined;
-    const buildServer = async (withMembers: boolean) => {
-      const [[channels, roles], members] = await Promise.all([
-        getMetadata(),
-        withMembers ? getMembers() : Promise.resolve([]),
-      ]);
-      const visible = await visibleRecords(
-        directory,
-        actor,
-        channels.map((channel) => ({ ...channel, channelId: channel.id })),
-      );
 
-      return serverOf(visible, roles, members);
-    };
+    c.set('server', () => {
+      server ??= (async () => {
+        const [channels, roles, members] = await Promise.all([
+          directory.channels(guildId),
+          directory.roles(guildId),
+          directory.members(guildId),
+        ]);
+        const visible = await visibleRecords(
+          directory,
+          actor,
+          channels.map((channel) => ({ ...channel, channelId: channel.id })),
+        );
 
-    c.set('server', (withMembers = false) => {
-      if (withMembers) {
-        mentionServer ??= buildServer(true);
-
-        return mentionServer;
-      }
-
-      server ??= buildServer(false);
+        return serverOf(visible, roles, members);
+      })();
 
       return server;
     });

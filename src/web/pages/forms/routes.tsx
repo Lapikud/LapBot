@@ -81,7 +81,7 @@ export function formRoutes({
         <FormEditPage
           form={form}
           responses={responses.length}
-          server={await c.var.server(true)}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
         />,

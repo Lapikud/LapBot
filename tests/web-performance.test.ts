@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { sign } from 'hono/jwt';
-import type { ChannelInfo } from '~/core/ports/directory';
 import { createWebApp } from '~/web/app';
 import type { WebDeps } from '~/web/context';
 import { actor, allowAll, fakeDirectory, role, silentLog } from './fakes';
@@ -132,29 +131,7 @@ describe('dashboard Discord requests', () => {
     expect(authz.granted).toHaveBeenCalledTimes(4);
   });
 
-  it('shares metadata for 30 seconds while rechecking membership and permissions', async () => {
-    const now = Date.now();
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
-    const { directory, authz, request } = fixture();
-
-    expect((await request('/events')).status).toBe(200);
-    expect(directory.members).not.toHaveBeenCalled();
-    expect((await request('/events/new')).status).toBe(200);
-    clock.mockReturnValue(now + 29_999);
-    expect((await request('/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
-    expect(directory.members).toHaveBeenCalledTimes(1);
-    expect(directory.member).toHaveBeenCalledTimes(3);
-    expect(authz.granted).toHaveBeenCalledTimes(3);
-    clock.mockReturnValue(now + 30_000);
-    expect((await request('/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(2);
-    expect(directory.roles).toHaveBeenCalledTimes(2);
-    expect(directory.members).toHaveBeenCalledTimes(2);
-  });
-
-  it('filters cached channels separately for each user and each request', async () => {
+  it('filters channels separately for each user and each request', async () => {
     const { directory, request } = fixture();
 
     directory.canView.mockImplementation(async (member, id) =>
@@ -171,11 +148,9 @@ describe('dashboard Discord requests', () => {
     const revoked = await (await request('/events/new', 'one')).text();
 
     expect(revoked).not.toContain('Public channel');
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
   });
 
-  it('denies revoked access and departed members even with warm metadata', async () => {
+  it('denies revoked access and departed members', async () => {
     const { directory, authz, request } = fixture();
 
     expect((await request('/events/new')).status).toBe(200);
@@ -186,41 +161,5 @@ describe('dashboard Discord requests', () => {
     expect((await request('/events/new')).status).toBe(403);
     expect(directory.channels).toHaveBeenCalledTimes(1);
     expect(directory.roles).toHaveBeenCalledTimes(1);
-  });
-
-  it('shares an in-flight fetch even if Discord takes longer than the cache lifetime', async () => {
-    const now = Date.now();
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
-    const { directory, authz, request } = fixture();
-    const pending = Promise.withResolvers<ChannelInfo[]>();
-    const started = Promise.withResolvers<undefined>();
-
-    directory.channels.mockImplementationOnce(() => {
-      started.resolve(undefined);
-
-      return pending.promise;
-    });
-    const first = request('/events/new');
-
-    await started.promise;
-    clock.mockReturnValue(now + 31_000);
-    const second = request('/events/new');
-
-    await vi.waitFor(() => expect(authz.granted).toHaveBeenCalledTimes(2));
-    pending.resolve([]);
-    const responses = await Promise.all([first, second]);
-
-    expect(responses.map((response) => response.status)).toEqual([200, 200]);
-    expect(directory.channels).toHaveBeenCalledTimes(1);
-    expect(directory.roles).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not retain failed metadata fetches', async () => {
-    const { directory, request } = fixture();
-
-    directory.channels.mockRejectedValueOnce(new Error('Discord unavailable'));
-    expect((await request('/events/new')).status).toBe(500);
-    expect((await request('/events/new')).status).toBe(200);
-    expect(directory.channels).toHaveBeenCalledTimes(2);
   });
 });

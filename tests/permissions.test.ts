@@ -645,7 +645,7 @@ describe('member refresh', () => {
       roleIds: ['current-role'],
       administrator: false,
     });
-    expect(fetchMember).toHaveBeenCalledWith({ user: 'u', force: true });
+    expect(fetchMember).toHaveBeenCalledWith('u');
     fetchMember.mockRejectedValueOnce(
       new DiscordAPIError(
         { code: RESTJSONErrorCodes.UnknownMember, message: 'Unknown Member' },

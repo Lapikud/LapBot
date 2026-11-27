@@ -4,7 +4,7 @@ import {
   type Client,
   type Guild,
 } from 'discord.js';
-import type { Directory, MemberInfo } from '~/core/ports/directory';
+import type { Directory } from '~/core/ports/directory';
 import { toActor, toRoleInfo } from '~/discord/interactions/actor';
 import { isPermanentDiscordError, permanent } from './errors';
 
@@ -30,13 +30,12 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     channels: async (guildId) => {
       const found = await guild(guildId);
-      const all = await found.channels.fetch();
 
-      return all
+      return found.channels.cache
         .filter(
           (channel) =>
-            channel?.type === ChannelType.GuildText ||
-            channel?.type === ChannelType.GuildAnnouncement,
+            channel.type === ChannelType.GuildText ||
+            channel.type === ChannelType.GuildAnnouncement,
         )
         .map((channel) => ({
           id: channel.id,
@@ -49,41 +48,21 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     roles: async (guildId) => {
       const found = await guild(guildId);
-      const roles = await found.roles.fetch();
 
-      return roles
+      return found.roles.cache
         .sort((a, b) => b.position - a.position)
         .map((role) => toRoleInfo(role));
     },
     members: async (guildId) => {
       const found = await guild(guildId);
-      const from = async (after?: string): Promise<MemberInfo[]> => {
-        const page = await found.members
-          .list({
-            limit: 1000,
-            cache: false,
-            ...(after !== undefined && { after }),
-          })
-          .catch(absentOrThrow);
 
-        if (page === null) {
-          return [];
-        }
-
-        const members = page
-          .filter((member) => !member.user.bot)
-          .map((member) => ({
-            id: member.id,
-            name: member.displayName,
-            username: member.user.username,
-          }));
-
-        return page.size === 1000
-          ? [...members, ...(await from(page.lastKey()))]
-          : members;
-      };
-
-      return from();
+      return found.members.cache
+        .filter((member) => !member.user.bot)
+        .map((member) => ({
+          id: member.id,
+          name: member.displayName,
+          username: member.user.username,
+        }));
     },
     role: async (guildId, roleId) => {
       const found = await guild(guildId);
@@ -93,9 +72,7 @@ export function createDiscordDirectory(client: Client): Directory {
     },
     member: async (guildId, userId) => {
       const found = await guild(guildId);
-      const member = await found.members
-        .fetch({ user: userId, force: true })
-        .catch(absentOrThrow);
+      const member = await found.members.fetch(userId).catch(absentOrThrow);
 
       return member ? toActor(member) : undefined;
     },

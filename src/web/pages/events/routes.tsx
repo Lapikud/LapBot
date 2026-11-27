@@ -76,7 +76,7 @@ export function eventRoutes({
       return c.html(
         <NewEventPage
           time={time}
-          server={await c.var.server(true)}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
           calendar={

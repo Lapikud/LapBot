@@ -50,7 +50,7 @@ export function pollRoutes({
 
       return c.html(
         <NewPollPage
-          server={await c.var.server(true)}
+          server={await c.var.server()}
           can={c.var.can}
           flash={flashOf(c)}
         />,

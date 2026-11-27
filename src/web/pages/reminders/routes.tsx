@@ -19,7 +19,7 @@ export function reminderRoutes({ services, timezone }: WebDeps) {
       c.html(
         <ReminderPage
           reminders={await reminders.list(c.var.actor)}
-          server={await c.var.server(true)}
+          server={await c.var.server()}
           date={date}
           can={c.var.can}
           flash={flashOf(c)}
