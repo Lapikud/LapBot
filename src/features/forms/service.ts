@@ -86,29 +86,47 @@ export function createFormService(deps: Deps) {
     return form;
   };
 
-  const assignable = async (guildId: string, roleId: string) => {
-    const role = await directory.role(guildId, roleId);
+  const grantsOf = (fields: readonly FormField[]) =>
+    fields.flatMap((field) => (field.kind === 'grant' ? field.options : []));
 
-    return role ? selfAssignProblem(role) : 'does not exist';
+  const requireRoleAdmin = (actor: Actor, fields: readonly FormField[]) => {
+    if (grantsOf(fields).length > 0 && !actor.administrator) {
+      throw new UserError(
+        'Only server administrators can edit forms that give roles.',
+      );
+    }
   };
+
+  const problemsOf = async (guildId: string, roleIds: readonly string[]) =>
+    Promise.all(
+      roleIds.map(async (roleId) => {
+        const role = await directory.role(guildId, roleId);
+
+        return {
+          roleId,
+          problem: role ? selfAssignProblem(role) : 'does not exist',
+        };
+      }),
+    );
 
   const grant = async (actor: Actor, form: Form, values: readonly string[]) => {
     const member = { guildId: actor.guildId, userId: actor.userId };
-    const fields = form.fields
-      .map((field, index) => ({ field, value: values[index] ?? '' }))
-      .filter(({ field }) => field.kind === 'grant');
-    const chosen = new Set(fields.flatMap(({ value }) => value.split(' ')));
-    const offered = fields.flatMap(({ field }) => field.options);
-    const problems = await Promise.all(
-      offered.map((roleId) => assignable(actor.guildId, roleId)),
+    const chosen = new Set(
+      form.fields.flatMap((field, index) =>
+        field.kind === 'grant' ? (values[index] ?? '').split(' ') : [],
+      ),
     );
-    const usable = offered.filter((roleId, i) => {
-      if (problems[i] !== undefined) {
-        log.warn({ roleId, problem: problems[i] }, 'Skipping form role change');
-      }
+    const checked = await problemsOf(actor.guildId, grantsOf(form.fields));
+    const usable = [];
 
-      return problems[i] === undefined;
-    });
+    for (const { roleId, problem } of checked) {
+      if (problem === undefined) {
+        usable.push(roleId);
+      } else {
+        log.warn({ roleId, problem }, 'Skipping form role change');
+      }
+    }
+
     const added = usable.filter((roleId) => chosen.has(roleId));
     const removed = usable.filter((roleId) => !chosen.has(roleId));
     const reason = `Form: ${form.title}`;
@@ -160,21 +178,10 @@ export function createFormService(deps: Deps) {
 
         const fields = validateFields(settings.fields);
 
-        if (
-          [...current.fields, ...fields].some((f) => f.kind === 'grant') &&
-          !actor.administrator
-        ) {
-          throw new UserError(
-            'Only server administrators can edit forms that give roles.',
-          );
-        }
+        requireRoleAdmin(actor, [...current.fields, ...fields]);
 
-        const problems = await Promise.all(
-          fields
-            .flatMap((f) => (f.kind === 'grant' ? f.options : []))
-            .map((roleId) => assignable(actor.guildId, roleId)),
-        );
-        const problem = problems.find((found) => found !== undefined);
+        const checked = await problemsOf(actor.guildId, grantsOf(fields));
+        const problem = checked.find((c) => c.problem !== undefined)?.problem;
 
         if (problem !== undefined) {
           throw new UserError(`A chosen role ${problem}.`);
@@ -223,11 +230,7 @@ export function createFormService(deps: Deps) {
     remove: guard(authz, manage, async (actor, id: number) => {
       const form = await requireForm(id);
 
-      if (form.fields.some((f) => f.kind === 'grant') && !actor.administrator) {
-        throw new UserError(
-          'Only server administrators can edit forms that give roles.',
-        );
-      }
+      requireRoleAdmin(actor, form.fields);
 
       if (form.channelId !== null && form.messageId !== null) {
         await messenger.remove(form.channelId, form.messageId);
