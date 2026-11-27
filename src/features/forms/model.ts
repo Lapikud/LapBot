@@ -7,6 +7,7 @@ export const fieldKinds = [
   'choice',
   'user',
   'role',
+  'grant',
 ] as const;
 
 export type FieldKind = (typeof fieldKinds)[number];
