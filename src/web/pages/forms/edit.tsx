@@ -202,6 +202,15 @@ export function FormEditPage({
           <Textarea label="Description" name="description" rows={2}>
             {form.description}
           </Textarea>
+          <Textarea
+            label="Message after submitting"
+            name="confirmation"
+            rows={2}
+            maxlength={2000}
+            help="Leave empty for: Thanks, your response is saved."
+          >
+            {form.confirmation}
+          </Textarea>
         </fieldset>
         <h2 id="questions">Questions</h2>
         <p class="hint">Discord shows five questions per page.</p>

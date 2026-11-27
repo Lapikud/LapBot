@@ -126,6 +126,7 @@ export function formRoutes({
       await forms.update(c.var.actor, id, {
         title: field(form, 'title') ?? '',
         description: field(form, 'description') ?? null,
+        confirmation: field(form, 'confirmation') ?? null,
         fields: questionsOf(form),
         responseChannelId: field(form, 'responseChannelId') ?? null,
         mentions: mentionsFrom(form),
