@@ -48,7 +48,7 @@ import { buildRegistry } from '~/discord/registry';
 import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import { createDiscordDirectory } from '~/integrations/discord/directory';
 import { Hono } from 'hono';
-import { setSignedCookie } from 'hono/cookie';
+import { sign } from 'hono/jwt';
 import { signedInUser, type SignIn } from '~/web/auth';
 import { type Env, type WebDeps, serverOf } from '~/web/context';
 import { createAnnouncementRepository } from '~/integrations/db/announcements/repository';
@@ -663,40 +663,22 @@ describe('member refresh', () => {
 describe('dashboard sessions', () => {
   const signIn = { sessionSecret: 'test-secret' } as SignIn;
 
-  it('rejects expired and malformed sessions while accepting a fresh session', async () => {
-    const app = new Hono<Env>();
-
-    app.get('/cookie', async (c) => {
-      await setSignedCookie(
-        c,
-        'session',
-        c.req.query('value') ?? '',
-        signIn.sessionSecret,
-      );
-
-      return c.text('');
-    });
-    app.get('/', async (c) =>
+  it('rejects expired and forged sessions while accepting a fresh session', async () => {
+    const app = new Hono<Env>().get('/', async (c) =>
       c.text((await signedInUser(c, signIn)) ?? 'anonymous'),
     );
+    const now = Math.floor(Date.now() / 1000);
 
-    for (const [value, expected] of [
+    for (const [token, expected] of [
+      [await sign({ sub: '123', exp: now + 60 }, signIn.sessionSecret), '123'],
       [
-        JSON.stringify({ userId: '123', expiresAt: Date.now() + 60_000 }),
-        '123',
-      ],
-      [
-        JSON.stringify({ userId: '123', expiresAt: Date.now() - 1 }),
+        await sign({ sub: '123', exp: now - 1 }, signIn.sessionSecret),
         'anonymous',
       ],
-      [JSON.stringify({ userId: '123' }), 'anonymous'],
-      ['123', 'anonymous'],
+      [await sign({ sub: '123', exp: now + 60 }, 'other-secret'), 'anonymous'],
       ['broken', 'anonymous'],
     ]) {
-      const issued = await app.request(
-        `/cookie?value=${encodeURIComponent(value ?? '')}`,
-      );
-      const cookie = issued.headers.get('set-cookie')?.split(';')[0] ?? '';
+      const cookie = `session=${token}`;
 
       expect(
         await (await app.request('/', { headers: { cookie } })).text(),
@@ -1162,19 +1144,11 @@ describe('log access', () => {
     expect(anonymous.status).toBe(303);
     expect(anonymous.headers.get('location')).toBe('/login');
 
-    const issuer = new Hono().get('/', async (c) => {
-      await setSignedCookie(
-        c,
-        'session',
-        JSON.stringify({ userId: 'u', expiresAt: Date.now() + 60_000 }),
-        sessionSecret,
-      );
-
-      return c.text('');
-    });
-    const issued = await issuer.request('/');
     const headers = {
-      cookie: issued.headers.get('set-cookie')?.split(';')[0] ?? '',
+      cookie: `session=${await sign(
+        { sub: 'u', exp: Math.floor(Date.now() / 1000) + 60 },
+        sessionSecret,
+      )}`,
     };
 
     directory.member.mockResolvedValue(actor({ administrator: false }));

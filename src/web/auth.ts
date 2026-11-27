@@ -1,6 +1,7 @@
 import { discordAuth, type DiscordUser } from '@hono/oauth-providers/discord';
 import { Hono, type Context } from 'hono';
-import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { sign, verify } from 'hono/jwt';
 import type { Env } from './context';
 
 export interface SignIn {
@@ -21,32 +22,17 @@ export async function signedInUser(
   c: Context<Env>,
   signIn: SignIn,
 ): Promise<string | undefined> {
-  const value = await getSignedCookie(c, signIn.sessionSecret, sessionCookie);
+  const token = getCookie(c, sessionCookie);
 
-  if (typeof value !== 'string') {
+  if (token === undefined) {
     return undefined;
   }
 
-  try {
-    const session: unknown = JSON.parse(value);
+  const { sub } = await verify(token, signIn.sessionSecret, 'HS256').catch(
+    () => ({ sub: undefined }),
+  );
 
-    if (
-      session !== null &&
-      typeof session === 'object' &&
-      'userId' in session &&
-      typeof session.userId === 'string' &&
-      'expiresAt' in session &&
-      typeof session.expiresAt === 'number' &&
-      Number.isFinite(session.expiresAt) &&
-      session.expiresAt > Date.now()
-    ) {
-      return session.userId;
-    }
-  } catch {
-    return undefined;
-  }
-
-  return undefined;
+  return typeof sub === 'string' ? sub : undefined;
 }
 
 export function signInPages(signIn: SignIn) {
@@ -67,14 +53,16 @@ export function signInPages(signIn: SignIn) {
         return c.redirect('/login', 303);
       }
 
-      await setSignedCookie(
+      setCookie(
         c,
         sessionCookie,
-        JSON.stringify({
-          userId: user.id,
-          expiresAt: Date.now() + sessionSeconds * 1000,
-        }),
-        signIn.sessionSecret,
+        await sign(
+          {
+            sub: user.id,
+            exp: Math.floor(Date.now() / 1000) + sessionSeconds,
+          },
+          signIn.sessionSecret,
+        ),
         {
           httpOnly: true,
           sameSite: 'Lax',

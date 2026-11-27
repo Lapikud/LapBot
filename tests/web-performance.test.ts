@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
-import { setSignedCookie } from 'hono/cookie';
+import { setCookie } from 'hono/cookie';
+import { sign } from 'hono/jwt';
 import type { ChannelInfo } from '~/core/ports/directory';
 import { createWebApp } from '~/web/app';
 import type { WebDeps } from '~/web/context';
@@ -55,14 +56,13 @@ function fixture() {
     },
   } as unknown as WebDeps);
   const issuer = new Hono().get('/:user', async (c) => {
-    await setSignedCookie(
+    setCookie(
       c,
       'session',
-      JSON.stringify({
-        userId: c.req.param('user'),
-        expiresAt: Date.now() + 60_000,
-      }),
-      sessionSecret,
+      await sign(
+        { sub: c.req.param('user'), exp: Math.floor(Date.now() / 1000) + 60 },
+        sessionSecret,
+      ),
     );
 
     return c.text('');
